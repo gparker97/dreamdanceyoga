@@ -68,10 +68,8 @@ app.get('/api/acuity/:function', (req, res) => {
         'certificates',
         'products'
     ];
-    
     const func = req.params.function;    
-    
-    // refactor this later
+    // Query details - refactor this later
     const queryIds = Object.keys(req.query);
     const queryId1 = Object.keys(req.query)[0];
     const queryId2 = Object.keys(req.query)[1];
@@ -124,7 +122,8 @@ app.get('/api/acuity/:function', (req, res) => {
             count++;
         });
     }
-
+    
+    console.log('Sending to Acuity API...');
     if (debug) {
         console.log(`Func is ${func}`);
         console.log(`Query ID 1 is ${queryId1}`);
@@ -139,19 +138,16 @@ app.get('/api/acuity/:function', (req, res) => {
         console.log(req.params);
         console.log(`Method is ${method}`);
         console.log(`Acuity URL is ${acuityURL}`);
-    }
-    
-    console.log('Sending to Acuity API...');
+    }    
 
     // API CALL
     const Acuity = require('acuityscheduling');
     const config = require('../config');
     const acuity = Acuity.basic(config);
-
-    console.log('Starting acuity API call...');    
     
     if (debug) {
-        console.log('options is');
+        console.log('Starting acuity API call...');
+        console.log('Options is:');
         console.log(options);
     }
 
