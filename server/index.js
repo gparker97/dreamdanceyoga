@@ -86,7 +86,7 @@ app.get('/api/acuity/:function', (req, res) => {
     // Return if function not in supportedFunctions array
     if (!supportedFunctions.includes(func)) { return res.status(404).send('Function not supported'); }    
     
-    if (method === 'POST'  || method === 'DELETE') {
+    if (method === 'POST' || method === 'DELETE') {
         if (debug) {
             console.log('POST/DELETE - building options...');
         }        
