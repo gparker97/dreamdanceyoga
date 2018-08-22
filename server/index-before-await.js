@@ -186,7 +186,7 @@ app.get('/api/acuity/:function', async (req, res) => {
         console.log('-- Starting acuity API call...');
         console.log('Options below');
         console.log(options);
-    }
+    } //hi
 
     /*
     var APIresponse = await acuityAPIcall(acuityURL, options);    
