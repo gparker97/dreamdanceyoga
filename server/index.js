@@ -123,6 +123,7 @@ app.get('/api/acuity/:function', async (req, res) => {
     // Return if function not in supportedFunctions array
     if (!supportedFunctions.includes(func)) { return res.status(404).send('Function not supported'); }    
     
+    // Build JSON body for post / delete
     if (method === 'POST' || method === 'DELETE') {
         if (debug) {
             console.log('POST/DELETE - building options...');
@@ -207,12 +208,12 @@ app.get('/api/acuity/:function', async (req, res) => {
                     console.log(err);
                 }
                 return res.status(400).send('An error occured');
-            } else if (response.status_code >= 400) {
+            /*} else if (response.status_code >= 400) {
                 if (debug) { console.log(`Error status code: ${response.status_code} and error message: ${response.message}`); }
                 return res.status(400).send(`Error 400 or occured status code is ${response.status_code} and message is ${response.message}`);            
             } else if (typeof response != 'undefined' && response.length < 1) {
                 if (debug) { console.log(`Response length less than 1, no records returned`); }
-                return res.status(400).send('No records returned');
+                return res.status(400).send('No records returned');*/
             } else {
                 if (debug) {
                     if (err !== null) {

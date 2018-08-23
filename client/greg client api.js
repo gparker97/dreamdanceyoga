@@ -43,8 +43,8 @@
  </p>
 </div>
 
-<button type="button" id="buy_button">BUY</button>
 <button type="button" id="get_codes_button">GET CODES</button>
+<button type="button" id="buy_button">BUY</button>
 
 <div id="select_codes_div">
  <p>Select Code to Delete:
@@ -54,36 +54,57 @@
  </p>
 </div>
 
+<button type="button" id="delete_code_button">DELETE CODE</button>
+
 <div id="loading"></div>
 <div id="error_message"></div>
+<div id="show_results"></div>
 <div id="debug_output_api"></div>
 <div id="debug_output_select"></div>
-<div id="debug_output_buy"></div>
 
 <script type="text/javascript">
-var msg = "";
-var err_msg = "";
-var debug = true;
-var $error_output = $('#error_message');
+apiHost = 'https://66.96.208.44:3443/api/acuity';
+debug_msg = "";
+err_msg = "";
+debug = true;
 
-async function callAPI(func, qId, qParam, $dropdn) {	
-	let result;
-	var $debug_output = $('#debug_output_api');
-	var $loading = $('#loading');	
-	var apiHost = 'https://66.96.208.44:3443/api/acuity';	
-		
+$loading = $('#loading');
+$debug_output = $('#debug_output_api');
+$error_output = $('#error_message');
+
+// async function callAPI(func, qId, qParam, params, $dropdn) {
+async function callAPI(func, params, $dropdn) {
 	// Build API call URL
+	// NOTE: BUILD with method and multiple query parameters
+	// url = `${apiHost}/${func}/${method} IF NOT GET/?${qId1}=${qParam1}&${qId2}=${qParam2}$ etc...`;
+	/*
 	if (qParam) {
 		var url = `${apiHost}/${func}?${qId}=${qParam}`;
 	} else {
 		var url = `${apiHost}/${func}`;
 	}
+	*/
 	
-	msg += `<br>INSIDE CALL API FUNCTION<br>Function: ${func}<br>Query: ${qId}<br>Param: ${qParam}<br>URL: ${url}`;
-	$debug_output.html(msg);
+	// Loop through params and build API call URL
+	var url = `${apiHost}/${func}`;	
+	var count = 1;	
+	$.each(params, (key, value) => {
+		if (count === 1) {
+			url += `?${key}=${value}`;
+			count++;
+		}
+		else {
+			url += `&${key}=${value}`;
+		}			
+	});
+	
+	if (debug) {
+		debug_msg += `<br>INSIDE CALL API FUNCTION<br>Function: ${func}<br>URL: ${url}`;		
+		$debug_output.html(debug_msg);	
+	}
 	
 	try {	
-		result = await $.ajax({
+		let result = await $.ajax({
 		method: "GET",
 		crossDomain: true,
 		url: url,
@@ -92,8 +113,8 @@ async function callAPI(func, qId, qParam, $dropdn) {
 		success: function(response) {
 			console.log(response);			
 			if (debug) {
-				msg += `<br><b>API RESPONSE SUCCESSFUL</b><br>Function: ${func}`;				
-				$debug_output.html(msg);
+				debug_msg += `<br><b>API RESPONSE SUCCESSFUL</b><br>Function: ${func}`;				
+				$debug_output.html(debug_msg);
 			}
 		},
 		error: function(xhr, status, error) {			
@@ -106,7 +127,7 @@ async function callAPI(func, qId, qParam, $dropdn) {
 				default:
 					err_msg = `<b>An error occured with ${func}, please try again</b>`;
 			}
-			$error_output.html(err_msg);			
+			$error_output.html(err_msg);
 			// Empty dropdown menu 
 			if ($dropdn) {
 				$dropdn.empty();
@@ -114,16 +135,16 @@ async function callAPI(func, qId, qParam, $dropdn) {
 			}
 
 			if (debug) {				
-				msg += `<br><b>API FAIL</b><br>Function: ${func}<br>XHR status: ${xhr.status}<br>XHR statusText: ${xhr.statusText}<br>XHR responseText: ${xhr.responseText}`;
-				$debug_output.html(msg);
+				debug_msg += `<br><b>API FAIL</b><br>Function: ${func}<br>XHR status: ${xhr.status}<br>XHR statusText: ${xhr.statusText}<br>XHR responseText: ${xhr.responseText}`;
+				$debug_output.html(debug_msg);
 			}
 		},
 		complete: function(response) {			
 			$('#load').remove();
 			
 			if (debug) {
-				msg += `<br><b>API CALL COMPLETE</b><br>Function: ${func}`;
-				$debug_output.html(msg);
+				debug_msg += `<br><b>API CALL COMPLETE</b><br>Function: ${func}`;
+				$debug_output.html(debug_msg);
 			}
 		},
 		timeout: 10000
@@ -132,8 +153,8 @@ async function callAPI(func, qId, qParam, $dropdn) {
 	} catch (e) {
 		console.error(e);
 		if (debug) {
-			msg += `<br><b>ERROR CAUGHT</b><br>Function: ${func}<br>Response text: ${e.responseText}`;
-			$debug_output.html(msg);
+			debug_msg += `<br><b>ERROR CAUGHT</b><br>Function: ${func}<br>Response text: ${e.responseText}`;
+			$debug_output.html(debug_msg);
 		}
 		return e;
 	}
@@ -168,89 +189,115 @@ $('#search_client').on('submit', async (e) => {
 	e.preventDefault();
 	
 	if (debug) {
-		msg += `Debug mode ON`
-		msg += `<br>Submit invoked on search_client`
-		$debug_output.html(msg);
+		debug_msg = `Debug mode ON`;
+		debug_msg += `<br>Submit invoked on search_client`;
+		$debug_output.html(debug_msg);
 	}
 
-	// API call to retrieve client list	
-	msg = "";
+	// API call to retrieve client list
 	err_msg = "";
-	$error_output.html(err_msg);
-	var func = "clients";
+	$error_output.html(err_msg);	
+	var func = "clients";	
 	var queryId = "search";
 	var queryParam = $('#client_search').val();
+	var searchTerm = $('#client_search').val();	
+	var params = {
+		search: searchTerm
+	};
 	var $dropdown = $('#select_client');
 	if (debug) {
-		msg += `<br><b>Starting clients call..</b>`;
-		$debug_output.html(msg);
+		debug_msg += `<br><b>Starting clients call..</b>`;
+		debug_msg += `<br>Params.search: ${params.search}`;
+		$debug_output.html(debug_msg);
 	}	
 	try {
-		clients = await callAPI(func, queryId, queryParam, $dropdown);
+		err_msg = "";
+		$error_output.html(err_msg);
+		// clients = await callAPI(func, queryId, queryParam, params, $dropdown);
+		clients = await callAPI(func, params, $dropdown);		
 		console.log(clients);
 		if (debug) {
-			msg += `<br>Clients: ${clients}`;	
-			$debug_output.html(msg);
+			debug_msg += `<br>Clients: ${clients}`;	
+			$debug_output.html(debug_msg);
 		}		
 		// Populate select dropdown with client results
 		populateDropdown($dropdown, clients, func);
 	} catch (e) {
 		console.log (e);
-		msg += `<br>${func} XHR responseText if error: ${e.responseText}`;
-		$debug_output.html(msg);
+		err_msg = `<b>Problem with ${func}, please check and try again</b>`;
+		$error_output.html(err_msg);
+		if (debug) {
+			debug_msg += `<br>${func} XHR responseText if error: ${e.responseText}`;
+			$debug_output.html(debug_msg);
+		}		
 	}	
+	
+	// TEMP debug
+	// throw new error('stopping here');
 	
 	// API CALL for products
 	var func = 'products';
 	var queryId = false;
 	var queryParam = false;
+	var params = {};	
 	var $dropdown = $('#select_product');	
 	if (debug) {
-		msg += `<br><b>Starting products call..</b>`;
-		$debug_output.html(msg);
+		debug_msg += `<br><b>Starting products call..</b>`;
+		$debug_output.html(debug_msg);
 	}	
 	try {
-		products = await callAPI(func, queryId, queryParam, $dropdown);
+		// products = await callAPI(func, queryId, queryParam, params, $dropdown);
+		products = await callAPI(func, params, $dropdown);
 		console.log(products);
 		if (debug) {
-			msg += `<br>Products: ${products}`;
-			$debug_output.html(msg);
+			debug_msg += `<br>Products: ${products}`;
+			$debug_output.html(debug_msg);
 		}		
 		// Populate select dropdown with client results
 		populateDropdown($dropdown, products, func);
 	} catch (e) {
 		console.log(e);
-		msg += `<br>${func} XHR responseText if error: ${e.responseText}`;
-		$debug_output.html(msg);
+		err_msg = `<b>Problem with ${func}, please check and try again</b>`;
+		$error_output.html(err_msg);
+		if (debug) {
+			debug_msg += `<br>${func} XHR responseText if error: ${e.responseText}`;
+			$debug_output.html(debug_msg);
+		}
 	}	
 
 	// API CALL for classes
 	var func = 'appointment-types';
 	var queryId = false;
 	var queryParam = false;
+	var params = {};
 	var $dropdown = $('#select_class');	
 	if (debug) {
-		msg += `<br><b>Starting classes call..</b>`;
-		$debug_output.html(msg);
+		debug_msg += `<br><b>Starting classes call..</b>`;
+		$debug_output.html(debug_msg);
 	}	
-	try {
-		classes = await callAPI(func, queryId, queryParam, $dropdown);
+	try {		
+		// classes = await callAPI(func, queryId, queryParam, params, $dropdown);
+		classes = await callAPI(func, params, $dropdown);
 		console.log(classes);
 		if (debug) {
-			msg += `<br>Classes: ${classes}`;
-			$debug_output.html(msg);
+			debug_msg += `<br>Classes: ${classes}`;
+			$debug_output.html(debug_msg);
 		}		
 		// Populate select dropdown with client results
 		populateDropdown($dropdown, classes, func);
 	} catch (e) {
 		console.log(e);
-		msg += `<br>${func} XHR responseText if error: ${e.responseText}`;
-		$debug_output.html(msg);
+		err_msg = `<b>Problem with ${func}, please check and try again</b>`;
+		$error_output.html(err_msg);
+		if (debug) {
+			debug_msg += `<br>${func} XHR responseText if error: ${e.responseText}`;
+			$debug_output.html(debug_msg);
+		}
 	}	
 });
 
 if (debug) {
-	// Display selected options
+	// Display selected options on change
 	$('.select_dropdown').change(function() {
 		var $debug_output = $('#debug_output_select');		
 		var student = $('#select_client').val();
@@ -263,54 +310,142 @@ if (debug) {
 	});
 }
 
-// EVENT: BUY button click
-$('#buy_button').on('click', async (e) => {
-	e.preventDefault();
-	var $debug_output = $('#debug_output_buy');
-	
-	if (debug) { 
-		var msg_buy = "<h2>clicked buy button!</h2>";
-		$debug_output.html(msg_buy).hide().fadeIn(500);
-	}
-});
-
 // EVENT: Get Codes button click
 $('#get_codes_button').on('click', async (e) => {
-	e.preventDefault();
-	var $debug_output = $('#debug_output_buy');
+	e.preventDefault();	
 	
 	var func = "certificates";
 	var queryId = "email";
-	//var queryParam = email_address;	
-	var selected_client = $('#select_client').prop('selectedIndex');	
+	var selected_client = $('#select_client').prop('selectedIndex');
+	var client_email = clients[selected_client].email;
 	var queryParam = clients[selected_client].email;
+	var params = {		
+		email: client_email
+	};
 	var $dropdown = $('#select_code_del');		
 	
 	if (debug) {
-		var msg_buy = "<h2>clicked GET CODES button!</h2>";
-		msg_buy += `<br>selected_client: ${selected_client}`;
-		msg_buy += `<br>queryParam: ${queryParam}`;				
-		msg_buy += `<br><b>Starting get codes call for email..</b>`;
-		$debug_output.html(msg_buy);
+		debug_msg += `<h2>clicked GET CODES button!</h2>`;
+		debug_msg += `<br>selected_client: ${selected_client}`;
+		debug_msg += `<br>queryParam: ${queryParam}`;				
+		debug_msg += `<br><b>Starting get codes call for email..</b>`;
+		$debug_output.html(debug_msg);
 	}
 		
 	try {
-		var certificates = await callAPI(func, queryId, queryParam, $dropdown);
-		if (debug) {
-			console.log(certificates);
-			msg_buy += `<br>Certificates: ${certificates}`;
-			msg_buy += `<br>Certificate name: ${certificates[0].name}`;
-			msg_buy += `<br>Certificate ID: ${certificates[0].id}`;
-			msg_buy += `<br>Certificate code: ${certificates[0].certificate}`;
-			$debug_output.html(msg_buy)
-		}
+		// var certificates = await callAPI(func, queryId, queryParam, params, $dropdown);
+		certificates = await callAPI(func, params, $dropdown);
+		if (debug) { console.log(certificates);	}
 		// Populate select dropdown with client results
 		populateDropdown($dropdown, certificates, func);
 	} catch (e) {
 		console.log(e);
-		msg += `<br>${func} XHR responseText if error: ${e.responseText}`;
-		$debug_output.html(msg);
+		if (debug) {
+			debug_msg += `<br>${func} XHR responseText if error: ${e.responseText}`;
+			$debug_output.html(debug_msg);
+		}		
 	}	
-});	
+});
+
+// EVENT: DELETE CODE button click
+$('#delete_code_button').on('click', async (e) => {
+	e.preventDefault();
+	
+	if (debug) {
+		debug_msg += "<br><b>clicked DELETE CODE button...</b>";
+		$debug_output.html(debug_msg);
+	}
+	
+	var func = "certificates";
+	var selected_cert = $('#select_code_del').prop('selectedIndex');
+	var certId = certificates[selected_cert].id;			
+	var params = {
+		method: "DELETE",
+		id: certId
+	};
+	var $dropdown = false;
+	
+	if (debug) { 
+		debug_msg += "<br>Deleting code...";
+		// debug_msg += `<br>Query ID 1: ` + Object.keys(params[0]) + `<br>Query Param 1: ${params.productID}<br>Query ID 2: ` + ${Object.keys(params[1]} + `<br>Query Param 2: ${params.email}`;
+		// debug_msg += JSON.stringify(params);
+		$debug_output.html(debug_msg);
+	}
+	try {
+		err_msg = "";
+		$error_output.html(err_msg);
+		// var generateCertResult = await callAPI(func, queryId1, queryParam1, params, $dropdown);
+		var deleteCodeResult = await callAPI(func, params, $dropdown);
+		if (debug) { 
+			console.log(deleteCodeResult);
+			debug_msg += `<br>${func} XHR responseText if error: ${e.responseText}`;
+			debug_msg += `<br>Code deletion successful!<br>Package name: ${deleteCodeResult.name}<br>Code: ${deleteCodeResult.certificate}<br>`;
+			$debug_output.html(debug_msg);
+			alert(`Code Deleted!  Code: ${generateCertResult.certificate}`);
+		}
+	} catch (e) {
+		console.log(e);
+		err_msg = `<b>Problem with ${func}, please check and try again</b>`;
+		$error_output.html(err_msg);
+		if (debug) {
+			debug_msg += `<br>${func} XHR responseText if error: ${e.responseText}`;
+			$debug_output.html(debug_msg);
+		}		
+	}
+});
+
+// EVENT: BUY button click
+$('#buy_button').on('click', async (e) => {
+	e.preventDefault();
+	
+	if (debug) {
+		debug_msg += "<br><b>clicked BUY button...</b>";
+		$debug_output.html(debug_msg);
+	}
+	
+	var func = "certificates";
+	var selected_product = $('#select_product').prop('selectedIndex');
+	var productId = products[selected_product].id;		
+	var selected_client = $('#select_client').prop('selectedIndex');
+	var client_email = clients[selected_client].email;
+	var queryId1 = "productID";
+	var queryParam1 = productId;
+	var queryId2 = "email";	
+	var queryParam2 = client_email;	
+	var params = {
+		method: "POST",
+		productID: productId,
+		email: client_email
+	};
+	var $dropdown = false;
+	
+	if (debug) { 
+		debug_msg += "<br>Starting cerificate code generation...";
+		// debug_msg += `<br>Query ID 1: ` + Object.keys(params[0]) + `<br>Query Param 1: ${params.productID}<br>Query ID 2: ` + ${Object.keys(params[1]} + `<br>Query Param 2: ${params.email}`;
+		// debug_msg += JSON.stringify(params);
+		$debug_output.html(debug_msg);
+	}
+	try {
+		err_msg = "";
+		$error_output.html(err_msg);
+		// var generateCertResult = await callAPI(func, queryId1, queryParam1, params, $dropdown);
+		var generateCertResult = await callAPI(func, params, $dropdown);
+		if (debug) {
+			console.log(generateCertResult);
+			debug_msg += `<br>${func} XHR responseText if error: ${e.responseText}`;
+			debug_msg += `<br>Code generation successful!<br>Package name: ${generateCertResult.name}<br>Code: ${generateCertResult.certificate}<br>`;
+			$debug_output.html(debug_msg);
+			alert(`Code Generated!  Code: ${generateCertResult.certificate}`);			
+		}
+	} catch (e) {
+		console.log(e);
+		err_msg = `<b>Problem with ${func}, please check and try again</b>`;
+		$error_output.html(err_msg);
+		if (debug) {
+			debug_msg += `<br>${func} XHR responseText if error: ${e.responseText}`;
+			$debug_output.html(debug_msg);
+		}
+	}
+});
 </script>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
