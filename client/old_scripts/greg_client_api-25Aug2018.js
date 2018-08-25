@@ -1,4 +1,4 @@
-<h3>GREG TEST API</h3>
+<h3>ACUITY TEST API CONNECTION</h3>
 
 <form id="search_client" action="" method="post">
   <p>Enter name: 
