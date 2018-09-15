@@ -68,7 +68,7 @@
 	</div>
 
 	<button type="button" id="buy_package_debug" class="buy_package" disabled>BUY PACKAGE</button>
-	<button type="button" id="book_class" disabled>BOOK CLASS</button>
+	<button type="button" id="buy_class" disabled>BUY CLASS</button>
 
 	<div id="select_codes_div">
 		<label id="select_code_label" for="select_code_del">Select Code for Student: </label>
@@ -89,199 +89,240 @@
 </body>
 
 <script type="text/javascript">
-{
-// Declare global API call variables
-var apiHost = 'https://66.96.208.44:3443/api/acuity';
-var debug_msg = "";
-var err_msg = "";
-var debug = true;
-
-var $debug_output = $('#debug_output_api');
-var $error_output = $('#error_message');
-
-var clients = [];
-var products = [];
-var classes = [];
-var certificates = [];
-var deleteCodeResult = [];
-
-async function initApiCall(func) {
-	if (debug) {
-		debug_msg += `<br>Starting initApiCall: ${func}`;
-		$debug_output.html(debug_msg);
-	}	
-
-	// Initialize parameters for API call
-	switch (func) {
-		case 'clients_search':
-			var searchTerm = $('#client_search').val();			
-			var params = {
-				search: searchTerm
-			};			
-			break;
-		case 'products_get':
-			var params = {};
-			break;
-		case 'appointment-types_get':
-			var params = {};
-			break;
-		case 'certificates_get':
-			var selected_client = $('#select_client').prop('selectedIndex');
-			var client_email = clients[selected_client].email;
-			var queryParam = clients[selected_client].email;
-			var params = {		
-				email: client_email
-			};			
-			break;
-		case 'certificates_del':
-			var selected_cert = $('#select_code_del').prop('selectedIndex');
-			var certId = certificates[selected_cert].id;			
-			var params = {
-				method: "DELETE",
-				id: certId
-			};
-			break;
-		case 'certificates_create':
-			var selected_product = $('#select_product').prop('selectedIndex');
-			var productId = products[selected_product].id;		
-			var selected_client = $('#select_client').prop('selectedIndex');
-			var client_email = clients[selected_client].email;			
-			var params = {
-				method: "POST",
-				productID: productId,
-				email: client_email
-			};
-			break;
-		default:
-			console.log(`ERROR: Function not found: ${func}`);
-			err_msg += "Problem with initApiCall function";
-			$error_output.html(err_msg);
-			return false;
-	}
-	
-	// Make API call
-	try {		
-		if (debug) {			
-			debug_msg += `<br><b>Starting API call: ${func}..</b>`;
-			$debug_output.html(debug_msg);
-		}
-		var funcToCall = func.split('_')[0];
-		console.log(`Starting API call: ${func}`);
-		console.log(params);
-		return await callAPI(funcToCall, params);
-	} catch (e) {
-		console.log(`ERROR: Error returned from callAPI function: ${func}`);
-		console.log (e);
-		if (debug) {
-			debug_msg += `<br>${func} XHR responseText if error: ${e.responseText}`;
-			$debug_output.html(debug_msg);
-		}
-		return e;
-	}
-}
-
-async function callAPI(func, params) {
-	var $loading = $('#loading');
-	
-	// Loop through params and build API call URL	
-	var url = `${apiHost}/${func}`;
-	var count = 1;	
-	$.each(params, (key, val) => {
-		if (count === 1) {
-			url += `?${key}=${val}`;
-			count++;
-		}
-		else {
-			url += `&${key}=${val}`;
-		}			
-	});
-	
-	if (debug) {
-		debug_msg += `<br>STARTED CALL API FUNCTION<br>Function: ${func}<br>URL: ${url}`;
-		$debug_output.html(debug_msg);	
-	}
-	
-	try {	
-		let result = await $.ajax({
-			method: "GET",
-			crossDomain: true,
-			url: url,
-			datatype: "json",
-			beforeSend: function() { $loading.html('<div id="load"><h2><b>LOADING - PLEASE WAIT</b></h2></div>'); },
-			success: function(response, status, xhr) {
-				console.log(response);			
-				if (debug) {
-					debug_msg += `<br><b>API RESPONSE SUCCESSFUL</b><br>Function: ${func}`;				
-					$debug_output.html(debug_msg);
-					console.log('Status:');
-					console.log(status);
-					console.log('XHR:');
-					console.log(xhr);
-				}
-			},
-			error: function(xhr, status, error) {
-				console.log(`ERROR: API call error: ${func}`);
-				console.log(error);
-				if (debug) {
-					debug_msg += `<br><b>API FAIL</b><br>Function: ${func}<br>XHR status: ${xhr.status}<br>XHR statusText: ${xhr.statusText}<br>XHR responseText: ${xhr.responseText}`;
-					$debug_output.html(debug_msg);
-				}
-			},
-			complete: function(response) {			
-				$('#load').remove();				
-				if (debug) {
-					debug_msg += `<br><b>API CALL COMPLETE</b><br>Function: ${func}`;
-					$debug_output.html(debug_msg);
-				}
-			},
-			timeout: 10000
-		});
-		return result;
-	} catch (e) {
-		console.log(`ERROR: Error detected in first level API call: ${func}`);
-		console.error(e);
-		if (debug) {
-			debug_msg += `<br><b>ERROR CAUGHT</b><br>Function: ${func}<br>Response text: ${e.responseText}`;
-			$debug_output.html(debug_msg);
-		}
-		return e;
-	}
-}
-
-function populateDropdown($drop, data, func) {
-	$drop.empty();
-	switch(func) {
-		case 'clients':
-			$.each(data, (i, val) => {
-				$drop.append($('<option>').text(`${data[i].firstName} ${data[i].lastName}`).attr('value', `${data[i].firstName} ${data[i].lastName}`));
-			});
-			break;
-		case 'products':
-		case 'appointment-types':
-			$.each(data, (i, val) => {
-				$drop.append($('<option>').text(data[i].name).attr('value', data[i].name));
-			});
-			break;		
-		case 'certificates':			
-			$.each(data, (i, val) => {				
-					$drop.append($('<option>').text(`${data[i].name} Code: ${data[i].certificate}`).attr('value', data[i].certificate));
-				});
-			break;
-		default:
-			console.log('Unable to populate dropdown');
-	}
-}
-
-function clearDropdown($drop) {
-	// Empty dropdown menu if it exists	
-	$drop.empty();
-	$drop.append($('<option>').text('Select One').attr('value', 'Select One'));	
-}
-
-//// MAIN ////
 $( () => {
+    // Declare API call variables
+    var debug_msg = "";
+    var err_msg = "";
+    var debug = true;
+
+    var $debug_output = $('#debug_output_api');
+    var $error_output = $('#error_message');
+
+    var clients = [];
+    var products = [];
+    var classes = [];
+    var certificates = [];
+    var deleteCodeResult = [];
+
+    async function initApiCall(func) {
+        if (debug) {
+            debug_msg += `<br>Starting initApiCall: ${func}`;
+            $debug_output.html(debug_msg);
+        }	
+
+        // Initialize parameters for API call
+        switch (func) {
+            case 'clients_search':
+                var searchTerm = $('#client_search').val();			
+                var params = {
+                    search: searchTerm
+                };			
+                break;
+            case 'products_get':
+                var params = {};
+                break;
+            case 'appointment-types_get':
+                var params = {};
+                break;
+            case 'availability--classes_get':
+                var selected_class = $('#select_class').prop('selectedIndex');	
+                var classId = classes[selected_class].id;
+                var params = {		
+                    appointmentTypeID: classId
+                };
+                break;
+            case 'appointments_create':
+                var selected_class = $('#select_class').prop('selectedIndex');
+                var selected_client = $('#select_client').prop('selectedIndex');
+                var classTime = $('#buy_class').data('classTime');
+                var classId = classes[selected_class].id;            
+                var client_firstName = clients[selected_client].firstName;
+                var client_lastName = clients[selected_client].lastName;
+                var client_email = clients[selected_client].email;
+                var client_phone = clients[selected_client].phone;
+                var params = {
+                    method: "POST",
+                    datetime: classTime,
+                    appointmentTypeID: classId,
+                    firstName: client_firstName,
+                    lastName: client_lastName,
+                    email: client_email,
+                    phone: client_phone
+                };
+                break;
+            case 'certificates_get':
+                var selected_client = $('#select_client').prop('selectedIndex');
+                var client_email = clients[selected_client].email;
+                var queryParam = clients[selected_client].email;
+                var params = {		
+                    email: client_email
+                };
+                break;
+            case 'certificates_del':
+                var selected_cert = $('#select_code_del').prop('selectedIndex');
+                var certId = certificates[selected_cert].id;			
+                var params = {
+                    method: "DELETE",
+                    id: certId
+                };
+                break;
+            case 'certificates_create':
+                var selected_product = $('#select_product').prop('selectedIndex');
+                var productId = products[selected_product].id;		
+                var selected_client = $('#select_client').prop('selectedIndex');
+                var client_email = clients[selected_client].email;			
+                var params = {
+                    method: "POST",
+                    productID: productId,
+                    email: client_email
+                };
+                break;
+            default:
+                console.log(`ERROR: Function not found: ${func}`);
+                err_msg += "Problem with initApiCall function";
+                $error_output.html(err_msg);
+                return false;
+        }
+        
+        // Make API call
+        try {		
+            if (debug) {			
+                debug_msg += `<br><b>Starting API call: ${func}..</b>`;
+                $debug_output.html(debug_msg);
+            }
+            var funcToCall = func.split('_')[0];
+            console.log(`Starting API call: ${func}`);
+            console.log(params);
+            return await callAPI(funcToCall, params);
+        } catch (e) {
+            console.log(`ERROR: Error returned from callAPI function: ${func}`);
+            console.log (e);
+            if (debug) {
+                debug_msg += `<br>${func} XHR responseText if error: ${e.responseText}`;
+                $debug_output.html(debug_msg);
+            }
+            return e;
+        }
+    }
+
+    async function callAPI(func, params) {
+        var $loading = $('#loading');
+        var apiHost = 'https://66.96.208.44:3443/api/acuity';    
+        
+        // Loop through params and build API call URL	
+        var url = `${apiHost}/${func}`;
+        var count = 1;	
+        $.each(params, (key, val) => {
+            if (count === 1) {
+                url += `?${key}=${val}`;
+                count++;
+            }
+            else {
+                url += `&${key}=${val}`;
+            }			
+        });
+
+        // Replace any '+' symbols in URL with ASCII code
+        url = url.replace(/\+/g, "%2B");
+        
+        if (debug) {			
+			debug_msg += `<br>STARTED CALL API FUNCTION<br>Function: ${func}<br>URL: ${url}`;
+            $debug_output.html(debug_msg);	
+        }
+        
+        try {	
+            let result = await $.ajax({
+                method: "GET",
+                crossDomain: true,
+                url: url,
+                datatype: "json",
+                beforeSend: function() { $loading.html('<div id="load"><h2><b>LOADING - PLEASE WAIT</b></h2></div>'); },
+                success: function(response, status, xhr) {
+                    console.log(response);			
+                    if (debug) {
+                        debug_msg += `<br><b>API RESPONSE SUCCESSFUL</b><br>Function: ${func}`;				
+                        $debug_output.html(debug_msg);
+                        console.log('Status:');
+                        console.log(status);
+                        console.log('XHR:');
+                        console.log(xhr);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.log(`ERROR: API call error: ${func}`);
+                    console.log(error);
+                    if (debug) {
+                        debug_msg += `<br><b>API FAIL</b><br>Function: ${func}<br>XHR status: ${xhr.status}<br>XHR statusText: ${xhr.statusText}<br>XHR responseText: ${xhr.responseText}`;
+                        $debug_output.html(debug_msg);
+                    }
+                },
+                complete: function(response) {			
+                    $('#load').remove();				
+                    if (debug) {
+                        debug_msg += `<br><b>API CALL COMPLETE</b><br>Function: ${func}`;
+                        $debug_output.html(debug_msg);
+                    }
+                },
+                timeout: 10000
+            });
+            return result;
+        } catch (e) {
+            console.log(`ERROR: Error detected in first level API call: ${func}`);
+            console.error(e);
+            if (debug) {
+                debug_msg += `<br><b>ERROR CAUGHT</b><br>Function: ${func}<br>Response text: ${e.responseText}`;
+                $debug_output.html(debug_msg);
+            }
+            return e;
+        }
+    }
+
+    function populateDropdown($drop, data, func) {
+        $drop.empty();
+        switch(func) {
+            case 'clients':
+                $.each(data, (i, val) => {
+                    $drop.append($('<option>').text(`${data[i].firstName} ${data[i].lastName}`).attr('value', `${data[i].firstName} ${data[i].lastName}`));
+                });
+                break;
+            case 'products':
+            case 'appointment-types':
+                $.each(data, (i, val) => {
+                    $drop.append($('<option>').text(data[i].name).attr('value', data[i].name));
+                });
+                break;		
+            case 'certificates':			
+                $.each(data, (i, val) => {
+                        $drop.append($('<option>').text(`${data[i].name} Code: ${data[i].certificate}`).attr('value', data[i].certificate));
+                    });
+                break;
+            default:
+                console.log('Unable to populate dropdown');
+        }
+    }
+
+    function clearDropdown($drop) {
+        // Empty dropdown menu if it exists	
+        $drop.empty();
+        $drop.append($('<option>').text('Select One').attr('value', 'Select One'));	
+    }
+
+    function writeError(msg) {
+        // Define error message location
+        var $error_output = $('#error_message');
+        
+        if (msg === "") {
+            err_msg = msg;
+        } else {
+            err_msg += msg;
+        }        
+		$error_output.html(err_msg);
+    }
+
+    //// EVENTS ////
+
 	if (debug) {
-			$('#debug').removeClass('hide')
+			$('#debug').removeClass('hide');
 			$('#debug_output_api').removeClass('hide').addClass('debug-output');
 			debug_msg = `<b>Debug mode ON</b>`;			
 			$debug_output.html(debug_msg);
@@ -388,7 +429,7 @@ $( () => {
 			// Enable buttons
 			$('#get_codes').prop('disabled', false);
 			$('.buy_package').prop('disabled', false);
-			$('#book_class').prop('disabled', false);
+			$('#buy_class').prop('disabled', false);
 		}
 		catch(e) {
 			console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
@@ -496,17 +537,18 @@ $( () => {
 		$('#delete_code').prop('disabled', false);
 	});
 
-	// EVENT: BUY button click
+	// EVENT: BUY PACKAGE button click
 	$('.buy_package').on('click', async (e) => {
 		e.preventDefault();
 		$('.buy_package').prop('disabled', true);
 		
 		// Clear any error message
-		err_msg = "";
-		$error_output.html(err_msg);
+        writeError("");
+        //err_msg = "";
+		//$error_output.html(err_msg);
 
 		if (debug) {
-			debug_msg += "<br><b>clicked BUY button...</b>";
+			debug_msg += "<br><b>clicked BUY PACKAGE button...</b>";
 			$debug_output.html(debug_msg);
 		}
 		
@@ -542,8 +584,65 @@ $( () => {
 		}
 		$('.buy_package').prop('disabled', false);
 	});
+    
+    // EVENT: BUY CLASS SERIES button click
+	$('#buy_class').on('click', async (e) => {
+		e.preventDefault();
+		$('#buy_class').prop('disabled', true);
+		
+		// Clear any error message
+		err_msg = "";
+		$error_output.html(err_msg);
+
+		if (debug) {
+			debug_msg += "<br><b>clicked BUY CLASS button...</b>";
+			$debug_output.html(debug_msg);
+		}
+		
+        // API call to BOOK CLASS
+        // Check if class type = SERIES
+        var selected_class = $('#select_class').prop('selectedIndex');
+        var classType = classes[selected_class].type;        
+        if (classType === "series") {
+            try {                
+                var funcType = "availability--classes_get";
+                var classTimes = await initApiCall(funcType);                
+                // Once we have all class times, loop through each and book
+                try {
+                    var bookClass = [];
+                    var funcType = "appointments_create";
+                    for (var i = 0; i < classTimes.length; i++) {                    
+                        $('#buy_class').data('classTime', classTimes[i].time);
+                        bookClass[i] = await initApiCall(funcType);
+                        if (debug) {
+                            console.log(`Booked class ${i}:`);
+                            console.log(bookClass[i]);
+                        }
+                    }
+                    var pay_method = $('#select_pay_method').find(':selected').text();
+                    alert(`Classes Booked!\nSeries Name: ${bookClass[0].type}\nFirst Class: ${bookClass[0].datetime}\nPayment Method: ${pay_method}`);
+                }
+                catch(e) {
+                    console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
+                    console.log (e);
+                    err_msg += `<b>An error occured booking class, please check and try again</b><br>`;
+                    $error_output.html(err_msg);
+                }
+            }
+            catch(e) {
+                console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
+                console.log (e);
+                err_msg += `<b>An error occured retrieving class times, please check and try again</b><br>`;
+                $error_output.html(err_msg);
+            }
+        } else {         
+            console.log(`ERROR: Class is not a series`);                
+            err_msg += `<b>Class is not a series, you can only book a series, not a single class.  Please try again.</b><br>`;
+            $error_output.html(err_msg);                
+        }
+		$('#buy_class').prop('disabled', false);
+	});
 });
-}
 </script>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 </html>
