@@ -120,9 +120,7 @@
 	</select> 
 </div>
 
-<div id="view_packages_div" class="one-third hide">
-	<p>SHOW PACKAGES HERE</p>
-</div>
+<div id="view_packages_div" class="hide"></div>
 
 <input type="submit" id="buy_package_submit" class="submit_button hide" value="BUY PACKAGE" />
 <input type="button" id="buy_class_submit" class="submit_button hide" value="BUY CLASS" />
@@ -136,23 +134,16 @@
 
 <script type="text/javascript">
 $( () => {
-    // Declare API call variables
-    var debug_msg = "";
-    var err_msg = "";
-    var debug = true;
-
-    var $debug_output = $('#debug_output');
-    var $error_output = $('#error_message');
-
+    // Declare API call variables    
+	const debug = true;
+	
     var clients = [];
     var products = [];
-    var certificates = [];
-    var deleteCodeResult = [];
+    var certificates = [];    
 
     async function initApiCall(func) {
         if (debug) {
-            debug_msg += `<br>Starting initApiCall: ${func}`;
-            $debug_output.html(debug_msg);
+			writeMessage("debug", `<br>Starting initApiCall: ${func}`);
         }	
 
         // Initialize parameters for API call
@@ -224,27 +215,24 @@ $( () => {
                 break;
             default:
                 console.log(`ERROR: Function not found: ${func}`);
-                err_msg += "Problem with initApiCall function";
-                $error_output.html(err_msg);
+				writeMessage('error', `ERROR: Function ${func} not defined`);
                 return false;
         }
         
         // Make API call
         try {		
             if (debug) {			
-                debug_msg += `<br><b>Starting API call: ${func}..</b>`;
-                $debug_output.html(debug_msg);
+				writeMessage('debug', `<br><b>Starting API call: ${func}..</b>`);				
             }
             var funcToCall = func.split('_')[0];
             console.log(`Starting API call: ${func}`);
             console.log(params);
             return await callAPI(funcToCall, params);
-        } catch (e) {
+        } catch(e) {
             console.log(`ERROR: Error returned from callAPI function: ${func}`);
-            console.log (e);
+            console.error(e);
             if (debug) {
-                debug_msg += `<br>${func} XHR responseText if error: ${e.responseText}`;
-                $debug_output.html(debug_msg);
+				writeMessage('debug', `<br>XHR responseText: ${e.responseText}`);
             }
             return e;
         }
@@ -284,8 +272,7 @@ $( () => {
                 success: function(response, status, xhr) {
                     console.log(response);			
                     if (debug) {
-                        debug_msg += `<br><b>API RESPONSE SUCCESSFUL</b><br>Function: ${func}`;				
-                        $debug_output.html(debug_msg);
+						writeMessage('debug', `<br><b>API RESPONSE SUCCESSFUL</b><br>Function: ${func}`);                        
                         console.log('Status:');
                         console.log(status);
                         console.log('XHR:');
@@ -294,17 +281,15 @@ $( () => {
                 },
                 error: function(xhr, status, error) {
                     console.log(`ERROR: API call error: ${func}`);
-                    console.log(error);
+                    console.error(error);
                     if (debug) {
-                        debug_msg += `<br><b>API FAIL</b><br>Function: ${func}<br>XHR status: ${xhr.status}<br>XHR statusText: ${xhr.statusText}<br>XHR responseText: ${xhr.responseText}`;
-                        $debug_output.html(debug_msg);
+						writeMessage('debug', `<br><b>API FAIL</b><br>Function: ${func}<br>XHR status: ${xhr.status}<br>XHR statusText: ${xhr.statusText}<br>XHR responseText: ${xhr.responseText}`);						
                     }
                 },
                 complete: function(response) {			
                     $('#load').remove();				
                     if (debug) {
-                        debug_msg += `<br><b>API CALL COMPLETE</b><br>Function: ${func}`;
-                        $debug_output.html(debug_msg);
+						writeMessage('debug', `<br><b>API CALL COMPLETE</b><br>Function: ${func}`);						
                     }
                 },
                 timeout: 10000
@@ -314,8 +299,7 @@ $( () => {
             console.log(`ERROR: Error detected in first level API call: ${func}`);
             console.error(e);
             if (debug) {
-                debug_msg += `<br><b>ERROR CAUGHT</b><br>Function: ${func}<br>Response text: ${e.responseText}`;
-                $debug_output.html(debug_msg);
+				writeMessage('debug', `<br><b>ERROR CAUGHT</b><br>Function: ${func}<br>Response text: ${e.responseText}`);
             }
             return e;
         }
@@ -370,7 +354,7 @@ $( () => {
 		}
 		catch(e) {
 			console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
-			console.log (e);
+			console.error(e);
 			writeMessage('error', `<b>An error occured with ${funcType}, please check and try again</b><br>`);			
 		}
 		return result;
@@ -389,13 +373,14 @@ $( () => {
 			if (debug) {
                 writeMessage('debug', `<br>Completed initApicall: ${func}`);				
 			}
+			
 			// If successful populate dropdown menu			
 			var func = "clients";
 			populateDropdown($dropdown, result, func);			
 		}
 		catch(e) {
 			console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
-			console.log (e);
+			console.error(e);
 			if (e.responseText === "No records returned") {
                 writeMessage('error', "<b>Student not found, please try again!</b>");                
 			} else {
@@ -407,7 +392,7 @@ $( () => {
 		return result;
 	}
 
-	async function buyPackage () {		
+	async function buyPackage() {		
 		try {
             var funcType = "certificates_create";			
 			var result = await initApiCall(funcType);
@@ -420,7 +405,7 @@ $( () => {
 		}
 		catch(e) {
 			console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
-			console.log (e);
+			console.error(e);
 			writeMessage('error', `<b>An error occured with ${funcType}, please check and try again</b><br>`);			
 		}
 		return result;
@@ -494,31 +479,29 @@ $( () => {
     function writeMessage(type, msg) {        
         switch (type) {
             case 'error':
-                var $output = $('#error_message');
-                var message = err_msg;
+                var $output = $('#error_message');                
                 break;
             case 'debug':
-                var $output = $('#debug_output');
-                var message = debug_msg;
+                var $output = $('#debug_output');                
                 break;
             default:
                 var $output = $('#debug_output');
         }
-        
-        // Clear or append to message
-        if (msg === "") {
-            message = msg;
-        } else {
+		
+		// Clear or append to message
+		var message = "";
+		if (msg !== "") {
+			// Set message
+			message = $output.html();
             message += msg;
         }
         $output.html(message);
     }
 
-//// EVENTS ////
-
+	//// EVENTS ////
 	if (debug) {
-			$('#debug_output').removeClass('hide').addClass('debug-output');
-            writeMessage('debug', "<b>Debug mode ON</b>");            
+		$('#debug_output').removeClass('hide').addClass('debug-output');
+		writeMessage('debug', "<b>Debug mode ON</b>");
 	}
 
 	// EVENT: TOP LEVEL BUY PACKAGE / CLASS / SUBSCRIPTION CLICK
@@ -581,12 +564,12 @@ $( () => {
 		e.preventDefault();
 		console.log(`Event captured: ${e.currentTarget.id}`);
 		console.log(e);
-        
-        // Disable package submit button
-        $('#buy_package_submit').prop('disabled', true).addClass('disabled');
-        
 		// Clear any error message		
         writeMessage('error', "");
+        
+        // Disable package submit button
+        $('#buy_package_submit').prop('disabled', true).addClass('disabled');        
+		
 		if (debug) {
             writeMessage('debug', "<br><b>clicked BUY PACKAGE button...</b>");            
 		}
@@ -603,16 +586,12 @@ $( () => {
 		e.preventDefault();
 		console.log(`Event captured: ${e.currentTarget.id}`);
 		console.log(e);
-		
-		if (debug) {
-			console.log(`Action is ${action}`);
-		}
-		
-		// Disable class submit button
-		$('#buy_class_submit').prop('disabled', true).addClass('disabled');
-		
 		// Clear any error message		
 		writeMessage('error', "");
+		
+		// Disable class submit button
+		$('#buy_class_submit').prop('disabled', true).addClass('disabled');		
+		
 		if (debug) {
 			writeMessage('debug', "<br><b>clicked BUY CLASS button...</b>");            
 		}
@@ -655,14 +634,14 @@ $( () => {
 		e.preventDefault();
 		console.log(`Event captured: ${e.currentTarget.id}`);
 		console.log(e);
-
-		// Disable view packages submit button
-		$('#view_packages_submit').prop('disabled', true).addClass('disabled');
-				
 		// Clear any error message		
 		writeMessage('error', "");
+
+		// Disable view packages submit button
+		$('#view_packages_submit').prop('disabled', true).addClass('disabled');				
+		
 		if (debug) {
-			writeMessage('debug', "<br><b>clicked VIEWS PACKAGES button...</b>");            
+			writeMessage('debug', "<br><b>clicked VIEW PACKAGES button...</b>");            
 		}
 
 		// View certificates for selected student		
@@ -718,15 +697,6 @@ $( () => {
 		} else {
 			$('#buy_package_submit').removeClass('hide');
 		}
-	});
-
-	// EVENT: Populate student name in codes label on name change -- REMOVE?
-	$('#select_client').change( (e) => {		
-		e.preventDefault();
-		console.log(`Event captured: ${e.currentTarget.id}`);
-		console.log(e);
-		var selected_client = $('#select_client').val();
-		$('#select_code_label').text(`Select code for ${selected_client}`);
 	});	
 });
 </script>
