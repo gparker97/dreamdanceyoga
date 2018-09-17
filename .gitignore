@@ -1,7 +1,9 @@
 config.json
+config-xero.json
 package-lock.json
 package.json
 node_modules/
 server/ssl/
+cert/
 server/old_scripts
 client/old_scripts

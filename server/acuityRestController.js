@@ -1,18 +1,27 @@
 'use strict'
 
 const express = require('express');
+const app = express();
+const directoryToServe = 'client';
+const port = 3443;
+
 const fs = require('fs');
 const https = require('https');
 const path = require('path');
 const Joi = require('joi');
 
-const app = express();
-const directoryToServe = 'client';
-const port = 3443;
+// Acuity API
+const Acuity = require('acuityscheduling');
+const config = require('../config');
+
+// Xero API
+const XeroClient = require('xero-node').AccountingAPIClient;
+const configXero = require('../config-xero');
 
 // DEBUG mode
 const debug = true;
 
+// Set up express for HTTPS
 app.use(express.json());
 app.use('/', express.static(path.join(__dirname, '..', directoryToServe)))
 app.use((req, res, next) => {
@@ -34,6 +43,38 @@ https.createServer(httpsOptions, app).listen(port, function () {
 function validateCourse(course) {
     const schema = { name: Joi.string().min(3).required() };
     return Joi.validate(course, schema);
+}
+
+// Create XERO Invoice if required
+async function createXeroInvoice() {
+    console.log('Checking if necessary to create a Xero invoice...');
+    
+    // Initialize Xero API
+    let xero = new XeroClient(configXero);
+    // PSEUDOCODE //
+    // If METHOD = POST AND FUNCTION = CERTIFICATE
+    // STORE PRODUCTID
+    // QUERY ACUITY FOR PRODUCTID and STORE PRICE
+    // IF PRICE > 0 CREATE INVOICE
+
+    // CREATE INVOICE
+    // Check if invoice already exists for user - avoid duplicate invoice
+
+    // Retrieve required parameters:
+     // Student Name
+     // Item ID based on Product ID
+     // etc
+    
+    // Build param object
+    
+    // Create invoice
+
+    // Return result
+
+    // Sample
+    // const result = await xero.contacts.get();
+    const result = await xero.invoices.get();
+    return result.Invoices[99].InvoiceID;
 }
 
 // ACUITY REST CONTROLLER and API CALL
@@ -77,10 +118,11 @@ app.get('/api/acuity/:function', (req, res) => {
         console.log(req.params);
     }
 
+    // If first query ID is "method" then set method (PUT/POST/DELETE) otherwise default to GET
     var method = 'GET';
     if (queryId1 === 'method') { method = queryParam1; }    
     
-    // Build JSON body for post / delete
+    // Build JSON body from input URL for methods requiring body params
     var options = {};
     if (method === 'POST' || method === 'PUT' || method === 'DELETE') {
         if (debug) {
@@ -93,7 +135,7 @@ app.get('/api/acuity/:function', (req, res) => {
         };
     }
 
-    // Build Acuity API call URL    
+    // Build Acuity API call URL with params from input URL
     var acuityURL=`/${func}`;
     switch (method) {
         case 'GET':
@@ -106,8 +148,10 @@ app.get('/api/acuity/:function', (req, res) => {
                     }
                     var queryId = Object.keys(req.query)[count];
                     var queryParam = eval(`req.query.${queryId}`);
-                    console.log(`queryId: ${queryId}`);
-                    console.log(`queryParam: ${queryParam}`);                    
+                    if (debug) {
+                        console.log(`queryId: ${queryId}`);
+                        console.log(`queryParam: ${queryParam}`);
+                    }                    
                     if (!firstDone) {                        
                         acuityURL +=`?${queryId}=${queryParam}`;
                         firstDone = true;
@@ -147,16 +191,16 @@ app.get('/api/acuity/:function', (req, res) => {
 
     // API CALL
     console.log('-- Starting acuity API call...');    
-    const Acuity = require('acuityscheduling');
-    const config = require('../config');
+    
+    // Initialize Acuity API
     const acuity = Acuity.basic(config);
     
-    if (debug) {        
+    if (debug) {
         console.log('Options below');
         console.log(options);
     }
     
-    acuity.request(acuityURL, options, (err, resp, response) => {
+    acuity.request(acuityURL, options, async (err, resp, response) => {
         console.log('Acuity API call started...');
         try {            
             if (err) {
@@ -175,13 +219,16 @@ app.get('/api/acuity/:function', (req, res) => {
                     console.log(`acuityAPIcall: COMPLETED NO RECORDS - returning 400 response to server: ${acuityURL}`);
                     return res.status(400).send('No records returned');
                 } else {
-                    // IF CERTIFICATE / CLASS CREATE THEN CALL XERO - CREATE INVOICE HERE //
-                    // XERO API CALL
-                    console.log(`acuityAPIcall: COMPLETED SUCCESSFUL - returning 200 response to server: ${acuityURL}`);                    
+                    // CALL XERO - CREATE INVOICE / APPLY PAYMENT / etc                    
+                    var xeroInvoice = await createXeroInvoice();
+                    console.log(`acuityAPIcall: COMPLETED SUCCESSFUL - returning 200 response to server: ${acuityURL}`);
+                    console.log(`acuityAPIcall: XERO Invoice Result: ${xeroInvoice}`);
                     return res.status(200).send(response);
                 }
+            } else {
+                console.log('acuityAPIcall: Response is undefined')
+                return res.status(400).send('ERROR: Response is undefined');
             }
-            return res.status(200).send(response);
         }
         catch(e) {
             console.log(`ERROR: Error caught in API call: ${acuityURL}`);

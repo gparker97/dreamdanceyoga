@@ -321,8 +321,8 @@ $( () => {
                 break;		
             case 'certificates':			
                 $.each(data, (i, val) => {				
-                        $drop.append($('<option>').text(`${data[i].name} Code: ${data[i].certificate}`).attr('value', data[i].certificate));
-                    });
+                    $drop.append($('<option>').text(`${data[i].name} Code: ${data[i].certificate}`).attr('value', data[i].certificate));
+                });
                 break;
             default:
                 console.log('Unable to populate dropdown');
