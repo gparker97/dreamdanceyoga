@@ -2,14 +2,17 @@
 <html lang="en">
 	<head>
 		<!--link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous"-->
-		<style type="text/css">		
-		.one-third {			
-			display: inline-block;
-		}
-		
-		.hide {
-			display: none;
-		}
+		<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+        <style type="text/css">
+        .my-link {
+            color: blue;
+            text-decoration: underline;
+        }
+        
+        .one-third {			
+            max-width: 33%;
+            display: inline-block;
+		}		
 
 		.debug-output {
 			border: 1px solid lightgray;
@@ -27,62 +30,66 @@
 			color: #666666;
 		}
 
-		#top_level_options {
-			text-align: center;
+		.top-cards {
+            text-align: center;
 		}
 
 		.card {		    
 			background-color: #F2F2F2;
 			box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
 			transition: 0.3s;
-			border-radius 5px;
-			padding: 25px;
-			margin: 10px;
+            border-radius 5px;
+            padding: 50px 25px;
+            margin: 10px;
+            text-align: center;
 			display: inline-block;
-		}
+        }        
 		
 		.card:hover {
 			box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
+        }
+        
+        .hide {
+			display: none;
 		}
 		</style>
 	</head>
 <body>
 
-<div id="top_level_options">
+<!-- ADD TOOLTIPS -->
+<div id="top_level_options" class="top-cards">
 	<a href="#">
-		<div id="buy_subscription_top" class="card">
-			<h2>BUY SUBSCRIPTION</h2>
+		<div id="buy_subscription_top" class="card hide">
+			<h2><strong>BUY SUBSCRIPTION</strong></h2>
 		</div>
 	</a>
 	
 	<a href="#">
 		<div id="buy_package_top" class="card">
-			<h2>BUY PACKAGE</h2>
+			<h2><strong>BUY PACKAGE</strong></h2>
 		</div>
 	</a>
 	
 	<a href="#">
 		<div id="buy_class_top" class="card">
-			<h2>BUY CLASS</h2>
+			<h2><strong>BUY CLASS</strong></h2>
 		</div>
 	</a>
 	
 	<a href="#">
 		<div id="view_student_package_top" class="card">
-			<h2>VIEW STUDENT PACKAGES</h2>
+			<h2><strong>VIEW STUDENT PACKAGES</strong></h2>
 		</div>
 	</a>
 	
 	<a href="#">
 		<div id="add_to_class_top" class="card">
-			<h2>ADD TO CLASS</h2>
+			<h2><strong>ADD TO CLASS</strong></h2>
 		</div>	
 	</a>
 </div>
 
-<div id="buy_subscription_div" class="hide"></div>
-
-<div id="search_student_div" class="one-third hide">
+<div id="search_student_div" class="hide">
 	<form id="search_student" action="" method="post">  
 		<label for="search_student">Search Student Name: </label>
 		<input type="search" name="search_student_form" id="search_student_form" />
@@ -90,51 +97,55 @@
 	 </form>
 </div>
 
-<div id="search_student_dropdown_div" class="one-third hide">
+<div id="search_student_dropdown_div" class="hide">
 	<label for="search_student_dropdown">Select Student: </label>
 	<select id="search_student_dropdown" name="search_student_dropdown" class="dropdown">
 		<option value="Select One">Select One</option>	
 	</select>
 </div>
 
-<div id="select_package_class_div" class="one-third hide">
+<div id="select_package_class_div" class="hide">
 	<label for="select_package_class_dropdown">Select Package / Class: </label>
 	<select id="select_package_class_dropdown" class="dropdown">
 		<option value="package">Select One</option>
 	</select> 
 </div>
 
-<div id="package_price_div" class="one-third hide">
+<div id="package_price_div" class="hide">
 	<p>Select or Enter Updated Package Price Here</p>
 </div>
 
 
-<div id="payment_method_div" class="one-fourth hide">
+<div id="payment_method_div" class="hide">
 	<label for="payment_method_dropdown">Select Payment Method: </label>
 	<select id="payment_method_dropdown" class="select_dropdown">
 		<option value="select">Select One</option>
-		<option value="Credit Card (online)">Credit Card (online)</option>
-		<option value="Credit Card (Terminal)">Credit Card (Terminal)</option>
-		<option value="Cash">Cash</option>
-		<option value="Bank Transfer">Bank Transfer</option>
+		<option value="cc-online">Credit Card (online)</option>
+		<option value="cc-terminal">Credit Card (Terminal)</option>
+		<option value="cash">Cash</option>
+		<option value="bankXfer-DDY">Bank Transfer DDY</option>
+        <option value="bankXfer-Sophia">Bank Transfer Sophia POSB</option>
 	</select> 
 </div>
 
 <div id="view_packages_div" class="hide"></div>
+<!-- JQUERY UI MODAL FOR VIEW PACKAGE -->
+<div id="view_packages_modal" title="PACKAGES"></div>
 
-<input type="submit" id="buy_package_submit" class="submit_button hide" value="BUY PACKAGE" />
-<input type="button" id="buy_class_submit" class="submit_button hide" value="BUY CLASS" />
-<input type="button" id="view_packages_submit" class="submit_button hide" value="VIEW PACKAGES" />
-<input type="button" id="add_to_class_submit" class="submit_button hide" value="ADD TO CLASS" />
+<input type="submit" id="buy_package_submit" class="submit-button hide" value="BUY PACKAGE" />
+<input type="submit" id="buy_class_submit" class="submit-button hide" value="BUY CLASS" />
+<input type="submit" id="view_packages_submit" class="submit-button hide" value="VIEW PACKAGES" />
+<input type="submit" id="add_to_class_submit" class="submit-button hide" value="ADD TO CLASS" />
 
 <div id="loading"></div>
 <div id="error_message"></div>
+<div id="spacer"><br><br></div>
 <div id="debug_output" class="hide"></div>
 </body>
 
 <script type="text/javascript">
 $( () => {
-    // Declare API call variables    
+    // Declare API call variables
 	const debug = true;
 	
     var clients = [];
@@ -175,9 +186,13 @@ $( () => {
 				var client_firstName = clients[selected_client].firstName;
 				var client_lastName = clients[selected_client].lastName;
 				var client_email = clients[selected_client].email;
-				var client_phone = clients[selected_client].phone;
+                var client_phone = clients[selected_client].phone;
+                // Additional params for XERO
+				var paymentMethod = $('#payment_method_dropdown option:selected').val(); // Add to URL for XERO consumption later
+				console.log(`Payment Method: ${paymentMethod}`);
 				var params = {
 					method: "POST",
+					paymentMethod: paymentMethod,
 					datetime: classTime,
 					appointmentTypeID: classId,
 					firstName: client_firstName,
@@ -206,9 +221,12 @@ $( () => {
                 var selected_product = $('#select_package_class_dropdown').prop('selectedIndex');
                 var productId = products[selected_product].id;		
                 var selected_client = $('#search_student_dropdown').prop('selectedIndex');
-                var client_email = clients[selected_client].email;			
+                var client_email = clients[selected_client].email;
+                // Additional params for XERO
+                var paymentMethod = $('#payment_method_dropdown option:selected').val(); // Add to URL for XERO consumption later
                 var params = {
-                    method: "POST",
+					method: "POST",
+					paymentMethod: paymentMethod,
                     productID: productId,
                     email: client_email
                 };
@@ -240,7 +258,8 @@ $( () => {
 
     async function callAPI(func, params) {
         var $loading = $('#loading');
-        var apiHost = 'https://66.96.208.44:3443/api/acuity';
+        var apiHost = 'https://66.96.208.44:3443/api/acuity'; // GREG computer
+        // var apiHost = 'https://54.191.24.176:3443/api/acuity'; // AWS
         
         // Loop through params and build API call URL	
         var url = `${apiHost}/${func}`;
@@ -270,7 +289,8 @@ $( () => {
                 datatype: "json",
                 beforeSend: function() { $loading.html('<div id="load"><h2><b>LOADING - PLEASE WAIT</b></h2></div>'); },
                 success: function(response, status, xhr) {
-                    console.log(response);			
+					console.log('API call response:');
+					console.log(response);			
                     if (debug) {
 						writeMessage('debug', `<br><b>API RESPONSE SUCCESSFUL</b><br>Function: ${func}`);                        
                         console.log('Status:');
@@ -321,8 +341,8 @@ $( () => {
                 break;		
             case 'certificates':			
                 $.each(data, (i, val) => {				
-                    $drop.append($('<option>').text(`${data[i].name} Code: ${data[i].certificate}`).attr('value', data[i].certificate));
-                });
+                        $drop.append($('<option>').text(`${data[i].name} Code: ${data[i].certificate}`).attr('value', data[i].certificate));
+                    });
                 break;
             default:
                 console.log('Unable to populate dropdown');
@@ -350,14 +370,15 @@ $( () => {
 			// If successful populate dropdown menu
 			var $dropdown = $('#select_package_class_dropdown');
 			var func = "products";
-			populateDropdown($dropdown, result, func);			
+            populateDropdown($dropdown, result, func);
+            return result;
 		}
 		catch(e) {
 			console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
 			console.error(e);
-			writeMessage('error', `<b>An error occured with ${funcType}, please check and try again</b><br>`);			
-		}
-		return result;
+            writeMessage('error', `<b>An error occured with ${funcType}, please check and try again</b><br>`);			
+            return false;
+		}		
 	}
 
 	async function retrieveStudents() {		
@@ -376,39 +397,58 @@ $( () => {
 			
 			// If successful populate dropdown menu			
 			var func = "clients";
-			populateDropdown($dropdown, result, func);			
+            populateDropdown($dropdown, result, func);
+            return result;
 		}
 		catch(e) {
 			console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
 			console.error(e);
 			if (e.responseText === "No records returned") {
-                writeMessage('error', "<b>Student not found, please try again!</b>");                
+                writeMessage('error', `<strong>Student not found!  Try again or <a class="my-link" href="https://secure.acuityscheduling.com/clients.php#" target="_blank">CREATE NEW STUDENT HERE</a>.</strong>`);
 			} else {
-                writeMessage('error', "<b>An error occured, please check and try again</b><br>");                
+                writeMessage('error', "<strong>An error occured, please check and try again</strong><br>");
 			}			
 			clearDropdown($dropdown);
 			return false;
-		}
-		return result;
+		}		
 	}
 
 	async function buyPackage() {		
-		try {
-            var funcType = "certificates_create";			
-			var result = await initApiCall(funcType);
+		try {			
+			// Check whether seledted product is package or subscription
+			var funcType = "products_get";			
+			var products = await initApiCall(funcType);
+			var selectedProduct = $('#select_package_class_dropdown').prop('selectedIndex');
+			var productExpiry = products[selectedProduct].expires;
+			if (productExpiry == null) {
+				alert("You can only buy packages, not subscriptions.  Please try again.");
+				return false;
+			}
 			
+			// If package then buy package
+			var funcType = "certificates_create";
+			var result = await initApiCall(funcType);
+			if (debug) {
+				console.log('buyPackage result:');
+				console.log(result);
+			}
 			// IF successful - show alert with details
+			var xeroResult = result.xeroStatus;
+			if (debug) {
+				writeMessage('debug', `<br>Xero Status: ${xeroResult}`);
+			}
 			var pay_method = $('#payment_method_dropdown').find(':selected').text();
 			var selected_client = $('#search_student_dropdown').prop('selectedIndex');
             var client_email = clients[selected_client].email;
-			alert(`Code Created!\nEmail: ${client_email}\nCode: ${result.certificate}\nPayment Method: ${pay_method}\nInform student to use their email to book classes`);
+            alert(`Code Created!\nEmail: ${client_email}\nCode: ${result.certificate}\nPayment Method: ${pay_method}\nInform student to use their email to book classes`);
+            return result;
 		}
 		catch(e) {
 			console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
 			console.error(e);
-			writeMessage('error', `<b>An error occured with ${funcType}, please check and try again</b><br>`);			
-		}
-		return result;
+            alert(`An error occured with ${funcType}, please check and try again`);
+            return false;
+		}		
 	}
 
 	async function buySeries() {
@@ -427,26 +467,29 @@ $( () => {
 				}
 				// Write alert that class series is booked
 				var pay_method = $('#payment_method_dropdown').find(':selected').text();
-				alert(`Classes Booked!\nSeries Name: ${bookClass[0].type}\nFirst Class: ${bookClass[0].datetime}\nPayment Method: ${pay_method}`);
+                alert(`Classes Booked!\nSeries Name: ${bookClass[0].type}\nFirst Class: ${bookClass[0].datetime}\nPayment Method: ${pay_method}`);
+                return bookClass;
 			}
 			catch(e) {
 				console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
 				console.log (e);
-				writeMessage('error', `<b>An error occured booking class, please check and try again</b><br>`);
+                writeMessage('error', `<b>An error occured booking class, please check and try again</b><br>`);
+                return false;
 			}
 		}
 		catch(e) {
 			console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
 			console.log (e);
-			writeMessage('error', `<b>An error occured retrieving class times, please check and try again</b><br>`);
-		}
-		return bookClass;
+            writeMessage('error', `<b>An error occured retrieving class times (perhaps class started in the past), please check and try again</b><br>`);
+            return false;
+		}		
 	}
 
 	async function retrieveCertificates() {
 		try {
 			var funcType = "certificates_get";
-			result = await initApiCall('certificates_get');
+            result = await initApiCall('certificates_get');
+            return result;
 			// If successful populate dropdown menu - LATER
 			// var $dropdown = $('#select_code_del');
 			// var func = "certificates";
@@ -458,16 +501,14 @@ $( () => {
 			console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
 			console.log (e);
 			if (e.responseText === "No records returned") {
-				err_msg += `<b>No certificates found!</b>`;
-				$error_output.html(err_msg);
+                writeMessage('error', `<b>No certificates found!</b>`);				
 			} else {
-				err_msg += `<b>An error occured retrieving certificate codes, please check and try again</b><br>`;
-				$error_output.html(err_msg);
-			}		
+                writeMessage('error', `<b>An error occured retrieving certificate codes, please check and try again</b><br>`);
+            }
+            return false;
 			// var $dropdown = $('#select_code_del');
 			// clearDropdown($dropdown);
-		}
-		return result;
+		}		
 	}
 
     function clearDropdown($drop) {
@@ -519,17 +560,17 @@ $( () => {
 	
 	// EVENT: Search Student button submit PROD
 	$('#search_student').on('submit', async (e) => {
-		e.preventDefault();
+        e.preventDefault();
+        
+        // Cache submit button - ENABLE LATER
+        // $submitButton = $('search_submit');        
 		
 		// Clear any error message
-		writeMessage('error', "");
+		writeMessage('error', "");        
 
-		// Retrieve action that invoked student search
-		var action = $('#search_student_div').data('action');
-
-		// Disable search submit button and reveal student dropdown menu
+        // Disable search submit button and reveal student dropdown menu
         $('#search_submit').prop('disabled', true).addClass('disabled');
-		$('#search_student_dropdown_div').removeClass('hide');		
+		$('#search_student_dropdown_div').removeClass('hide');
 		
 		if (debug) {
             writeMessage('debug', `<br>Submit invoked on search_student`);
@@ -538,11 +579,14 @@ $( () => {
 		// Retrieve student data
 		clients = await retrieveStudents();
 
-		// Re-enable submit button
+        // Clear search query and re-enable submit button
+        $('#search_student_form').val('');		
 		$('#search_submit').prop('disabled', false).removeClass('disabled');
 		
-		if (clients) {		
-			// Reveal appropriate container	after search
+		if (clients) {
+            // If data was returned, reveal appropriate container
+            // Retrieve action that invoked student search
+		    var action = $('#search_student_div').data('action');
 			switch (action) {
 				case 'buy_class_top':
 				case 'buy_package_top':
@@ -550,7 +594,7 @@ $( () => {
 					$('#select_package_class_div').removeClass('hide');
 					break;
 				case 'view_student_package_top':
-					$('#view_packages_submit').removeClass('hide');	
+					$('#view_packages_submit').removeClass('hide');
 					$('#view_packages_div').removeClass('hide');
 					break;
 				default:
@@ -577,8 +621,13 @@ $( () => {
 		// Generate package code for selected student
 		var generateCertResult = await buyPackage();
         
-        // Re-enable buy package button
+        // Hide containers and start over
         $('#buy_package_submit').prop('disabled', false).removeClass('disabled');
+        $('#search_student_div').addClass('hide');
+        $('#search_student_dropdown_div').addClass('hide');
+        $('#payment_method_div').addClass('hide');
+        $('#select_package_class_div').addClass('hide');
+        $('#buy_package_submit').addClass('hide');
 	});
 
 	// EVENT: BUY CLASS button click PROD
@@ -602,7 +651,7 @@ $( () => {
 		if (classType === "series") {
 			// Book class series for selected student			
 			var buySeriesResult = await buySeries();			
-		} else {         
+		} else {
 			console.log(`ERROR: Class is not a series`);
 			writeMessage('error', `<b>Class is not a series, you can only book a series, not a single class.  Please try again.</b><br>`);
 		}
@@ -616,9 +665,11 @@ $( () => {
 		e.preventDefault();
 		console.log(`Event captured: ${e.currentTarget.id}`);
 		console.log(e);
+		// Clear any error message		
+		writeMessage('error', "");
 
 		// Show student search form and store requested action
-        $('#search_student_div').removeClass('hide').data('action', e.currentTarget.id);		
+        $('#search_student_div').removeClass('hide').data('action', e.currentTarget.id);                
 	});
 
 	// EVENT: ADD TO CLASS click
@@ -626,10 +677,21 @@ $( () => {
 		e.preventDefault();
 		console.log(`Event captured: ${e.currentTarget.id}`);
 		console.log(e);
-		alert(`Not implemented yet!`);		
+		// Clear any error message		
+		writeMessage('error', "");
+        alert(`Not implemented yet!`);
+        
+        // Select date/time and store in var
+        // Show all classes from that date/time
+        // Store class id (appointmentId) in var
+        // Search student name
+        // Display in multi-select box
+        // When selected ask if cert code to apply
+        // Add as object to array
+        // Loop through all student names and add to class
 	});
 
-	// EVENT: VIEW PACKAGES button click PROD
+	// EVENT: VIEW PACKAGES submit PROD
 	$('#view_packages_submit').on('click', async (e) => {
 		e.preventDefault();
 		console.log(`Event captured: ${e.currentTarget.id}`);
@@ -638,25 +700,47 @@ $( () => {
 		writeMessage('error', "");
 
 		// Disable view packages submit button
-		$('#view_packages_submit').prop('disabled', true).addClass('disabled');				
+        $('#view_packages_submit').prop('disabled', true).addClass('disabled');        
 		
 		if (debug) {
 			writeMessage('debug', "<br><b>clicked VIEW PACKAGES button...</b>");            
 		}
 
 		// View certificates for selected student		
-		var certificates = await retrieveCertificates();
+		var certificates = await retrieveCertificates();		
+        
+        // If student has packages - populate output and display in modal
+        if (certificates) {
+            // Set var to hold retrieved products            
+            var certificatesOutput = "";
+            
+            var $outputModal = $('#view_packages_modal');            
+            // FUTURE: if TYPE = value or type = appointments, add logic (value / price) to show remaining classes / appointments            
+            for (var i=0; i < certificates.length; i++) {
+                certificatesOutput += `<b>${certificates[i].name}</b><br>Email: ${certificates[i].email}<br>Code: ${certificates[i].certificate}<br>Expiry: <b>${certificates[i].expiration}</b>`;
+                if (i !== (certificates.length - 1)) {
+                    certificatesOutput += '<hr>';
+                }
+            }            
+            var selectedStudent = $('#search_student_dropdown option:selected').text();
+            $outputModal.html(certificatesOutput);
+            // JQUERY UI MODAL            
+            var $modalDialog = $outputModal.dialog({
+                modal: true,
+                title: `PACKAGES: ${selectedStudent}`,
+                buttons: {
+                    OK: () => {
+                        $modalDialog.dialog("close");
+                    }
+                }
+            }); 
+        }               
 
-		// Display retrieved products
-		var certificates_output = "";
-		$output = $('#view_packages_div');
-		for (var i=0; i < certificates.length; i++) {
-			certificates_output += `Certificate ${i}: ${certificates[i].certificate}<br>`;
-			$output.html(certificates_output);
-		}
-
-		// Re-enable view packages submit button
-		$('#view_packages_submit').prop('disabled', false).removeClass('disabled');
+		// Re-enable view packages submit button and hide the relevant containers
+        $('#view_packages_submit').prop('disabled', false).removeClass('disabled').addClass('hide');
+        $('#search_student_div').addClass('hide');
+        $('#search_student_dropdown_div').addClass('hide');
+        $('#view_packages_div').addClass('hide');
 	});
 
 	// EVENT: Select student dropdown change PROD
