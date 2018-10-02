@@ -90,7 +90,7 @@
 
 <script type="text/javascript">
 $( () => {
-    // Declare API call variables
+    // Declare global API call variables
     var debug_msg = "";
     var err_msg = "";
     var debug = true;
@@ -207,7 +207,8 @@ $( () => {
 
     async function callAPI(func, params) {
         var $loading = $('#loading');
-        var apiHost = 'https://66.96.208.44:3443/api/acuity';    
+		// var apiHost = 'https://66.96.208.44:3443/api/acuity';    
+		var apiHost = 'https://greg-monster.dreamdanceyoga.com:3443/api/acuity'; // GREG COMPUTER
         
         // Loop through params and build API call URL	
         var url = `${apiHost}/${func}`;
@@ -225,8 +226,8 @@ $( () => {
         // Replace any '+' symbols in URL with ASCII code
         url = url.replace(/\+/g, "%2B");
         
-        if (debug) {			
-			debug_msg += `<br>STARTED CALL API FUNCTION<br>Function: ${func}<br>URL: ${url}`;
+        if (debug) {
+            debug_msg += `<br>STARTED CALL API FUNCTION<br>Function: ${func}<br>URL: ${url}`;
             $debug_output.html(debug_msg);	
         }
         
@@ -305,18 +306,6 @@ $( () => {
         // Empty dropdown menu if it exists	
         $drop.empty();
         $drop.append($('<option>').text('Select One').attr('value', 'Select One'));	
-    }
-
-    function writeError(msg) {
-        // Define error message location
-        var $error_output = $('#error_message');
-        
-        if (msg === "") {
-            err_msg = msg;
-        } else {
-            err_msg += msg;
-        }        
-		$error_output.html(err_msg);
     }
 
     //// EVENTS ////
@@ -543,9 +532,8 @@ $( () => {
 		$('.buy_package').prop('disabled', true);
 		
 		// Clear any error message
-        writeError("");
-        //err_msg = "";
-		//$error_output.html(err_msg);
+		err_msg = "";
+		$error_output.html(err_msg);
 
 		if (debug) {
 			debug_msg += "<br><b>clicked BUY PACKAGE button...</b>";
