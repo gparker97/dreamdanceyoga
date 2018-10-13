@@ -12,8 +12,7 @@
 		.debug-output {
 			border: 1px solid lightgray;
 			border-radius: 2px;  
-			display: block;
-			max-width: 50%;
+			display: block;			
 			margin: 5px 0px;
 			padding: 5px;  
 		}
@@ -298,8 +297,8 @@ $( () => {
     async function callAPI(func, params) {
 		var $loading = $('#loading');
 		
-		// var apiHostUAT = 'https://greg-monster.dreamdanceyoga.com:3443/api/acuity'; // GREG computer
-		var apiHostUAT = 'https://api.dreamdanceyoga.com:3444/api/acuity'; // AWS UAT
+		var apiHostUAT = 'https://greg-monster.dreamdanceyoga.com:3443/api/acuity'; // GREG computer
+		// var apiHostUAT = 'https://api.dreamdanceyoga.com:3444/api/acuity'; // AWS UAT
 		var apiHostPROD = 'https://api.dreamdanceyoga.com:3443/api/acuity'; // AWS PROD
 
 		// set apiHost based on environment
@@ -650,7 +649,19 @@ $( () => {
 			}
 			$output.html(message);
 		}		
-    }
+	}
+	
+	async function populateEnvironment() {
+		// Populate environment and version container
+		try {
+			const restControllerVersion = await callAPI('version');
+			$('#environment').html(`Client version: ${version}<br>Server version: ${restControllerVersion}<br>Environment: ${environment}`);
+		}
+		catch (e) {			
+			console.error('ERROR: Error caught retrieving rest controller version');
+			$('#environment').html(`Client version: ${version}<br>Server version: <b>CANNOT CONTACT SERVER</b><br>Environment: ${environment}`);
+		}
+	}
 
 	//// EVENTS ////
 	
@@ -660,8 +671,8 @@ $( () => {
 		writeMessage('debug', "<b>Debug mode ON</b>");
 	}
 
-	// Populate environment and version container
-	$('#environment').html(`ver: ${version}<br>Environment: ${environment}`);
+	// Fill in version and environment details at bottom of page
+	populateEnvironment();
 
 	// EVENT: TOP LEVEL CARD CLICK
 	$('.card').on('click', async (e) => {	

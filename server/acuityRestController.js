@@ -21,7 +21,7 @@ const XeroClient = require('xero-node').AccountingAPIClient;
 const configXero = require('../config-xero');
 
 // Version
-const acuityRestControllerVersion = '0.9.3b';
+const acuityRestControllerVersion = '0.9.4b';
 
 // DEBUG mode
 const debug = true;
@@ -30,6 +30,19 @@ const debug = true;
 var acuityStudentInfo = [];
 var acuityProducts = [];
 var acuityCertificate = [];
+
+// List of supported Acuity API call functions, anything else will return 400
+const supportedFunctions = [
+    'version',
+    'clients',
+    'me',
+    'certificates',
+    'products',
+    'appointments',
+    'appointment-types',
+    'availability--classes',
+    'forms'
+];
 
 // Set up express for HTTPS
 app.use(express.json());
@@ -59,24 +72,149 @@ function validateCourse(course) {
     return Joi.validate(course, schema);
 }
 
-/*
-function acuityAPIcall(func) {
+async function initAcuityAPIcall(req) {   
+    // Store query details
+    const requestedFunction = req.params.function;
+    const body = req.query;
+    const queryIds = Object.keys(req.query);
+    const queryId1 = Object.keys(req.query)[0];
+    const queryParam1 = eval(`req.query.${queryId1}`);
+
+    // Update func var with proper syntax to make API call
+    const func = requestedFunction.replace("--", "/");    
+
+    // Decode URL to store key params
+    // If first query ID is "method" then set method (PUT/POST/DELETE) otherwise default to GET and remove query
+    var method = 'GET';
+    if (queryId1 === 'method') { 
+        method = queryParam1;
+        delete body.method;
+    }
+    
+    // If buying a package, parse the URL to get required data
+    // Refactor this later to send properly formatted JSON via POST
+    if (method === "POST" && func === "certificates") {        
+        const queryId2 = Object.keys(req.query)[1];
+        const queryParam2 = eval(`req.query.${queryId2}`);
+        const queryId3 = Object.keys(req.query)[2];
+        const queryParam3 = eval(`req.query.${queryId3}`);
+        const queryId4 = Object.keys(req.query)[3];
+        const queryParam4 = eval(`req.query.${queryId4}`);
+        
+        if (queryId2 === 'paymentMethod') { 
+            var paymentMethod = queryParam2;
+            delete body.paymentMethod;
+        }
+
+        if (queryId3 === 'xeroCreateInvoice') { 
+            var xeroCreateInvoice = queryParam3;
+            delete body.xeroCreateInvoice;
+        }
+
+        if (queryId4 === 'xeroApplyPayment') { 
+            var xeroApplyPayment = queryParam4;
+            delete body.xeroApplyPayment;
+        }
+    }    
+    
+    // Build JSON body from input URL for methods requiring body params
+    var options = {};
+    if (method === 'POST' || method === 'PUT' || method === 'DELETE') {
+        var options = {
+            method: eval(`'${method}'`),
+            body
+        };
+    }
+
+    // Build Acuity API call URL with params from input URL
+    var acuityURL=`/${func}`;
+    switch (method) {
+        case 'GET':
+            if (queryIds.length > 0) {
+                var count=0;
+                var firstDone = false;
+                queryIds.forEach(i => {
+                    if (debug) {
+                        console.log(`building URL at query id ${i}`)
+                    }
+                    var queryId = Object.keys(req.query)[count];
+                    var queryParam = eval(`req.query.${queryId}`);
+                    if (debug) {
+                        console.log(`queryId: ${queryId}`);
+                        console.log(`queryParam: ${queryParam}`);
+                    }                    
+                    if (!firstDone) {                        
+                        acuityURL +=`?${queryId}=${queryParam}`;
+                        firstDone = true;
+                    } else {
+                        acuityURL +=`&${queryId}=${queryParam}`;
+                    }     
+                    count++;
+                });
+            }
+            break;
+        case 'POST':
+            // Do nothing
+            break;
+        case 'DELETE':
+            var idToDelete = req.query.id;
+            acuityURL =`/${func}/${idToDelete}`;
+            break;
+        default:
+            return res.status(400).send(`ERROR: Method not supported: ${method}`);
+    }    
+
+    if (debug) {
+        console.log(`Function: ${func}`);
+        console.log(`Method: ${method}`);
+        console.log(`Payment Method: ${paymentMethod}`);
+        console.log('Req query below');
+        console.log(body);
+        console.log(`QueryIds: ${queryIds}`);        
+        console.log('Query keys below');
+        console.log(Object.keys(req.query));
+        console.log('Req params below');
+        console.log(req.params);
+        console.log(`Query keys length: ${queryIds.length}`);        
+        console.log(`URL: ${req.url}`);        
+        console.log(`Acuity URL: ${acuityURL}`);
+        console.log('Acuity options below');
+        console.log(options);
+    }
+
+    // Make Acuity API call
+    try {
+        console.log(`Starting Acuity API call INSIDE FUNCTION: ${acuityURL}`);
+        return await acuityAPIcall(acuityURL, options);
+    }
+    catch (e) {
+        console.log(`ERROR: Error caught in acuityAPIcall function: ${acuityURL}`);
+        console.log(e);
+        return e;
+    }    
+}
+
+function acuityAPIcall(func, options) {
     // Initialize Acuity API
     const acuity = Acuity.basic(config);
     
-    acuity.request(func, (err, resp, response) => {
-        if (err) { return false; }
-        if (debug) {
-            console.log('Response from acuityAPIcall:');
-            console.log(response);
-        }
-        return response;
+    const acuityPromise = new Promise((resolve, reject) => {
+        acuity.request(func, options, (err, res, data) => {
+            if (err) { 
+                console.log(`ERROR: Error detected in Acuity API call: ${func}`);                
+                console.log(options);
+                reject(err);
+            } else {                
+                console.log('acuityAPIcall: Acuity API call completed SUCCESSFULLY!');
+                resolve(data);
+            }
+        });
     });
+    return acuityPromise;    
 }
-*/
 
 // Create XERO Invoice if required
-async function createXeroInvoice(method, func, params) {
+async function createXeroInvoice(params) {
     console.log('Checking if necessary to create a Xero invoice...');    
     
     if (debug) {
@@ -131,6 +269,15 @@ async function createXeroInvoice(method, func, params) {
                 break;
             case '501676':
                 itemCode = "YOGA-8-CLASS";
+                break;
+            case '506912':
+                itemCode = "SILVER-BELLY-YEARLY-ONETIME";
+                break;
+            case '554068':
+                itemCode = "SILVER-YOGA-YEARLY-ONETIME";
+                break;
+            case '551767':
+                itemCode = "GOLD-6MONTH-ONETIME";
                 break;
             default:
                 console.log(`XERO ERROR: Class ${productId} not defined.  Cannot create invoice.`);
@@ -235,6 +382,7 @@ async function createXeroInvoice(method, func, params) {
                 // xeroResult.xeroPaymentErrorMessage = xeroPayment.Payments[0].Warnings[0].Message;
                 // console.log(`ERROR: Xero Payment error message: ${xeroResult.xeroPaymentErrorMessage}`);
                 console.log('XERO WARNING: THERE ARE WARNINGS - FIX THIS LATER');
+                xeroResult.xeroPaymentWarningMessage = 'SOMETHING';
             } else {
                 console.log(`XERO: Xero apply payment SUCCESSFUL`);
                 xeroResult.xeroPaymentErrorMessage = 'None';
@@ -248,8 +396,7 @@ async function createXeroInvoice(method, func, params) {
         console.log('XERO: NOT applying payment to XERO invoice');            
         xeroResult.xeroPaymentStatus = false;
         xeroResult.xeroPaymentStatusMessage = "XERO: Payment NOT applied as per request";
-    }
-    
+    }    
     return xeroResult;
 }
 
@@ -318,223 +465,99 @@ async function xeroApplyPayment(xeroInvoice, requestParams) {
     }    
 }
 
+function parseXeroApiCall(xeroInvoice, acuityResult) {
+    console.log(`acuityAPIcall: Create XERO invoice result:`);
+    console.log(JSON.stringify(xeroInvoice, undefined, 2));
+
+    // Check if Xero invoice created - if so store response
+    acuityResult.xeroInvoiceStatus = xeroInvoice.xeroInvoiceStatus;
+    acuityResult.xeroInvoiceStatusMessage = xeroInvoice.xeroInvoiceStatusMessage;
+    if (acuityResult.xeroInvoiceStatus) {                                
+        acuityResult.xeroInvoiceStatusString = xeroInvoice.Invoices[0].StatusAttributeString;
+        // Check for errors in invoice creation
+        if (!xeroInvoice || !acuityResult.xeroInvoiceStatus || acuityResult.xeroInvoiceStatusString !== "OK") {
+            // Is there a xero invoice validation errors array???
+            console.log(`ERROR: Error in Xero Invoice creation.  Status: ${acuityResult.xeroInvoiceStatus} / ${acuityResult.xeroInvoiceStatusString}`);                        
+        }                                
+        
+        // Check if Xero payment applied - if so store response
+        acuityResult.xeroPaymentStatus = xeroInvoice.xeroPaymentStatus;
+        acuityResult.xeroPaymentStatusMessage = xeroInvoice.xeroPaymentStatusMessage;
+        acuityResult.xeroPaymentWarningMessage = xeroInvoice.xeroPaymentWarningMessage;
+        if (acuityResult.xeroPaymentStatus) {
+            acuityResult.xeroPaymentStatusString = xeroInvoice.xeroPaymentStatusString;
+            // Check for errors in applying payment
+            if (!acuityResult.xeroPaymentStatus || acuityResult.xeroPaymentStatusString !== "OK") {
+                acuityResult.xeroPaymentErrorMessage = xeroInvoice.xeroPaymentErrorMessage;
+                console.log(`ERROR: Error in applying payment to Xero invoice.  Status: ${acuityResult.xeroPaymentStatus} / ${acuityResult.xeroPaymentErrorMessage}`);
+            } else {                                        
+                acuityResult.xeroPaymentErrorMessage = 'None';
+            }
+        } else {
+            console.log(`Xero payment NOT applied: ${acuityResult.xeroPaymentStatusMessage}`);
+        }
+    }
+    return acuityResult;
+}
+
 // ACUITY REST CONTROLLER and API CALL
 // Refactor later as POST to accept JSON body
-app.get('/api/acuity/:function', (req, res) => {
+app.get('/api/acuity/:function', async (req, res) => {
     console.log(`==== ACUITY REST CONTROLLER v${acuityRestControllerVersion} ====`);
     console.log(`== API call from ${req.headers.host} @ ${req.headers.origin} at ${req.ip} ==`);
 
-    // List of supported Acuity API call functions, anything else will return 400
-    const supportedFunctions = [
-        'clients',
-        'me',
-        'certificates',
-        'products',
-        'appointments',
-        'appointment-types',
-        'availability--classes'
-    ];
-   
-    // Query details
+    // Store the requested function and return if function not in supportedFunctions array
     const reqFunc = req.params.function;    
-    const body = req.query;
-    const queryIds = Object.keys(req.query);
-    const queryId1 = Object.keys(req.query)[0];    
-    const queryParam1 = eval(`req.query.${queryId1}`);    
-
-    // Return if function not in supportedFunctions array
     if (!supportedFunctions.includes(reqFunc)) { return res.status(400).send('Function not supported'); }
 
-    // Update func var with proper syntax to make API call
-    const func = reqFunc.replace("--", "/");    
+    // If VERSION request then return version
+    if (reqFunc === "version") { return res.status(200).send(acuityRestControllerVersion); }
 
-    // Decode URL to store key params
     // If first query ID is "method" then set method (PUT/POST/DELETE) otherwise default to GET and remove query
+    const queryId1 = Object.keys(req.query)[0];
+    const queryParam1 = eval(`req.query.${queryId1}`);
     var method = 'GET';
-    if (queryId1 === 'method') { 
-        method = queryParam1;
-        delete body.method;
-    }
+    if (queryId1 === 'method') { method = queryParam1; }
     
-    // If buying a package, parse the URL to get required data
-    // Refactor this later to send properly formatted JSON via POST
-    if (method === "POST" && func === "certificates") {        
-        const queryId2 = Object.keys(req.query)[1];
-        const queryParam2 = eval(`req.query.${queryId2}`);
-        const queryId3 = Object.keys(req.query)[2];
-        const queryParam3 = eval(`req.query.${queryId3}`);
-        const queryId4 = Object.keys(req.query)[3];
-        const queryParam4 = eval(`req.query.${queryId4}`);
-        
-        if (queryId2 === 'paymentMethod') { 
-            var paymentMethod = queryParam2;
-            delete body.paymentMethod;
-        }
+    // Prepare options and store Acuity API call result
+    var acuityResult = await initAcuityAPIcall(req);
 
-        if (queryId3 === 'xeroCreateInvoice') { 
-            var xeroCreateInvoice = queryParam3;
-            delete body.xeroCreateInvoice;
-        }
-
-        if (queryId4 === 'xeroApplyPayment') { 
-            var xeroApplyPayment = queryParam4;
-            delete body.xeroApplyPayment;
-        }
-    }
-    
-    
-    // Build JSON body from input URL for methods requiring body params
-    var options = {};
-    if (method === 'POST' || method === 'PUT' || method === 'DELETE') {
-        var options = {
-            method: eval(`'${method}'`),
-            body
-        };
-    }
-
-    // Build Acuity API call URL with params from input URL
-    var acuityURL=`/${func}`;
-    switch (method) {
-        case 'GET':
-            if (queryIds.length > 0) {
-                var count=0;
-                var firstDone = false;
-                queryIds.forEach(i => {
-                    if (debug) {
-                        console.log(`building URL at query id ${i}`)
+    // Check if result is defined and return result
+    if (typeof acuityResult != 'undefined') {
+        console.log(`Records returned: ${acuityResult.length}`);
+        if (acuityResult.status_code >= 400) {
+            return res.status(400).send(`ERROR: Error 400 or higher occured\nStatus Code: ${acuityResult.status_code}\nError Message: ${acuityResult.message}`);
+        } else if (acuityResult.length < 1) {
+            console.log(`acuityAPIcall: COMPLETED NO RECORDS - returning 400 response to server: ${reqFunc}`);
+            return res.status(400).send('No records returned');
+        } else {
+            // Store Acuity API call responses (in case required for future use) and perform further actions
+            switch (reqFunc) {
+                case 'clients':
+                    acuityStudentInfo = acuityResult;
+                    break;
+                case 'products':
+                    acuityProducts = acuityResult;                            
+                    break;      
+                case 'certificates':                            
+                    acuityCertificate = acuityResult;                    
+                    // If POST then create Xero Invoice for package purchase
+                    if (method === "POST") {
+                        var xeroInvoice = await createXeroInvoice(req.query);                        
+                        // Parse results of Xero API calls and append results to acuityResult
+                        acuityResult = parseXeroApiCall(xeroInvoice, acuityResult);
                     }
-                    var queryId = Object.keys(req.query)[count];
-                    var queryParam = eval(`req.query.${queryId}`);
-                    if (debug) {
-                        console.log(`queryId: ${queryId}`);
-                        console.log(`queryParam: ${queryParam}`);
-                    }                    
-                    if (!firstDone) {                        
-                        acuityURL +=`?${queryId}=${queryParam}`;
-                        firstDone = true;
-                    } else {
-                        acuityURL +=`&${queryId}=${queryParam}`;
-                    }     
-                    count++;
-                });
+                    break;                            
+            }                    
+            console.log(`acuityAPIcall: COMPLETED SUCCESSFUL - returning 200 response to server: ${reqFunc}`);
+            if (debug) {
+                console.log('acuityResult object below:');
+                console.log(JSON.stringify(acuityResult, undefined, 2));
             }
-            break;
-        case 'POST':
-            // Do nothing
-            break;
-        case 'DELETE':
-            var idToDelete = req.query.id;
-            acuityURL =`/${func}/${idToDelete}`;
-            break;
-        default:
-            return res.status(400).send(`ERROR: Method not supported: ${method}`);
-    }    
-
-    if (debug) {
-        console.log(`Function: ${func}`);
-        console.log(`Method: ${method}`);
-        console.log(`Payment Method: ${paymentMethod}`);
-        console.log('Req query below');
-        console.log(body);
-        console.log(`QueryIds: ${queryIds}`);        
-        console.log('Query keys below');
-        console.log(Object.keys(req.query));
-        console.log('Req params below');
-        console.log(req.params);
-        console.log(`Query keys length: ${queryIds.length}`);        
-        console.log(`URL: ${req.url}`);        
-        console.log(`Acuity URL: ${acuityURL}`);
-        console.log('Acuity options below');
-        console.log(options);
+            return res.status(200).send(acuityResult);
+        }
+    } else {
+        console.log('acuityAPIcall: acuityResult is undefined')
+        return res.status(400).send('ERROR: acuityResult is undefined');
     }
-
-    // API CALL
-    console.log('-- Starting acuity API call...');    
-    
-    // Initialize Acuity API
-    const acuity = Acuity.basic(config);    
-    
-    acuity.request(acuityURL, options, async (err, resp, response) => {
-        console.log('Acuity API call started...');
-        try {            
-            if (err) {
-                console.log(`ERROR: Error detected: ${acuityURL}`);
-                console.log(err);                
-                return res.status(400).send('An error occured');            
-            }
-            
-            // If response is defined then return response
-            if (typeof response != 'undefined') {
-                console.log(`Records returned: ${response.length}`);
-                if (response.status_code >= 400) {
-                    return res.status(400).send(`ERROR: Error 400 or higher occured\nStatus Code: ${response.status_code}\nError Message: ${response.message}`);
-                } else if (response.length < 1) {
-                    console.log(`acuityAPIcall: COMPLETED NO RECORDS - returning 400 response to server: ${acuityURL}`);
-                    return res.status(400).send('No records returned');
-                } else {                    
-                    // Store Acuity API call responses (in case required for future use) and perform further actions
-                    switch (func) {
-                        case 'clients':
-                            acuityStudentInfo = response;
-                            break;
-                        case 'products':
-                            acuityProducts = response;                            
-                            break;      
-                        case 'certificates':                            
-                            acuityCertificate = response;
-                            
-                            // If POST then create Xero Invoice for package purchase
-                            if (method === "POST") {                                
-                                var xeroInvoice = await createXeroInvoice(method, func, req.query);
-                                console.log(`acuityAPIcall: Create XERO invoice result:`);
-                                console.log(JSON.stringify(xeroInvoice, undefined, 2));
-
-                                // Check if Xero invoice created - if so store response
-                                response.xeroInvoiceStatus = xeroInvoice.xeroInvoiceStatus;
-                                response.xeroInvoiceStatusMessage = xeroInvoice.xeroInvoiceStatusMessage;
-                                if (response.xeroInvoiceStatus) {                                
-                                    response.xeroInvoiceStatusString = xeroInvoice.Invoices[0].StatusAttributeString;
-                                    // Check for errors in invoice creation
-                                    if (!xeroInvoice || response.xeroInvoiceStatus !== "OK" || response.xeroInvoiceStatusString !== "OK") {
-                                        // Is there a xero invoice validation errors array???
-                                        console.log(`ERROR: Error in Xero Invoice creation.  Status: ${response.xeroInvoiceStatus} / ${response.xeroInvoiceStatusString}`);                        
-                                    }                                
-                                    
-                                    // Check if Xero payment applied - if so store response
-                                    response.xeroPaymentStatus = xeroInvoice.xeroPaymentStatus;
-                                    response.xeroPaymentStatusMessage = xeroInvoice.xeroPaymentStatusMessage;
-                                    if (response.xeroPaymentStatus) {
-                                        response.xeroPaymentStatusString = xeroInvoice.xeroPaymentStatusString;
-                                        // Check for errors in applying payment
-                                        if (response.xeroPaymentStatus !== "OK" || response.xeroPaymentStatusString) {
-                                            response.xeroPaymentErrorMessage = xeroInvoice.xeroPaymentErrorMessage;
-                                            console.log(`ERROR: Error in applying payment to Xero invoice.  Status: ${response.xeroPaymentStatus} / ${response.xeroPaymentErrorMessage}`);
-                                        } else {                                        
-                                            response.xeroPaymentErrorMessage = 'None';
-                                        }
-                                    } else {
-                                        console.log(`Xero payment NOT applied: ${response.xeroPaymentStatusMessage}`);
-                                    }
-                                }
-                            }
-                            break;                            
-                    }                    
-                    console.log(`acuityAPIcall: COMPLETED SUCCESSFUL - returning 200 response to server: ${acuityURL}`);
-                    if (debug) {
-                        console.log('Response object below:');
-                        console.log(response);
-                    }
-                    return res.status(200).send(response);
-                }
-            } else {
-                console.log('acuityAPIcall: Response is undefined')
-                return res.status(400).send('ERROR: Response is undefined');
-            }
-        }
-        catch(e) {
-            console.log(`ERROR: Error caught in API call: ${acuityURL}`);
-            console.log(e);
-            return res.status(400).send(`ERROR: Error detected in Acuity API call: ${acuityURL}`);
-        }
-    });    
 });
