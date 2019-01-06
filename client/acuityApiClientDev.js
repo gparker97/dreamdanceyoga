@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>		
-		<style type="text/css">		
+	<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+		<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.css">	
+		<style type="text/css">				
 		.hide {
 			display: none;
 		}
@@ -79,10 +81,26 @@
 
 	<button type="button" id="get_codes" disabled>GET CODES</button>
 	<button type="button" id="delete_code" disabled>DELETE CODE</button>
+	<br>
+	<button type="button" id="get_student_list">GET STUDENT LIST</button>
 
 	<div id="loading"></div>
 	<div id="error_message"></div>
 	<div id="show_results"></div>
+
+	<div id="show_student_list"></div>
+		<table id="student_list" class="display" style="width:100%">
+			<thead>
+				<tr>
+					<th>First Name</th>
+					<th>Last Name</th>
+					<th>Certificate</th>
+					<th>Label</th>					
+				</tr>
+			</thead>			
+		</table>
+	</div>
+
 	<div id="debug_output_select" class="hide"></div>
 	<div id="debug_output_api" class="hide"></div>
 </div>
@@ -96,7 +114,8 @@ $( () => {
     var debug = true;
 
     var $debug_output = $('#debug_output_api');
-    var $error_output = $('#error_message');
+	var $error_output = $('#error_message');
+	var $results_output = $('#show_results');
 
     var clients = [];
     var products = [];
@@ -177,7 +196,17 @@ $( () => {
                     email: client_email
                 };
                 break;
-            default:
+			case 'appointments_get':
+				var minDate = '2019-01-06';
+				var maxDate = '2019-01-06';
+                var maxResults = 100;                
+                var params = {
+                    minDate,
+					maxDate,
+					max: maxResults
+                };
+                break;
+			default:
                 console.log(`ERROR: Function not found: ${func}`);
                 err_msg += "Problem with initApiCall function";
                 $error_output.html(err_msg);
@@ -207,8 +236,9 @@ $( () => {
 
     async function callAPI(func, params) {
         var $loading = $('#loading');
-		// var apiHost = 'https://66.96.208.44:3443/api/acuity';    
-		var apiHost = 'https://greg-monster.dreamdanceyoga.com:3443/api/acuity'; // GREG COMPUTER
+		// var apiHost = 'https://66.96.208.44:3443/api/acuity'; // GREG
+        var apiHost = 'https://greg-monster.dreamdanceyoga.com:3443/api/acuity'; // GREG COMPUTER
+        // var apiHost = 'https://api.dreamdanceyoga.com:3444/api/acuity'; // AWS UAT API
         
         // Loop through params and build API call URL	
         var url = `${apiHost}/${func}`;
@@ -630,7 +660,47 @@ $( () => {
         }
 		$('#buy_class').prop('disabled', false);
 	});
+
+	// EVENT: GET STUDENT LIST button click
+	$('#get_student_list').on('click', async (e) => {
+		e.preventDefault();
+		
+		// Clear any error message
+		err_msg = "";
+		$error_output.html(err_msg);
+
+		if (debug) {
+			debug_msg += "<br><b>clicked BUY CLASS button...</b>";
+			$debug_output.html(debug_msg);
+		}
+
+		// API call to get list of students (for next / selected class)
+		try {
+			var funcType = "appointments_get"
+			var appointmentsResult = await initApiCall(funcType);
+			// message = `First result is: ${appointmentsResult[0].firstName}`
+			// $results_output.html(message);
+			$('#student_list').DataTable({
+				"data": appointmentsResult,
+				"columns": [
+					{ "data": "firstName"},
+					{ "data": "lastName"},
+					{ "data": "certificate"}
+					// { "data": "labels.name"}
+				]
+			});
+		}
+		catch(e) {
+			console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
+			console.log (e);
+			err_msg += `<b>An error occured retrieving student list, please check and try again</b><br>`;
+			$error_output.html(err_msg);
+		}
+	});
 });
 </script>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<!-- DATATABLES TEST -->
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.js"></script>
+<!-- END DEV/TEST -->
 </html>

@@ -135,6 +135,7 @@
 		<label for="payment_method_dropdown" class="form-label">Select Payment Method: </label>
 		<select id="payment_method_dropdown" class="select_dropdown">
 			<option value="select">Select One</option>			
+			<option value="none">NONE</option>
 			<option value="cc-terminal">Credit Card (Terminal)</option>
 			<option value="cash">Cash</option>
 			<option value="bankXfer-DDY">Bank Transfer DDY</option>
@@ -169,7 +170,12 @@
 $( () => {
 	// Setup script
 	environment = "UAT";
-	version = '0.9.3a';
+	version = '0.9.5b';
+
+	// Set API host
+	// var apiHostUAT = 'https://greg-monster.dreamdanceyoga.com:3443/api/acuity'; // GREG computer
+	var apiHostUAT = 'https://api.dreamdanceyoga.com:3444/api/acuity'; // AWS UAT
+	var apiHostPROD = 'https://api.dreamdanceyoga.com:3443/api/acuity'; // AWS PROD
 	
 	// Arrays to cache Acuity API call responses (avoid making multiple calls)
 	var clients = [];
@@ -182,7 +188,7 @@ $( () => {
 	// Debug mode
 	const debug = true;
 
-    async function initApiCall(func) {
+    async function initApiCall(func, createInvoice) {
         if (debug) {
 			writeMessage("debug", `<br>Starting initApiCall: ${func}`);
         }	
@@ -202,27 +208,59 @@ $( () => {
                 var params = {};
                 break;
 			case 'availability--classes_get':
-                var selected_class = $('#select_package_class_dropdown').prop('selectedIndex');	
-                var classId = products[selected_class].id;
+                // var selected_class = $('#select_package_class_dropdown').prop('selectedIndex');	
+				// var classId = products[selected_class].id;
+				var selectedClassVal = $('#select_package_class_dropdown').val();
+				var selectedClass = $.grep(products, (i) => {
+					return i.name === selectedClassVal;
+				});				
+				var classId = selectedClass[0].id;
                 var params = {		
                     appointmentTypeID: classId
                 };
                 break;
 			case 'appointments_create':
-				var selected_class = $('#select_package_class_dropdown').prop('selectedIndex');
-				var selected_client = $('#search_student_dropdown').prop('selectedIndex');
-				var classTime = $('#buy_class_submit').data('classTime');
-				var classId = products[selected_class].id;            
-				var client_firstName = clients[selected_client].firstName;
-				var client_lastName = clients[selected_client].lastName;
-				var client_email = clients[selected_client].email;
-				var client_phone = clients[selected_client].phone;				
-                // Additional params for XERO
-				var paymentMethod = $('#payment_method_dropdown option:selected').val();
-				console.log(`Payment Method: ${paymentMethod}`);
+				// var selected_class = $('#select_package_class_dropdown').prop('selectedIndex');
+				// var classId = products[selected_class].id;
+				// var selected_client = $('#search_student_dropdown').prop('selectedIndex');
+				var selectedClientVal = $('#search_student_dropdown').val();
+				var selected_client = $.grep(clients, (i) => {
+					return `${i.firstName} ${i.lastName}` === selectedClientVal;
+				});
+				var classTime = $('#buy_class_submit').data('classTime');								
+				var selectedClassVal = $('#select_package_class_dropdown').val();
+				var selectedClass = $.grep(products, (i) => {
+					return i.name === selectedClassVal;
+				});				
+				var classId = selectedClass[0].id;
+				if (debug) {
+					console.log(`selectedClassVal is ${selectedClassVal}`);
+					console.log(`selectedClass is ${selectedClass}`);
+					console.log(`classId is ${classId}`);
+				}
+				var client_firstName = selected_client[0].firstName;
+				var client_lastName = selected_client[0].lastName;
+				var client_email = selected_client[0].email;
+				var client_phone = selected_client[0].phone;
+                var paymentMethod = $('#payment_method_dropdown option:selected').val();
+				// Check Xero invoice checkboxes to determine whether to create invoice / apply payment
+				// Check checkboxes on last run of class series booking
+				if (createInvoice) {
+					var createInvoiceChecked = $('#create_invoice_checkbox').is(':checked');
+					var applyPaymentChecked = $('#apply_payment_checkbox').is(':checked');
+				} else {
+					var createInvoiceChecked = false
+					var applyPaymentChecked = false
+				}
+				if (debug) {
+					console.log(`createInvoiceChecked is ${createInvoiceChecked}`);
+					console.log(`applyPaymentChecked is ${applyPaymentChecked}`);
+				}
 				var params = {
 					method: "POST",
 					paymentMethod: paymentMethod,
+					xeroCreateInvoice: createInvoiceChecked,
+					xeroApplyPayment: applyPaymentChecked,
 					datetime: classTime,
 					appointmentTypeID: classId,
 					firstName: client_firstName,
@@ -232,10 +270,19 @@ $( () => {
 				};
 				break;
             case 'certificates_get':
-                var selected_client = $('#search_student_dropdown').prop('selectedIndex');
-                var client_email = clients[selected_client].email;
-                var queryParam = clients[selected_client].email;
-                var params = {		
+				// var selected_client = $('#search_student_dropdown').prop('selectedIndex');	
+				var selectedClientVal = $('#search_student_dropdown').val();
+				var selected_client = $.grep(clients, (i) => {
+					return `${i.firstName} ${i.lastName}` === selectedClientVal;
+				});
+				var client_email = selected_client[0].email;
+				if (debug) {
+					console.log(`selectedClientVal is ${selectedClientVal}`);
+					console.log(`selected_client is:`);
+					console.log(selected_client);
+					console.log(`client email is ${client_email}`);
+				}				
+				var params = {		
                     email: client_email
                 };			
                 break;
@@ -248,11 +295,30 @@ $( () => {
                 };
                 break;
             case 'certificates_create':
-                var selected_product = $('#select_package_class_dropdown').prop('selectedIndex');
-                var productId = products[selected_product].id;		
-                var selected_client = $('#search_student_dropdown').prop('selectedIndex');
-				var client_email = clients[selected_client].email;
-				// Check if checkboxes are checked to determine whether create invoice / apply payment
+				// var selected_product = $('#select_package_class_dropdown').prop('selectedIndex');
+				// var productId = products[selected_product].id;
+				var selectedProductVal = $('#select_package_class_dropdown').val();
+				var selectedProduct = $.grep(products, (i) => {
+					return i.name === selectedProductVal;
+				});				
+				var productId = selectedProduct[0].id;
+				// var selected_client = $('#search_student_dropdown').prop('selectedIndex');
+				var selectedClientVal = $('#search_student_dropdown').val();
+				var selected_client = $.grep(clients, (i) => {
+					return `${i.firstName} ${i.lastName}` === selectedClientVal;
+				});
+				if (debug) {
+					console.log(`selectedproductVal is ${selectedProductVal}`);								
+					console.log(`selectedProduct is ${selectedProduct}`);
+					console.log(selectedProduct);				
+					console.log(`productId is ${productId}`);
+					console.log('selected client is:');
+					console.log(selected_client);
+				}
+				// var client_email = clients[selected_client].email;
+				var client_email = selected_client[0].email;
+				
+				// Check Xero invoice checkboxes to determine whether to create invoice / apply payment
 				var createInvoiceChecked = $('#create_invoice_checkbox').is(':checked');
 				var applyPaymentChecked = $('#apply_payment_checkbox').is(':checked');
 				if (debug) {
@@ -296,10 +362,6 @@ $( () => {
 
     async function callAPI(func, params) {
 		var $loading = $('#loading');
-		
-		var apiHostUAT = 'https://greg-monster.dreamdanceyoga.com:3443/api/acuity'; // GREG computer
-		// var apiHostUAT = 'https://api.dreamdanceyoga.com:3444/api/acuity'; // AWS UAT
-		var apiHostPROD = 'https://api.dreamdanceyoga.com:3443/api/acuity'; // AWS PROD
 
 		// set apiHost based on environment
 		apiHost = eval(`apiHost${environment}`);		
@@ -377,7 +439,10 @@ $( () => {
     }
 
     function populateDropdown($drop, data, func) {
-        $drop.empty();
+		// Empty items from the dropdown
+		$drop.empty();		
+		
+		// Populate dropdown with values from data array
         switch(func) {
             case 'clients':
                 $.each(data, (i, val) => {
@@ -387,17 +452,27 @@ $( () => {
             case 'products':
             case 'appointment-types':
                 $.each(data, (i, val) => {
-                    $drop.append($('<option>').text(data[i].name).attr('value', data[i].name));
-                });
+					var value = data[i].name;
+					var engVal = $.trim(value.split('|')[1]) || value;					
+					$drop.append($('<option>').text(engVal).attr('value', data[i].name));
+				});				
+				// Sort items in dropdown list
+				$drop.html($('option', $drop).sort(function(x,y) {
+					return $(x).text() > $(y).text() ? 1 : -1;
+				}));				
                 break;		
-            case 'certificates':			
+            case 'certificates':
                 $.each(data, (i, val) => {				
                         $drop.append($('<option>').text(`${data[i].name} Code: ${data[i].certificate}`).attr('value', data[i].certificate));
                     });
                 break;
             default:
                 console.error('ERROR: Unknown dropdown type');
-        }
+		}
+		
+		// Prepend "Select One" to top of dropdown list and select top item
+		$drop.prepend($('<option>').text('Select One').attr('value', 'Select One'));
+		$drop.get(0).selectedIndex = 0;
 	}
 	
 	async function retrieveProductsClasses(action) {
@@ -473,15 +548,28 @@ $( () => {
 		}		
 	}
 
+	// FUNCTION: buyPackage()
+	// 1. Generate a package certificate and assign to user's email address
+	// 2. Generate a Xero invoice for the package price (if requested)
+	// 3. Apply full payment to Xero invoice based on payment method selected (if requested)
 	async function buyPackage() {		
 		try {			
 			// Check whether seledted product is package or subscription
 			var funcType = "products_get";			
 			var products = await initApiCall(funcType);
-			var selectedProduct = $('#select_package_class_dropdown').prop('selectedIndex');
-			var productExpiry = products[selectedProduct].expires;
+
+			// var selectedProduct = $('#select_package_class_dropdown').prop('selectedIndex');
+			// var productExpiry = products[selectedProduct].expires;
+			
+			// Find the array index of the selected product / package and extract expiry date to determine if package or subscription
+			var selectedProductVal = $('#select_package_class_dropdown').val();
+			var selectedProduct = $.grep(products, (i) => {
+				return i.name === selectedProductVal;
+			});				
+			var productExpiry = selectedProduct[0].expires;			
+
 			if (productExpiry == null) {
-				var message = { title: 'ERROR', body: "You can only buy packages, not subscriptions.  Please try again." };
+				var message = { title: 'ERROR', body: '<strong>You can only buy packages with this tool.</strong><br><br>Subscriptions / memberships must be bought from the <a class="my-link" href="https://dreamdanceyoga.com/" target="_blank">Dream Dance and Yoga website</a> using a valid credit card.' };
 				writeMessage('modal', message);
 				return false;
 			}
@@ -504,8 +592,13 @@ $( () => {
 				writeMessage('debug', `<br>Xero Payment Status: ${xeroPaymentResult}`);
 			}
 			var pay_method = $('#payment_method_dropdown').find(':selected').text();
-			var selected_client = $('#search_student_dropdown').prop('selectedIndex');
-            var client_email = clients[selected_client].email;
+			// var selected_client = $('#search_student_dropdown').prop('selectedIndex');
+			// var client_email = clients[selected_client].email;
+			var selectedClientVal = $('#search_student_dropdown').val();
+			var selected_client = $.grep(clients, (i) => {
+					return `${i.firstName} ${i.lastName}` === selectedClientVal;
+			});
+			var client_email = selected_client[0].email;
 			var message = { 
 				title: 'PURCHASE SUCCESS',
 				body: `<b>Email:</b> ${client_email}<br><b>Code:</b> ${result.certificate}<br><b>Payment Method:</b> ${pay_method}<hr><strong>Xero Results</strong><br>${xeroInvoiceStatusMessage}<br>${xeroPaymentStatusMessage}<hr><strong>Inform student to use email address to book classes</strong>`
@@ -522,23 +615,85 @@ $( () => {
 		}		
 	}
 
+	// FUNCTION: buyClass() ** UNDER DEVELOPMENT **
+	// 1. Purchase and register for a single class
+	// 2. Apply appropriate certificate code and label
+	// 3. Create Xero invoice for class (if requested)
+	// 4. Apply full payment to Xero invoice based on payment method selected (if requested)
+	async function buyClass() {
+		// Retrieve next XX instances of selected class
+		try {
+			var funcType = "availability--classes_get";
+			var classTimes = await initApiCall(funcType);
+		}
+		catch (e) {
+			console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
+			console.log (e);
+			var message = { title: 'ERROR', body: `An error occured retrieving class times, please check and try again` };
+			writeMessage('modal', message);
+			return false;
+		}
+
+		// Find the array index of the selected product / package and extract expiry date to determine if package or subscription
+		var selectedProductVal = $('#select_package_class_dropdown').val();
+		var selectedProduct = $.grep(products, (i) => {
+			return i.name === selectedProductVal;
+		});				
+		futureClasses = 10;
+		
+		// Populate dropdown with first XX classes in classTime array and ask user to select class to register
+
+
+	}
+
+	// FUNCTION: buySeries()
+	// 1. Register for all classes in a class series
+	// 2. Generate a *single* invoice in Xero for all classes in the series for the class series price
+	// 3. Apply full payment to the Xero invoice based on the payment method selected
 	async function buySeries() {
 		try {
 			// Get all class times, once we have them loop through each and book
 			var funcType = "availability--classes_get";
-			var classTimes = await initApiCall(funcType);                                
+			var classTimes = await initApiCall(funcType);
+			
+			// (FUTURE) Display confirmation dialog and progress if confirmed
+			// var message = { title: 'BUY A CLASS SERIES', body: `About to buy class series:<br>${JSON.stringify(classTimes, undefined, 2)}<br>Confirm?`};
+			// writeMessage('modal', message);
+			
 			try {
 				var bookClass = [];
 				var funcType = "appointments_create";
 				for (var i = 0; i < classTimes.length; i++) {                    
 					$('#buy_class_submit').data('classTime', classTimes[i].time);
-					bookClass[i] = await initApiCall(funcType);
+					if (i === classTimes.length-1) {
+						var createInvoice = true;
+					} else {
+						var createInvoice = false;
+					}
+					bookClass[i] = await initApiCall(funcType, createInvoice);
 					console.log(`Booked class ${i}:`);
-					console.log(bookClass[i]);					
+					console.log(bookClass[i]);
 				}
-				// Write alert that class series is booked
+				
+				// Store results of acuity and Xero API calls
+				result = bookClass[classTimes.length-1];
+				var xeroInvoiceResult = result.xeroInvoiceStatus;
+				var xeroInvoiceStatusMessage = result.xeroInvoiceStatusMessage;
+				var xeroInvoiceStatusString = result.xeroInvoiceStatusString;
+				var xeroPaymentResult = result.xeroPaymentStatus;
+				var xeroPaymentStatusMessage = result.xeroPaymentStatusMessage || "XERO: Payment not applied";
+				if (debug) {				
+					writeMessage('debug', `<br>Xero Invoice Status: ${xeroInvoiceResult}`);
+					writeMessage('debug', `<br>Xero Invoice Status String: ${xeroInvoiceStatusString}`);
+					writeMessage('debug', `<br>Xero Payment Status: ${xeroPaymentResult}`);
+				}
 				var pay_method = $('#payment_method_dropdown').find(':selected').text();
-				var message = { title: 'BOOKING SUCCESS', body: `Series Name: ${bookClass[0].type}<br>First Class: ${bookClass[0].datetime}<br># of Classes: ${bookClass.length}<br>Payment Method: ${pay_method}` };
+				
+				// Write alert that class series is booked
+				var message = {
+					title: 'BOOKING SUCCESS',
+					body: `<strong>Series Name:</strong> ${bookClass[0].type}<br><strong>First Class:</strong> ${bookClass[0].datetime}<br><strong># of Classes:</strong> ${bookClass.length}<br><strong>Payment Method:</strong> ${pay_method}<hr><strong>Xero Results</strong><br>${xeroInvoiceStatusMessage}<br>${xeroPaymentStatusMessage}`
+				};				
 				writeMessage('modal', message);
                 return bookClass;
 			}
@@ -608,12 +763,17 @@ $( () => {
 		
 		// Reset revealed elements
 		$revealedElements = [];
+
+		// Reset dropdown and checkboxes
+		$('#payment_method_dropdown').val('select');
+		$('#create_invoice_checkbox').prop('checked', true);
+		$('#apply_payment_checkbox').prop('checked', true);
 	}
 
     function clearDropdown($drop) {
         // Empty dropdown menu if it exists	
         $drop.empty();
-        $drop.append($('<option>').text('Select One').attr('value', 'Select One'));	
+        $drop.append($('<option>').text('Select One').attr('value', 'Select One'));
     }
 
     function writeMessage(type, msg, $output) {        
@@ -660,6 +820,8 @@ $( () => {
 		catch (e) {			
 			console.error('ERROR: Error caught retrieving rest controller version');
 			$('#environment').html(`Client version: ${version}<br>Server version: <b>CANNOT CONTACT SERVER</b><br>Environment: ${environment}`);
+			message = { title: "ERROR", body: "<b>Unable to contact server!!</b><br>Please check server process is up and running." };
+			writeMessage('modal', message, $('#modal_output'));
 		}
 	}
 
@@ -806,14 +968,27 @@ $( () => {
 		}
 		
 		// Check if class type = SERIES
-		var selected_class = $('#select_package_class_dropdown').prop('selectedIndex');
-		var classType = products[selected_class].type;
+		// var selected_class = $('#select_package_class_dropdown').prop('selectedIndex');
+		// var classType = products[selected_class].type;
+		// NEW method
+		var selectedClassVal = $('#select_package_class_dropdown').val();
+		var selectedClass = $.grep(products, (i) => {
+			return i.name === selectedClassVal;
+		});				
+		var classType = selectedClass[0].type;				
+		if (debug) {
+			console.log(`selectedClassVal is ${selectedClassVal}`);
+			console.log(`selectedClass is ${selectedClass}`);
+			console.log(`classType is ${classType}`);
+		}		
 		if (classType === "series") {
 			// Book class series for selected student			
 			var buySeriesResult = await buySeries();
 		} else {
+			// FUTURE - reveal datepicker and book single class
+			// var buyClassResult = await buyClass();
 			console.log(`ERROR: Class is not a series`);
-			message = { title: "ERROR", body: "<b>You can only book a series, not a single class.<br>Please try again.</b>" };
+			message = { title: "ERROR", body: "<b>You can only book a class series, not a single class.<br>Please try again.</b>" };
 			writeMessage('modal', message, $('#modal_output'));
 		}
 			
@@ -884,6 +1059,15 @@ $( () => {
 		
 		// Retrieve requested action (buy class or package)
 		var action = $('#search_student_div').data('action');
+
+		// Disable Xero invoice creation if no payment method
+		if ($('#payment_method_dropdown').val() === "none") {
+			$('#create_invoice_checkbox').prop('checked', false);
+			$('#apply_payment_checkbox').prop('checked', false);
+		} else {
+			$('#create_invoice_checkbox').prop('checked', true);
+			$('#apply_payment_checkbox').prop('checked', true);
+		}
 
 		// Once payment method is chosen make submit button visible (doesn't re-hide - to fix later)
 		if ($('#payment_method_dropdown').val() != "Select One") {

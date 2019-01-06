@@ -12,6 +12,12 @@ const https = require('https');
 const path = require('path');
 const Joi = require('joi');
 
+// Version
+const acuityRestControllerVersion = '0.9.6b';
+
+// DEBUG mode
+const debug = true;
+
 // Acuity API
 const Acuity = require('acuityscheduling');
 const config = require('../config');
@@ -20,16 +26,12 @@ const config = require('../config');
 const XeroClient = require('xero-node').AccountingAPIClient;
 const configXero = require('../config-xero');
 
-// Version
-const acuityRestControllerVersion = '0.9.4b';
-
-// DEBUG mode
-const debug = true;
-
 // Declare vars to store Acuity responses
 var acuityStudentInfo = [];
 var acuityProducts = [];
 var acuityCertificate = [];
+var acuityAppointment = [];
+var acuityAppointmentTypes = [];
 
 // List of supported Acuity API call functions, anything else will return 400
 const supportedFunctions = [
@@ -127,12 +129,11 @@ async function initAcuityAPIcall(req) {
     }
 
     // Build Acuity API call URL with params from input URL
-    var acuityURL=`/${func}`;
+    var acuityURL=`/${func}?admin=true`;
     switch (method) {
         case 'GET':
             if (queryIds.length > 0) {
-                var count=0;
-                var firstDone = false;
+                var count=0;                
                 queryIds.forEach(i => {
                     if (debug) {
                         console.log(`building URL at query id ${i}`)
@@ -143,12 +144,7 @@ async function initAcuityAPIcall(req) {
                         console.log(`queryId: ${queryId}`);
                         console.log(`queryParam: ${queryParam}`);
                     }                    
-                    if (!firstDone) {                        
-                        acuityURL +=`?${queryId}=${queryParam}`;
-                        firstDone = true;
-                    } else {
-                        acuityURL +=`&${queryId}=${queryParam}`;
-                    }     
+                    acuityURL +=`&${queryId}=${queryParam}`;                      
                     count++;
                 });
             }
@@ -163,6 +159,8 @@ async function initAcuityAPIcall(req) {
         default:
             return res.status(400).send(`ERROR: Method not supported: ${method}`);
     }    
+    // Add ?admin=true to end of ALL acuity calls?
+    // acuityURL += `?admin=true`
 
     if (debug) {
         console.log(`Function: ${func}`);
@@ -214,8 +212,8 @@ function acuityAPIcall(func, options) {
 }
 
 // Create XERO Invoice if required
-async function createXeroInvoice(params) {
-    console.log('Checking if necessary to create a Xero invoice...');    
+async function createXeroInvoice(params, reqFunc) {
+    console.log('Checking if necessary to create a Xero invoice...');
     
     if (debug) {
         console.log('params below');
@@ -226,33 +224,50 @@ async function createXeroInvoice(params) {
 
     // Only create invoice if invoice creation checked on front end
     if (params.xeroCreateInvoice === "false") {
+        console.log('NOT creating Xero invoice as per user request.');
         return { xeroInvoiceStatus: false, xeroInvoiceStatusMessage: "XERO: Invoice NOT created as per request" };
     }
 
-    // Retrieve details for the package being purchased    
-    var productId = params.productID;
-    var email = params.email;    
+    console.log('Creating Xero invoice...');
+    
+    // Retrieve details for the package being purchased
+    // Product ID is stored under a different parameter for products (certificates) and classes (appointments)
+    if (reqFunc === "certificates") {
+        var productId = params.productID;        
+    } else { // Function is appointments - class booking
+        var productId = params.appointmentTypeID;
+    }
+    var email = params.email;
 
     if (debug) {        
         console.log(`productId: ${productId}`);
-        console.log(`email: ${email}`);
-    }    
+        console.log(`email: ${email}`);        
+    }
 
     // Retrieve array indexes to find info for Xero call
-    const productIndex = acuityProducts.findIndex(x => x.id == productId);
-    const studentIndex = acuityStudentInfo.findIndex(x => x.email == email);    
+    if (reqFunc === "certificates") {
+        var productIndex = acuityProducts.findIndex(x => x.id == productId);
+        var price = acuityProducts[productIndex].price;
+        var productName = acuityProducts[productIndex].name;
+    } else { // Function is appointments - class booking
+        var productIndex = acuityAppointmentTypes.findIndex(x => x.id == productId);
+        var price = acuityAppointmentTypes[productIndex].price;
+        var productName = acuityAppointmentTypes[productIndex].name;
+    }
+    const studentIndex = acuityStudentInfo.findIndex(x => x.email == email);
 
     if (debug) {
         console.log(`Index for ${productId} is ${productIndex}`);
         console.log(`Index for ${email} is ${studentIndex}`);
-        console.log(`Price is: ${acuityProducts[productIndex].price}`);
+        console.log(`Price is: ${price}`);
+        console.log(`Product name is: ${productName}`);
         console.log(`Student last name is: ${acuityStudentInfo[studentIndex].lastName}`);
     }
 
-    if (acuityProducts[productIndex].price > 0) {
+    if (price > 0) {
         console.log('Price of package is greater than 0, creating invoice...');
         
-        // Translate Acuity package name into Xero Item ID
+        // Translate Acuity package name into Xero Item ID        
         var itemCode = "";
         switch (productId) {
             case '539782':
@@ -279,7 +294,17 @@ async function createXeroInvoice(params) {
             case '551767':
                 itemCode = "GOLD-6MONTH-ONETIME";
                 break;
+            case '556141':
+                itemCode = "SILVER-YOGA-MONTHLY-ONETIME";
+                break;
+            case '8067151':
+                itemCode = "TEST-SERIES-1";
+                break;
+            case '8735137':
+                itemCode = "BELLY-CHOREO-L2-FIONA-JAN2019";
+                break;
             default:
+                // (FUTURE) Create inventory item if not defined yet
                 console.log(`XERO ERROR: Class ${productId} not defined.  Cannot create invoice.`);
                 return { xeroInvoiceStatus: false, xeroInvoiceStatusMessage: "XERO: Product / package not defined" };
         }
@@ -306,13 +331,14 @@ async function createXeroInvoice(params) {
         return { xeroInvoiceStatus: false, xeroInvoiceStatusMessage: "XERO: ERROR caught retrieving contact information" };
     }
 
-    // Capture required Xero parameters
-    const invoiceNumber = `AC-${acuityCertificate.id}`;
+    // Capture required Xero parameters    
+    // No need to specify invoice number - Xero will create a random number
+    // const invoiceNumber = `AC-${acuityCertificate.id}`;    
     const invoiceType = 'ACCREC';
     // const invoiceStatus = 'DRAFT';
     const invoiceStatus = 'AUTHORISED';
     const tax = 'NoTax';
-    const ref = `${acuityProducts[productIndex].name} ${acuityStudentInfo[studentIndex].firstName} ${acuityStudentInfo[studentIndex].lastName}`;
+    const ref = `${productName} ${acuityStudentInfo[studentIndex].firstName} ${acuityStudentInfo[studentIndex].lastName}`;
         
     // Calculate due date
     var daysUntilDue = 7 // Set to number of days before invoice is due
@@ -328,7 +354,7 @@ async function createXeroInvoice(params) {
         Contact: {
             ContactID: eval(`'${xeroContactID}'`),
         },
-        InvoiceNumber: eval(`'${invoiceNumber}'`),
+        // InvoiceNumber: eval(`'${invoiceNumber}'`),
         LineAmountTypes: eval(`'${tax}'`),
         DueDate: eval(`'${dueDate}'`),
         Status: eval(`'${invoiceStatus}'`),
@@ -355,7 +381,12 @@ async function createXeroInvoice(params) {
     }
 
     // Apply payment to Xero invoice if required
-    if (params.xeroApplyPayment) {
+    if (params.xeroApplyPayment === "false") {        
+        console.log('XERO: NOT applying payment to XERO invoice');            
+        xeroResult.xeroPaymentStatus = false;
+        xeroResult.xeroPaymentStatusMessage = "XERO: Payment NOT applied as per request";        
+        return xeroResult;        
+    } else {
         console.log('XERO: Applying payment to Xero invoice...');
         try {
             var xeroPayment = await xeroApplyPayment(xeroResult, params);
@@ -392,11 +423,7 @@ async function createXeroInvoice(params) {
             console.log(xeroPayment.xeroPaymentStatusMessage);            
             xeroResult.xeroPaymentErrorMessage = xeroPayment.xeroPaymentStatusMessage;
         }
-    } else {
-        console.log('XERO: NOT applying payment to XERO invoice');            
-        xeroResult.xeroPaymentStatus = false;
-        xeroResult.xeroPaymentStatusMessage = "XERO: Payment NOT applied as per request";
-    }    
+    }
     return xeroResult;
 }
 
@@ -537,18 +564,30 @@ app.get('/api/acuity/:function', async (req, res) => {
                     acuityStudentInfo = acuityResult;
                     break;
                 case 'products':
-                    acuityProducts = acuityResult;                            
-                    break;      
-                case 'certificates':                            
-                    acuityCertificate = acuityResult;                    
-                    // If POST then create Xero Invoice for package purchase
+                    acuityProducts = acuityResult;
+                    break;
+                case 'appointment-types':
+                    acuityAppointmentTypes = acuityResult;
+                    break;
+                case 'certificates':
+                    acuityCertificate = acuityResult;
+                    // If client is buying a new product or series (POST) then create Xero Invoice for purchase
                     if (method === "POST") {
-                        var xeroInvoice = await createXeroInvoice(req.query);                        
+                        var xeroInvoice = await createXeroInvoice(req.query, reqFunc);
                         // Parse results of Xero API calls and append results to acuityResult
                         acuityResult = parseXeroApiCall(xeroInvoice, acuityResult);
                     }
-                    break;                            
-            }                    
+                    break;
+                case 'appointments':
+                    acuityAppointment = acuityResult;
+                    // If client is buying a new product or series (POST) then create Xero Invoice for purchase
+                    if (method === "POST") {
+                        var xeroInvoice = await createXeroInvoice(req.query, reqFunc);
+                        // Parse results of Xero API calls and append results to acuityResult
+                        acuityResult = parseXeroApiCall(xeroInvoice, acuityResult);
+                    }
+                    break;
+            }
             console.log(`acuityAPIcall: COMPLETED SUCCESSFUL - returning 200 response to server: ${reqFunc}`);
             if (debug) {
                 console.log('acuityResult object below:');
