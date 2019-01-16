@@ -3,6 +3,7 @@
 	<head>
 		<!--link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous"-->
 		<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+        <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.css"></link>
         <style type="text/css">
         .my-link {
             color: blue !important;
@@ -64,7 +65,17 @@
 
 		.form-label {
 			font-weight: bold;
-		}
+        }
+
+        .table {
+            width: 100% !important;
+            table-layout: fixed;
+        }
+        
+        .checked-in {
+            background-color: #acbad4;
+            color: red;
+        }
 
         .hide {
 			display: none;
@@ -96,6 +107,12 @@
 		<div id="add_to_class_top" class="card">
 			<h2><strong>ADD TO CLASS</strong></h2>
 		</div>	
+	</a>
+
+    <a href="#">
+		<div id="checkin_table_top" class="card">
+			<h2><strong>GENERATE CHECK-IN LIST</strong></h2>
+		</div>
 	</a>
 </div>
 
@@ -151,26 +168,53 @@
 	
 	<div id="add_to_class_div" class="details-item hide">Test div ADD TO CLASS</div>
 
+    <div id="generate_checkin_table_div" class="details-item hide">
+        <!-- Dropdown to hold upcoming classes to generate student check-in list -->
+        <div id="upcoming_classes_div">
+            <label for="upcoming_classes_dropdown" class="form-label">Select Class to Generate Check-in List: </label>
+            <select id="upcoming_classes_dropdown" class="dropdown">
+                <option value="class">Select One</option>
+            </select>  
+        </div>
+
+        <button type="button" id="generate_checkin_table" disabled>GENERATE CHECK-IN TABLE</button>
+        
+        <!-- Placeholder HTML table for student check-in list - populated by DataTable() -->
+        <div id="checkin_table_div" class="details-item hide">
+            <table id="checkin_table" class="display table">
+                <thead>
+                    <tr>
+                        <th>First Name</th>
+                        <th>Last Name</th>
+                        <th>Class Type</th>
+                        <th>Class Time</th>
+                        <th>Certificate</th>
+                        <th>Check In</th>					
+                    </tr>
+                </thead>			
+            </table>
+        </div>
+	</div>
+
 	<!-- JQUERY UI MODAL CONTAINER -->
 	<div id="modal_output"></div>
+		<input type="submit" id="buy_package_submit" class="submit-button hide" value="BUY PACKAGE" />
+		<input type="submit" id="buy_class_submit" class="submit-button hide" value="BUY CLASS" />
+		<input type="submit" id="view_packages_submit" class="submit-button hide" value="VIEW PACKAGES" />
+		<input type="submit" id="add_to_class_submit" class="submit-button hide" value="ADD TO CLASS" />
+	</div>
 
-	<input type="submit" id="buy_package_submit" class="submit-button hide" value="BUY PACKAGE" />
-	<input type="submit" id="buy_class_submit" class="submit-button hide" value="BUY CLASS" />
-	<input type="submit" id="view_packages_submit" class="submit-button hide" value="VIEW PACKAGES" />
-	<input type="submit" id="add_to_class_submit" class="submit-button hide" value="ADD TO CLASS" />
-</div>
-
-<div id="error_message"></div>
-<div id="spacer"><br><br></div>
-<div id="environment" class="env"></div>
-<div id="debug_output" class="hide"></div>
+	<div id="error_message"></div>
+	<div id="spacer"><br><br></div>
+	<div id="environment" class="env"></div>
+	<div id="debug_output" class="hide"></div>
 </body>
 
 <script type="text/javascript">
 $( () => {
 	// Setup script
 	environment = "UAT";
-	version = '0.9.5b';
+	version = '0.9.6b';
 
 	// Set API host
 	// var apiHostUAT = 'https://greg-monster.dreamdanceyoga.com:3443/api/acuity'; // GREG computer
@@ -180,7 +224,8 @@ $( () => {
 	// Arrays to cache Acuity API call responses (avoid making multiple calls)
 	var clients = [];
     var products = [];
-	var certificates = [];
+    var certificates = [];
+    var upcoming_classes = [];
 
 	// Hold array of div/button elements to clean up
 	var $revealedElements = [];
@@ -188,7 +233,7 @@ $( () => {
 	// Debug mode
 	const debug = true;
 
-    async function initApiCall(func, createInvoice) {
+    async function initApiCall(func, args) {
         if (debug) {
 			writeMessage("debug", `<br>Starting initApiCall: ${func}`);
         }	
@@ -208,18 +253,48 @@ $( () => {
                 var params = {};
                 break;
 			case 'availability--classes_get':
-                // var selected_class = $('#select_package_class_dropdown').prop('selectedIndex');	
-				// var classId = products[selected_class].id;
-				var selectedClassVal = $('#select_package_class_dropdown').val();
-				var selectedClass = $.grep(products, (i) => {
-					return i.name === selectedClassVal;
-				});				
-				var classId = selectedClass[0].id;
-                var params = {		
-                    appointmentTypeID: classId
+				// If no arguments, then find all available classes for the selected class
+				// If arguments exist, find all classes for today
+				if (args === 'upcoming_classes') {
+					// Find all classes scheduled for today
+                    var today = new Date();                    
+                    var minDate = $.datepicker.formatDate('yy/mm/dd', today);					
+                    var maxDate = new Date();
+                    maxDate.setDate(today.getDate() + 1);
+                    var maxDate = $.datepicker.formatDate('yy/mm/dd', maxDate);
+					var params = {		
+						minDate,
+						maxDate,
+						includeUnavailable: true
+					};
+				} else {
+					var selectedClassVal = $('#select_package_class_dropdown').val();
+					var selectedClass = $.grep(products, (i) => {
+						return i.name === selectedClassVal;
+					});				
+					var classId = selectedClass[0].id;
+					var params = {		
+						appointmentTypeID: classId,
+						includeUnavailable: true
+					};
+				}				
+                break;
+            case 'appointments_get':
+				var selected_class_index = $('#upcoming_classes_dropdown').prop('selectedIndex');
+				var selected_class = selected_class_index - 1;
+                var classId = upcoming_classes[selected_class].appointmentTypeID;
+				var today = $.datepicker.formatDate('yy/mm/dd', new Date());
+				var minDate = today;
+				var maxDate = today;
+                var maxResults = 200;
+                var params = {
+					appointmentTypeID: classId,
+					minDate,
+					maxDate,
+					max: maxResults
                 };
                 break;
-			case 'appointments_create':
+            case 'appointments_create':
 				// var selected_class = $('#select_package_class_dropdown').prop('selectedIndex');
 				// var classId = products[selected_class].id;
 				// var selected_client = $('#search_student_dropdown').prop('selectedIndex');
@@ -243,6 +318,10 @@ $( () => {
 				var client_email = selected_client[0].email;
 				var client_phone = selected_client[0].phone;
                 var paymentMethod = $('#payment_method_dropdown option:selected').val();
+				
+				// Set createInvoice variable to value of args to determine whether to create an invoice in Xero
+				var createInvoice = args;
+				
 				// Check Xero invoice checkboxes to determine whether to create invoice / apply payment
 				// Check checkboxes on last run of class series booking
 				if (createInvoice) {
@@ -466,7 +545,12 @@ $( () => {
                         $drop.append($('<option>').text(`${data[i].name} Code: ${data[i].certificate}`).attr('value', data[i].certificate));
                     });
                 break;
-            default:
+            case 'classes':
+                $.each(data, (i, val) => {
+                        $drop.append($('<option>').text(`${data[i].name} - ${data[i].time}`).attr('value', `${data[i].name}-${data[i].time}`));
+                    });
+            break;
+                default:
                 console.error('ERROR: Unknown dropdown type');
 		}
 		
@@ -513,6 +597,43 @@ $( () => {
 			writeMessage('modal', message);
             return false;
 		}		
+    }
+    
+    async function retrieveUpcomingClasses(action) {
+		switch (action) {
+			case 'checkin_table_top':
+				var funcType = "availability--classes_get";
+				break;			
+		}
+
+        // API call to retrieve today's classes
+        try {
+            var result = await initApiCall(funcType, 'upcoming_classes');
+            console.log(`${funcType} result:`);
+			console.log(result);
+            
+            if (debug) {
+				writeMessage('debug', `<br>Completed initApicall: ${funcType}`);				
+			}
+
+            // If successful populate dropdown table with today's classes
+            var $dropdown = $('#upcoming_classes_dropdown');
+            var func = "classes";
+            populateDropdown($dropdown, result, func);
+            
+            // Reveal dropdown and enable button to generate table
+            revealElement($('#generate_checkin_table_div'));
+            $('#generate_checkin_table').prop('disabled', false);
+
+            return result;
+        }
+        catch(e) {
+            console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
+            console.log (e);
+            var message = { title: 'ERROR', body: `An error occured with ${funcType}, please check and try again` };
+			writeMessage('modal', message);
+            return false;            
+        }
 	}
 
 	async function retrieveStudents() {		
@@ -615,11 +736,10 @@ $( () => {
 		}		
 	}
 
-	// FUNCTION: buyClass() ** UNDER DEVELOPMENT **
+	// FUNCTION: buyClass()
 	// 1. Purchase and register for a single class
-	// 2. Apply appropriate certificate code and label
-	// 3. Create Xero invoice for class (if requested)
-	// 4. Apply full payment to Xero invoice based on payment method selected (if requested)
+	// 2. Create Xero invoice for class (if requested)
+	// 3. Apply full payment to Xero invoice based on payment method selected (if requested)
 	async function buyClass() {
 		// Retrieve next XX instances of selected class
 		try {
@@ -641,7 +761,7 @@ $( () => {
 		});				
 		futureClasses = 10;
 		
-		// Populate dropdown with first XX classes in classTime array and ask user to select class to register
+		// Populate dropdown with first 10 classes in classTime array and ask user to select class to register
 
 
 	}
@@ -746,8 +866,7 @@ $( () => {
 		$revealedElements.push($elementId);
 
 		if (debug) {
-			console.log('revealedElements after push:');
-			console.log($revealedElements);
+			console.log('revealedElements after push:', $revealedElements);			
 		}		
 	}
 
@@ -882,7 +1001,17 @@ $( () => {
 				// Add as object to array
 				// Loop through all student names and add to class
 				break;
-			default:
+            case 'checkin_table_top':
+                $detailsTop.html('<h2>GENERATE STUDENT CHECK-IN LIST</h2><hr/><b>This function is still under testing.  Please do not use!!</b>');
+                var message = { title: 'ALERT', body: "This function is still under testing.  Please do not use!!" };
+				writeMessage('modal', message);                
+                // Reveal dropdown table and store action				
+				$('#generate_checkin_table_div').data('action', e.currentTarget.id);
+                // Make API call to retrieve today's classes
+                upcoming_classes = await retrieveUpcomingClasses(action);
+                console.log('Upcoming Classes:', upcoming_classes);
+				break;
+            default:
 				console.error('ERROR: Unsupported action');
 		}
 	});	
@@ -1001,8 +1130,8 @@ $( () => {
 	$('#view_packages_submit').on('click', async (e) => {
 		e.preventDefault();
 		console.log(`Event captured: ${e.currentTarget.id}`);
-		console.log(e);
-		// Clear any error message		
+		console.log(e);        
+        // Clear any error message		
 		writeMessage('error', "");
 
 		// Disable view packages submit button
@@ -1073,18 +1202,162 @@ $( () => {
 		if ($('#payment_method_dropdown').val() != "Select One") {
 			switch (action) {
 				case 'buy_class_top':				
-					revealElement($('#buy_class_submit'));				
+					revealElement($('#buy_class_submit'));
 					break;
 				case 'buy_package_top':				
 					revealElement($('#buy_package_submit'));				
 					break;
 			}
 		}
-	});
+    });
+
+    // EVENT: GENERATE CHECK-IN TABLE button click
+	$('#generate_checkin_table').on('click', async (e) => {
+		e.preventDefault();
+		console.log(`Event captured: ${e.currentTarget.id}`);
+		console.log(e);        
+        // Clear any error message		
+		writeMessage('error', "");
+
+		if (debug) {
+            writeMessage('debug', "<br><b>clicked GENERATE CHECK-IN TABLE button...</b>");
+		}        
+
+        // API call to get list of students (for next / selected class)
+		try {
+			var funcType = "appointments_get";
+			var appointmentsResult = await initApiCall(funcType);
+			
+			// Retrieve index of selected class
+			var selected_class_index = $('#upcoming_classes_dropdown').prop('selectedIndex');
+			var selected_class = selected_class_index - 1;
+			
+			// Check to see if class is full
+			var classFull = false;
+			var slotsAvail = upcoming_classes[selected_class].slotsAvailable;
+			if (slotsAvail < 1) {
+				classFull = true;
+			}
+			if (debug) {
+				console.log('classFull is: ', classFull);
+			}			
+			
+			// Filter appointmentsResult for only the selected class
+			var selectedClassDatetime = upcoming_classes[selected_class].time;			
+			if (debug) {
+				console.log('selected_class index is:', selected_class);
+				console.log('SelectedClassDatetime is:', selectedClassDatetime);
+				console.log('Upcoming classes datetime:', upcoming_classes[selected_class].time);
+			}
+			var selectedAppointments = $(appointmentsResult).filter((i) => {
+				return appointmentsResult[i].datetime === selectedClassDatetime;
+			});
+			console.log('selectedAppointments is:', selectedAppointments);			
+
+            try {
+				// Need to clear or remove table if already exists here
+                
+				// Build table with DataTables API - build in new window
+				/*
+                var checkin_table = await $('#checkin_table').DataTable({
+                    "data": selectedAppointments,
+                    "pageLength": 25,
+                    "columns": [
+                        { "data": "firstName"},
+                        { "data": "lastName"},
+                        { "data": "type"},
+                        { "data": "datetime"},
+                        { "data": "certificate"},
+                        { "defaultContent": '<button type="button" class="check-in">Check In!</button>' }
+                        // { "data": "labels.name"}
+                    ]
+                });
+				*/
+				
+				// var w = window.open("popup-table-uat", "Dream Dance and Yoga Student Check-In", "menubar='no',toolbar='no',location='no',width=" + screen.availWidth + ",height=" + screen.availHeight);
+				var win = window.open("popup-window-uat", "_blank");
+				if (win) {
+					win.focus();
+					
+					// Pass local vars to child window
+					window.debug = debug;
+					window.selectedAppointments = selectedAppointments;
+					window.slotsAvail = slotsAvail;
+					window.classFull = classFull;					
+				} else {
+					alert('Please enable pop-ups');
+				}				
+
+				/* output in modal???
+                var $output = $('#modal_output');
+				$output.html(checkin_table);
+				var modalOptions = {
+					modal: true,
+					title: 'DATATABLES',
+					buttons: {
+						OK: () => { $modalDialog.dialog('close'); }
+					}
+                }
+				var $modalDialog = $output.dialog(modalOptions);
+				*/
+				
+				// LOOP THROUGH OBJECT NOTES FIELD TO DETERMINE IF CHECKED IN OR NOT
+
+                // If successful reveal table div
+                revealElement($('#checkin_table_div'));
+            }
+            catch (e) {
+                console.log(`ERROR: Error building datatable!`);
+                console.log (e);
+                var message = { title: 'ERROR', body: `Error building student check-in table, please check and try again` };
+			    writeMessage('modal', message);
+            }
+		}
+		catch(e) {
+			console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
+            console.log (e);
+            var message = { title: 'ERROR', body: `An error occured retrieving student list, please check and try again` };
+            writeMessage('modal', message);
+		}
+
+        // EVENT: CHECK-IN TABLE ROW / CHECK-IN BUTTON click - event to be captured after dynamic table is generated
+		$('#checkin_table tbody').on('click', 'tr', function(e) {
+			e.preventDefault();
+            // Clear any error message		
+            writeMessage('error', "");
+
+			if (debug) {
+                writeMessage('debug', "<br><b>clicked CHECK-IN TABLE ROW OR BUTTON...</b>");                
+			}							
+
+			// apply new class to row to show checked in
+			$(this).addClass('checked-in');
+        
+            console.log('this is:');
+            console.log(this);
+			console.log('table row is:');
+			console.log(checkin_table.row(this).data());
+
+			var data = checkin_table.row(this).data();			
+			
+			console.log('data is:');
+			console.log(data);
+			
+			// IF BUTTON TEXT IS CHECK IN THEN POPULATE ACUITY NOTES FIELD
+			// IF BUTTON TEXT IS CANCEL CHECKIN THEN REMOVE TEXT FROM ACUITY NOTES FIELD
+			
+			// BUG - NOT WORKING AFTER TABLE IS DESTROYED ONCE - CHECK
+            alert(`You have checked in!\n\nName: ${data.firstName} ${data.lastName}\nstart time: ${data.datetime}\nclass type: ${data.type}\nappt id: ${data.id}`);
+		});
+	});	
 });
 </script>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<!-- JQUERY / JQUERY UI -->
+<!--script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script-->
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
+<!-- DATATABLES -->
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.js"></script>
+<!-- BOOTSTRAP -->
 <!--script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script-->
 <!--script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script-->
 <!-- END UAT -->

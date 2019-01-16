@@ -95,6 +95,7 @@ async function initAcuityAPIcall(req) {
     
     // If buying a package, parse the URL to get required data
     // Refactor this later to send properly formatted JSON via POST
+    // ** Can this entire block be deleted?  Perhaps not required **
     if (method === "POST" && func === "certificates") {        
         const queryId2 = Object.keys(req.query)[1];
         const queryParam2 = eval(`req.query.${queryId2}`);

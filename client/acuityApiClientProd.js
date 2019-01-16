@@ -216,7 +216,8 @@ $( () => {
 				});				
 				var classId = selectedClass[0].id;
                 var params = {		
-                    appointmentTypeID: classId
+					appointmentTypeID: classId,
+					includeUnavailable: true
                 };
                 break;
 			case 'appointments_create':

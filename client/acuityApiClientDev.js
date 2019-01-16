@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>		
-	<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+		<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 		<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.css">	
 		<style type="text/css">				
+
 		.hide {
 			display: none;
 		}
@@ -12,7 +13,7 @@
 			border: 1px solid lightgray;
 			border-radius: 2px;  
 			display: block;
-			max-width: 50%;
+			max-width: 100%;
 			margin: 5px 0px;
 			padding: 5px;  
 		}
@@ -22,7 +23,12 @@
 			border: 1px solid #999999;
 			background-color: #cccccc;
 			color: #666666;
-		}
+        }
+        
+        .checked-in {
+            background-color: blue;
+            color: red;
+        }
 		</style>
 	</head>
 <body>
@@ -81,8 +87,18 @@
 
 	<button type="button" id="get_codes" disabled>GET CODES</button>
 	<button type="button" id="delete_code" disabled>DELETE CODE</button>
-	<br>
+	<br><br>
 	<button type="button" id="get_student_list">GET STUDENT LIST</button>
+
+	<!-- Dropdown to hold upcoming classes to generate student check-in list -->
+	<div id="upcoming_classes_div">
+		<label id="upcoming_classes_label" for="upcoming_classes">Select Class to Generate Check-in List: </label>
+		<select id="upcoming_classes" class="select_dropdown">
+			<option value="class">Select One</option>
+		</select>  
+	</div>
+	
+	<button type="button" id="generate_checkin_table" disabled>GENERATE CHECK-IN TABLE</button>
 
 	<div id="loading"></div>
 	<div id="error_message"></div>
@@ -94,8 +110,10 @@
 				<tr>
 					<th>First Name</th>
 					<th>Last Name</th>
+                    <th>Class Type</th>
+                    <th>Class Time</th>
 					<th>Certificate</th>
-					<th>Label</th>					
+					<th>Check In</th>					
 				</tr>
 			</thead>			
 		</table>
@@ -119,11 +137,12 @@ $( () => {
 
     var clients = [];
     var products = [];
-    var classes = [];
+	var classes = [];
+	var upcoming_classes = [];
     var certificates = [];
     var deleteCodeResult = [];
 
-    async function initApiCall(func) {
+    async function initApiCall(func, args) {
         if (debug) {
             debug_msg += `<br>Starting initApiCall: ${func}`;
             $debug_output.html(debug_msg);
@@ -144,11 +163,25 @@ $( () => {
                 var params = {};
                 break;
             case 'availability--classes_get':
-                var selected_class = $('#select_class').prop('selectedIndex');	
-                var classId = classes[selected_class].id;
-                var params = {		
-                    appointmentTypeID: classId
-                };
+				if (args) {
+					// Find classes for the date passed to the function
+					minDate = args;
+					// maxDate = args + 1; ADD ONE DAY TO MIN DATE
+					maxDate = '2019-01-11';
+					var params = {		
+						minDate,
+						maxDate,
+						includeUnavailable: true
+					};
+				} else {
+					// Find classes for the selected class
+					var selected_class = $('#select_class').prop('selectedIndex');	
+                	var classId = classes[selected_class].id;
+                	var params = {		
+					appointmentTypeID: classId,
+					includeUnavailable: true
+                	};
+				}				
                 break;
             case 'appointments_create':
                 var selected_class = $('#select_class').prop('selectedIndex');
@@ -197,11 +230,15 @@ $( () => {
                 };
                 break;
 			case 'appointments_get':
-				var minDate = '2019-01-06';
-				var maxDate = '2019-01-06';
+				var selected_class = $('#upcoming_classes').prop('selectedIndex');	
+                var classId = upcoming_classes[selected_class].appointmentTypeID;	
+				var today = $.datepicker.formatDate('yy/mm/dd', new Date());
+				var minDate = today;
+				var maxDate = today;
                 var maxResults = 100;                
                 var params = {
-                    minDate,
+					appointmentTypeID: classId,
+					minDate,
 					maxDate,
 					max: maxResults
                 };
@@ -237,8 +274,8 @@ $( () => {
     async function callAPI(func, params) {
         var $loading = $('#loading');
 		// var apiHost = 'https://66.96.208.44:3443/api/acuity'; // GREG
-        var apiHost = 'https://greg-monster.dreamdanceyoga.com:3443/api/acuity'; // GREG COMPUTER
-        // var apiHost = 'https://api.dreamdanceyoga.com:3444/api/acuity'; // AWS UAT API
+        // var apiHost = 'https://greg-monster.dreamdanceyoga.com:3443/api/acuity'; // GREG COMPUTER
+        var apiHost = 'https://api.dreamdanceyoga.com:3444/api/acuity'; // AWS UAT API
         
         // Loop through params and build API call URL	
         var url = `${apiHost}/${func}`;
@@ -327,7 +364,12 @@ $( () => {
                         $drop.append($('<option>').text(`${data[i].name} Code: ${data[i].certificate}`).attr('value', data[i].certificate));
                     });
                 break;
-            default:
+			case 'classes':
+                $.each(data, (i, val) => {
+                        $drop.append($('<option>').text(`${data[i].name} - ${data[i].time}`).attr('value', `${data[i].name}-${data[i].time}`));
+                    });
+            break;
+			default:
                 console.log('Unable to populate dropdown');
         }
     }
@@ -670,22 +712,73 @@ $( () => {
 		$error_output.html(err_msg);
 
 		if (debug) {
-			debug_msg += "<br><b>clicked BUY CLASS button...</b>";
+			debug_msg += "<br><b>clicked GET STUDENT LIST button...</b>";
+			$debug_output.html(debug_msg);
+		}
+
+		// API call to retrieve today's classes
+		try {			
+			var funcType = "availability--classes_get";
+			var today = $.datepicker.formatDate('yy/mm/dd', new Date());
+			upcoming_classes = await initApiCall(funcType, today);
+			console.log('upcoming_classes is:');
+			console.log(upcoming_classes);
+			// Populate dropdown table with today's classes
+			var $dropdown = $('#upcoming_classes');
+			var func = "classes";
+			populateDropdown($dropdown, upcoming_classes, func);
+			// Enable button to generate table
+			$('#generate_checkin_table').prop('disabled', false);
+		}
+		catch(e) {
+			console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
+			console.log (e);
+			err_msg += `<b>An error occured retrieving today's classes, please check and try again</b><br>`;
+			$error_output.html(err_msg);
+		}
+	});
+
+	// EVENT: GENERATE CHECK-IN TABLE button click
+	$('#generate_checkin_table').on('click', async (e) => {
+		e.preventDefault();
+		
+		// Clear any error message
+		err_msg = "";
+		$error_output.html(err_msg);
+
+		if (debug) {
+			debug_msg += "<br><b>clicked GET STUDENT LIST button...</b>";
 			$debug_output.html(debug_msg);
 		}
 
 		// API call to get list of students (for next / selected class)
 		try {
-			var funcType = "appointments_get"
+			var funcType = "appointments_get";
 			var appointmentsResult = await initApiCall(funcType);
-			// message = `First result is: ${appointmentsResult[0].firstName}`
-			// $results_output.html(message);
-			$('#student_list').DataTable({
-				"data": appointmentsResult,
+			
+			// Filter appointmentsResult for only the selected class
+			var selected_class = $('#upcoming_classes').prop('selectedIndex');	            
+			var selectedClassDatetime = upcoming_classes[selected_class].time;
+			selectedAppointments = $(appointmentsResult).filter((i) => {
+				return appointmentsResult[i].datetime === selectedClassDatetime;
+			});
+			console.log('selectedAppointments is:');
+			console.log(selectedAppointments);
+
+			// Clear and destroy table
+			$('#student_list').DataTable().destroy();
+            
+            // Build table with DataTables API
+            var student_list_table = $('#student_list').DataTable({    
+				"data": selectedAppointments,
+				"pageLength": 25,
 				"columns": [
 					{ "data": "firstName"},
-					{ "data": "lastName"},
-					{ "data": "certificate"}
+                    { "data": "lastName"},
+                    { "data": "type"},
+                    { "data": "datetime"},
+					{ "data": "certificate"},
+					{ "defaultContent": '<button type="button" class="check-in">Check In!</button>' }
 					// { "data": "labels.name"}
 				]
 			});
@@ -696,10 +789,42 @@ $( () => {
 			err_msg += `<b>An error occured retrieving student list, please check and try again</b><br>`;
 			$error_output.html(err_msg);
 		}
+
+        // EVENT: CHECK IN button click - event to be captured after dynamic table is generated
+		$('#student_list tbody').on('click', 'tr', function(e) {
+			e.preventDefault();
+
+			// Clear any error message
+			err_msg = "";
+			$error_output.html(err_msg);
+
+			if (debug) {
+				debug_msg += "<br><b>clicked CHECK IN button...</b>";
+				$debug_output.html(debug_msg);				
+			}
+
+			// apply new class to row to show checked in
+			$(this).addClass('checked-in');
+        
+            console.log('this is:');
+            console.log(this);
+			console.log('table row is:');
+			console.log(student_list_table.row(this).data());
+
+			var data = student_list_table.row(this).data();			
+			
+			console.log('data is:');
+			console.log(data);
+			// BUG - NOT WORKING AFTER TABLE IS DESTROYED ONCE - CHECK
+            alert(`You have checked in!\n\nName: ${data.firstName} ${data.lastName}\nstart time: ${data.datetime}\nclass type: ${data.type}\nappt id: ${data.id}`);
+		});
 	});
+
+	
 });
 </script>
 <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
 <!-- DATATABLES TEST -->
 <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.js"></script>
 <!-- END DEV/TEST -->
