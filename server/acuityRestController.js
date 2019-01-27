@@ -13,7 +13,7 @@ const path = require('path');
 const Joi = require('joi');
 
 // Version
-const acuityRestControllerVersion = '0.9.8b';
+const acuityRestControllerVersion = '1.0.0';
 
 // DEBUG mode
 const debug = true;
@@ -36,13 +36,14 @@ var acuityAppointmentTypes = [];
 // List of supported Acuity API call functions, anything else will return 400
 const supportedFunctions = [
     'version',
+    'pin',
     'clients',
     'me',
     'certificates',
     'products',
     'appointments',
     'appointment-types',
-    'availability--classes',
+    'availability',
     'forms'
 ];
 
@@ -83,7 +84,7 @@ async function initAcuityAPIcall(req) {
     const queryParam1 = eval(`req.query.${queryId1}`);
 
     // Update func var with proper syntax to make API call    
-    const func = requestedFunction.replace("--", "/");
+    const func = requestedFunction.replace(/\-\-/g, "/");
 
     // Search for objects to include in URL request (for labels)
     // Jimmy hacked corn and I don't care
@@ -176,7 +177,11 @@ async function initAcuityAPIcall(req) {
         case 'PUT':
         case 'DELETE':
             var idToUpdate = body.id;
-            acuityURL =`/${func}/${idToUpdate}?admin=true`;
+            if (!idToUpdate) {
+                acuityURL =`/${func}?admin=true`;
+            } else {
+                acuityURL =`/${func}/${idToUpdate}?admin=true`;
+            }            
             delete body.id;
             break;
         default:
@@ -576,11 +581,18 @@ app.get('/api/acuity/:function', async (req, res) => {
     console.log(`== API call from ${req.headers.host} @ ${req.headers.origin} at ${req.ip} ==`);
 
     // Store the requested function and return if function not in supportedFunctions array
-    const reqFunc = req.params.function;    
+    const reqFunc = req.params.function.split('--')[0];
+    console.log(`Requested function: ${reqFunc}`);
     if (!supportedFunctions.includes(reqFunc)) { return res.status(400).send('Function not supported'); }
 
     // If VERSION request then return version
     if (reqFunc === "version") { return res.status(200).send(acuityRestControllerVersion); }
+
+    // If PIN request then return instructor PIN
+    const instructorPin = '2468';
+    let buff = new Buffer(instructorPin);
+    let instructorPin64 = buff.toString('base64');    
+    if (reqFunc === "pin") { return res.status(200).send(instructorPin64); }
 
     // If first query ID is "method" then set method (PUT/POST/DELETE) otherwise default to GET and remove query
     const queryId1 = Object.keys(req.query)[0];

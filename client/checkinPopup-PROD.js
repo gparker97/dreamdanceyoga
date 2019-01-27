@@ -280,7 +280,7 @@ $( async () => {
         
         // Filter clients ressult to store instructors only by looking for text in the clients notes field
         var instructorNote = 'DDY Instructor';
-        var instructorNoteUAT = 'DDY Instructor TEST';
+        var instructorNoteUAT = 'DDY TEST Instructor';
         
         var instructors = $(clientsResult).filter((i) => {
             if (environment === 'UAT') {
@@ -732,7 +732,7 @@ $( async () => {
 
     // EVENT: TEACHER CHECK-IN BUTTON click
     // FUNCTION: Add instructor to class and mark as teacher for reporting purposes
-    $('#teacher_checkin_submit').on('click', async function(e) {
+    $('#teacher_checkin_submit').on('click', async (e) => {
         e.preventDefault();
         // Clear any error message
         writeMessage('error', "");
@@ -742,97 +742,143 @@ $( async () => {
         }
 
         // Bring up PIN window - check PIN is valid
+        // Bring up modal with search and student dropdown fields to register a walk-in student
+        var message = {
+            title: 'Instructor Check-in',
+            body: `<div id="instructor_pin_div" class="details-item">                        
+                        <form id="instructor_pin_form">
+                            <label for="instrutor_pin" class="form-label"><b>Enter PIN: </b></label>
+                            <input type="password" name="instructor_pin" id="instructor_pin" autocomplete="new-password" />
+                            <input type="submit" name="instructor_pin_submit" id="instructor_pin_submit" value="Submit" />
+                        </form>
+                    </div>
+                    <br>
+                    <div id="pin_message_div" class="hide"><b>Pin Incorrect! Please try again.</b></div>`
+        };
+        writeMessage('modal-no-button', message);
+        $('#instructor_pin_form').focus();
 
-        // Filter instructor object for selected instructor
-        var selectedInstructor = $('#teacher_checkin_dropdown').val();
-        
-        if (debug) {
-            console.log(`Selected instructor: ${selectedInstructor}`);
-            console.log('Instructors:', instructors);
-        }
+        // Retrieve actual PIN from server            
+        var pin64 = await callAPI('pin');            
+        var pin = atob(pin64);
+            
+        // EVENT: INSTRUCTOR PIN SUBMIT
+        $('#instructor_pin_form').on('submit', async (e) => {
+            e.preventDefault();
 
-        var classInstructor = $(instructors).filter((i) => {
-            return (`${instructors[i].firstName} ${instructors[i].lastName}` === selectedInstructor);
+            if (debug) {
+                writeMessage('debug', `<br>Submit invoked on instructor_pin`);                
+            }
+
+            // Cache and disable submit button, clear error messages
+            writeMessage('error', "");
+            $submitButton = $('#instructor_pin_submit');
+            $submitButton.prop('disabled', true).addClass('disabled');
+
+            // Check submitted PIN matches instructor PIN code
+            var inputPin = $('#instructor_pin').val();
+
+            if (inputPin != pin) {
+                console.log('PIN incorrect!');
+                // Show alert, clear PIN field and re-enable submit button
+                // alert('PIN incorrect - please try again!');
+                $('#pin_message_div').removeClass('hide');
+                $('#instructor_pin').val('');
+                $submitButton = $('#instructor_pin_submit');
+                $submitButton.prop('disabled',false).removeClass('disabled');
+            } else {
+                // PIN is correct - proceed with instructor check-in
+                console.log('PIN correct');
+                $('#pin_message_div').html('Thank you!');                                
+                // Filter instructor object for selected instructor
+                var selectedInstructor = $('#teacher_checkin_dropdown').val();
+                
+                if (debug) {
+                    console.log(`Selected instructor: ${selectedInstructor}`);
+                    console.log('Instructors:', instructors);
+                }
+                
+                // Filter instructors array for the selected instructor from dropdown
+                var classInstructor = $(instructors).filter((i) => {
+                    return (`${instructors[i].firstName} ${instructors[i].lastName}` === selectedInstructor);
+                });
+                console.log('Selected instructor is:', classInstructor);
+
+                // If CANCEL check-in - remove instructor from class, re-enable instructor dropdown
+                if ($('#teacher_checkin_dropdown').hasClass('disabled')) {
+                    // Call checkIn to cancel instructor check-in
+                    try {
+                        // Filter selected appointments array to get instructor appointment data
+                        var classInstructorAppt = $(selectedAppointments).filter((i) => {
+                            return (`${selectedAppointments[i].certificate}` === 'DDYINSTRUCTOR');
+                        });                        
+                        console.log('Class instructor appt is:', classInstructorAppt);                        
+                        
+                        var cancelNote = 'Instructor check-in cancel';
+                        var apptId = classInstructorAppt[0].id;
+                        var funcType = 'appointments_put';
+                        var activity = 'cancelAppointment';
+                        var params = {
+                            apptId,
+                            cancelNote
+                        }                        
+                        
+                        var appointmentsResult = await initApiCall(funcType, activity, params);
+                        console.log('AppointmentsResult is:', appointmentsResult);
+
+                        // If successful alert student and re-enable check-in button
+                        var message = { title: 'Check-in cancelled', body: `Check-in cancelled for ${classInstructor[0].firstName} ${classInstructor[0].lastName}.` };
+                        writeMessage('modal', message);
+
+                        $('#teacher_checkin_submit').val('Instructor Check-in');
+                        $('#teacher_checkin_dropdown').prop('disabled', false);
+                        $('#teacher_checkin_dropdown').removeClass('disabled');
+
+                        // If successful reload window
+                        if (appointmentsResult) {
+                            console.log('Reloading window...!');
+                            window.location.reload();
+                        }
+                    }
+                    catch (e) {
+                        console.log(`ERROR: Error cancelling instructor check-in!`);
+                        console.log (e);
+                        var message = { title: 'ERROR!', body: `Error while cancelling instructor check-in!  Please try again.` };
+                        writeMessage('modal', message);
+                    }
+                } else {
+                    // Add instructor to class with 'instructor' check-in note
+                    // Set check-in type and add student to class
+                    try {
+                        var checkInType = 'instructor';
+                        var certificate = 'DDYINSTRUCTOR';
+                        var addInstructorResult = await addStudentToClass(classInstructor, certificate, checkInType);
+                        console.log('addInstructorResult:', addInstructorResult);
+
+                        // Alert instructor check-in was successful
+                        var message = { title: `Instructor Check-in Successful for ${classInstructor[0].firstName} ${classInstructor[0].lastName}!`, body: `Thanks for checking in, ${classInstructor[0].firstName}.  Enjoy your class!` };
+                        writeMessage('modal', message);
+
+                        // If successful update check-in button
+                        $('#teacher_checkin_submit').val('Cancel Instructor Check-in');
+                        $('#teacher_checkin_dropdown').prop('disabled', true);
+                        $('#teacher_checkin_dropdown').addClass('disabled');
+
+                        // If successful reload window
+                        if (addInstructorResult) {
+                            console.log('Reloading window...!');                
+                            window.location.reload();
+                        }
+                    }
+                    catch (e) {
+                        console.log(`ERROR: Error adding instructor to class!`);
+                        console.log (e);
+                    }
+                }
+            }            
         });
-        console.log('Selected instructor is:', classInstructor);        
-
-        // If CANCEL check-in - remove instructor from class, re-enable instructor dropdown
-        if ($('#teacher_checkin_dropdown').hasClass('disabled')) {
-            // var message = { title: 'Hold your horses!', body: `Teacher Check-in Cancel function not implemented yet!` };
-            // writeMessage('modal', message);
-
-            // Call checkIn to cancel instructor check-in
-            try {
-                // ***** NEEDS TO ACTUALLY REMOVE INSTRUCTOR FROM THE CLASS *****
-                var message = { title: 'Hold your horses!', body: `Instructor cancel check-out not implemented yet!` };
-                writeMessage('modal', message);
-
-                /*
-                var checkOutResult = await checkIn(classInstructor, true);
-                console.log('Check out result: ', checkOutResult);
-    
-                // If successful alert student and re-enable check-in button
-                var message = { title: 'Check-in cancelled', body: `Check-in cancelled for ${classInstructor[0].firstName} ${classInstructor[0].lastName}.` };
-                writeMessage('modal', message);
-
-                $('#teacher_checkin_submit').val('Cancel Instructor Check-in');
-                $('#teacher_checkin_dropdown').prop('disabled', true);
-                $('#teacher_checkin_dropdown').addClass('disabled');
-
-                // If successful reload window
-                if (checkOutResult) {
-                    console.log('Reloading window...!');                
-                    window.location.reload();
-                }
-                */
-            }
-            catch (e) {
-                console.log(`ERROR: Error cancelling instructor check-in!`);
-                console.log (e);
-                var message = { title: 'ERROR!', body: `Error while cancelling instructor check-in!  Please try again.` };
-                writeMessage('modal', message);
-            }
-        } else {
-            // Add instructor to class with 'instructor' check-in note
-            // Set check-in type and add student to class
-            try {
-                var checkInType = 'instructor';
-                var certificate = 'DDYINSTRUCTOR';
-                var addInstructorResult = await addStudentToClass(classInstructor, certificate, checkInType);
-                console.log('addInstructorResult:', addInstructorResult);
-
-                // Alert instructor check-in was successful
-                var message = { title: `Instructor Check-in Successful for ${classInstructor[0].firstName} ${classInstructor[0].lastName}!`, body: `Thanks for checking in, ${classInstructor[0].firstName}.  Enjoy your class!` };
-                writeMessage('modal', message);
-
-                // If successful update check-in button
-                $('#teacher_checkin_submit').val('Cancel Instructor Check-in');
-                $('#teacher_checkin_dropdown').prop('disabled', true);
-                $('#teacher_checkin_dropdown').addClass('disabled');
-
-                // If successful reload window
-                if (addInstructorResult) {
-                    console.log('Reloading window...!');                
-                    window.location.reload();
-                }
-            }
-            catch (e) {
-                console.log(`ERROR: Error adding instructor to class!`);
-                console.log (e);
-            }
-        }
-        // var message = { title: 'Hold your horses!', body: `Teacher Check-in function not implemented yet!` };
-        /* var message = { 
-            title: 'Hold your horses!',
-            body: `<form id="search_student" action="" method="post">  
-			    <label for="search_student" class="form-label">Student Name: </label>
-			    <input type="search" name="search_student_form" id="search_student_form" />
-			    <input type="submit" name="search_submit" id="search_submit" value="Search" />			
-		        </form>`
-        }; */
-        // writeMessage('modal', message);
     });
-
+    
     // EVENT: REGISTER NOW BUTTON click
     // FUNCTION: Register walk-in student to class if spaces available
     $('#register_now_submit').on('click', async function(e) {
@@ -855,7 +901,7 @@ $( async () => {
             return false;
         }
 
-        // var message = { title: 'Hold your horses!', body: `Register Now function not implemented yet!` };        
+        // Bring up modal with search and student dropdown fields to register a walk-in student
         var message = {
             title: 'Register Walk-in Student',
             body: `<div id="search_student_div" class="details-item">
@@ -943,7 +989,7 @@ $( async () => {
             // Store trial class checkbox entry
             var trialClassChecked = $('#trial_class_walkin_checkbox').is(':checked');            
             
-            // Get the appropriate certificate to apply - MAKE THIS A FUNCTION //
+            // Get the appropriate certificate to apply
             var certificate = await getCertificateForStudent(selectedClient, trialClassChecked);            
             
             // Set check-in type and add student to class

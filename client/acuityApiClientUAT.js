@@ -204,7 +204,7 @@
 $( () => {
 	// Setup script
 	const environment = 'UAT';
-	const version = '1.0.3b';
+	const version = '1.1.0';
 	
 	// Arrays to cache Acuity API call responses (avoid making multiple calls)
 	var clients = [];
@@ -308,6 +308,8 @@ $( () => {
 					buttonImageOnly: true,
 					buttonText: ''
 				});
+				// Clear date value from label if it exists
+				$('#checkin_datepicker').val('');
 				break;
             default:
 				console.error('ERROR: Unsupported action');
@@ -627,7 +629,7 @@ $( () => {
 				} else {
 					winName = 'checkin-window';			
 				}
-				var win = window.open(winName, '_blank', 'fullscreen=yes');
+				var win = window.open(winName, '_blank', 'fullscreen=yes,width=' + screen.availWidth + ',height=' + screen.availHeight);
 				// var w = window.open("popup-table-uat", "Dream Dance and Yoga Student Check-In", "menubar='no',toolbar='no',location='no',width=" + screen.availWidth + ",height=" + screen.availHeight);
 				if (win) {
 					win.focus();					

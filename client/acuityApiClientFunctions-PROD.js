@@ -1,6 +1,6 @@
 // Setup script
 const environment = 'PROD';
-const version = '1.0.3b';
+const version = '1.1.0';
 
 // Set API host
 // var apiHostUAT = 'https://greg-monster.dreamdanceyoga.com:3443/api/acuity'; // GREG computer
@@ -132,6 +132,20 @@ async function initApiCall(func, activity, params) {
                         method: "PUT",
                         id: apptId,
                         notes: `${checkInNote}`
+                    };
+                    break;
+                case 'cancelAppointment':
+                    var apptId = params.apptId;
+                    var cancelNote = params.cancelNote;
+                    if (debug) {
+                        console.log('Appt ID is: ', apptId);                        
+                    }
+                    // Update func to send proper URL
+                    func = `appointments--${apptId}--cancel`;
+                    console.log('func is: ', func);
+                    var params = {
+                        method: "PUT",
+                        cancelNote
                     };
                     break;
                 default:
