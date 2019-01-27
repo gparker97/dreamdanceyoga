@@ -13,7 +13,7 @@ const path = require('path');
 const Joi = require('joi');
 
 // Version
-const acuityRestControllerVersion = '0.9.6b';
+const acuityRestControllerVersion = '0.9.8b';
 
 // DEBUG mode
 const debug = true;
@@ -74,7 +74,7 @@ function validateCourse(course) {
     return Joi.validate(course, schema);
 }
 
-async function initAcuityAPIcall(req) {   
+async function initAcuityAPIcall(req) {
     // Store query details
     const requestedFunction = req.params.function;
     const body = req.query;
@@ -82,20 +82,49 @@ async function initAcuityAPIcall(req) {
     const queryId1 = Object.keys(req.query)[0];
     const queryParam1 = eval(`req.query.${queryId1}`);
 
-    // Update func var with proper syntax to make API call
-    const func = requestedFunction.replace("--", "/");    
+    // Update func var with proper syntax to make API call    
+    const func = requestedFunction.replace("--", "/");
+
+    // Search for objects to include in URL request (for labels)
+    // Jimmy hacked corn and I don't care
+    if ('OBJECT' in body) {
+        var objectValue = body.OBJECT;
+        var objectVals = body.OBJECT.split('_');
+        var objectKey = objectVals[0];
+        var innerObjectKey = objectVals[1]
+        var innerObjectVal = body[objectValue];        
+        
+        if (debug) {
+            console.log('body is: ', body);
+            console.log('Object Value: ', objectValue);
+            console.log('Object Values:', objectVals);
+            console.log('Object key: ', objectKey);
+            console.log('Inner object key: ', innerObjectKey);
+            console.log('Inner object val: ', innerObjectVal);
+        }
+        
+        // Clean up body
+        delete body.OBJECT;
+        delete body[objectValue];
+        
+        // Add object to a new object array within body
+        body[objectKey] = [];
+        body[objectKey][0] = {};
+        body[objectKey][0][innerObjectKey] = innerObjectVal;
+        
+        console.log('NEW body after object insertion: ', body);        
+    }    
 
     // Decode URL to store key params
     // If first query ID is "method" then set method (PUT/POST/DELETE) otherwise default to GET and remove query
     var method = 'GET';
-    if (queryId1 === 'method') { 
+    if (queryId1 === 'method') {
         method = queryParam1;
         delete body.method;
     }
     
     // If buying a package, parse the URL to get required data
-    // Refactor this later to send properly formatted JSON via POST
-    // ** Can this entire block be deleted?  Perhaps not required **
+    // Refactor this later to send properly formatted JSON via POST    
     if (method === "POST" && func === "certificates") {        
         const queryId2 = Object.keys(req.query)[1];
         const queryParam2 = eval(`req.query.${queryId2}`);
@@ -118,15 +147,6 @@ async function initAcuityAPIcall(req) {
             var xeroApplyPayment = queryParam4;
             delete body.xeroApplyPayment;
         }
-    }    
-    
-    // Build JSON body from input URL for methods requiring body params
-    var options = {};
-    if (method === 'POST' || method === 'PUT' || method === 'DELETE') {
-        var options = {
-            method: eval(`'${method}'`),
-            body
-        };
     }
 
     // Build Acuity API call URL with params from input URL
@@ -153,15 +173,24 @@ async function initAcuityAPIcall(req) {
         case 'POST':
             // Do nothing
             break;
+        case 'PUT':
         case 'DELETE':
-            var idToDelete = req.query.id;
-            acuityURL =`/${func}/${idToDelete}`;
+            var idToUpdate = body.id;
+            acuityURL =`/${func}/${idToUpdate}?admin=true`;
+            delete body.id;
             break;
         default:
             return res.status(400).send(`ERROR: Method not supported: ${method}`);
+    }
+
+    // Build JSON body from input URL for methods requiring body params
+    var options = {};
+    if (method === 'POST' || method === 'PUT' || method === 'DELETE') {
+        var options = {
+            method: eval(`'${method}'`),
+            body
+        };
     }    
-    // Add ?admin=true to end of ALL acuity calls?
-    // acuityURL += `?admin=true`
 
     if (debug) {
         console.log(`Function: ${func}`);
@@ -224,7 +253,7 @@ async function createXeroInvoice(params, reqFunc) {
     }
 
     // Only create invoice if invoice creation checked on front end
-    if (params.xeroCreateInvoice === "false") {
+    if (!params.xeroCreateInvoice || params.xeroCreateInvoice === 'false') {
         console.log('NOT creating Xero invoice as per user request.');
         return { xeroInvoiceStatus: false, xeroInvoiceStatusMessage: "XERO: Invoice NOT created as per request" };
     }
@@ -304,6 +333,18 @@ async function createXeroInvoice(params, reqFunc) {
             case '8735137':
                 itemCode = "BELLY-CHOREO-L2-FIONA-JAN2019";
                 break;
+            case '8954238':
+                itemCode = "BELLY-INTENSIVE-5MAR2019";
+                break;
+            case '8765245':
+                itemCode = "MOTHER-CHILD-BELLY-4-6-MAR2019";
+                break;
+            case '8765254':
+                itemCode = "MOTHER-CHILD-BELLY-7-9-MAR2019";
+                break;
+            case '8998950':
+                itemCode = "BELLY-WORKSHOP-YAYA-FEB2019";
+                break;
             default:
                 // (FUTURE) Create inventory item if not defined yet
                 console.log(`XERO ERROR: Class ${productId} not defined.  Cannot create invoice.`);
@@ -382,7 +423,7 @@ async function createXeroInvoice(params, reqFunc) {
     }
 
     // Apply payment to Xero invoice if required
-    if (params.xeroApplyPayment === "false") {        
+    if (!params.xeroApplyPayment || params.xeroApplyPayment === 'false' ) {        
         console.log('XERO: NOT applying payment to XERO invoice');            
         xeroResult.xeroPaymentStatus = false;
         xeroResult.xeroPaymentStatusMessage = "XERO: Payment NOT applied as per request";        

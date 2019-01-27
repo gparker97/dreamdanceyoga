@@ -1,5 +1,5 @@
 // Setup script
-const environment = 'UAT';
+const environment = 'PROD';
 const version = '1.0.3b';
 
 // Set API host
@@ -985,4 +985,4 @@ async function populateEnvironment() {
     }
 }
 
-// END UAT FUNCTIONS
+// END PROD FUNCTIONS

@@ -990,11 +990,11 @@ $( async () => {
 }
 </script>
 <!-- Acuity Client Functions -->
-<script src="https://sophiadance.squarespace.com/s/acuityApiClientFunctions-UAT.js"></script>
+<script src="https://sophiadance.squarespace.com/s/acuityApiClientFunctions-PROD.js"></script>
 <!-- JQUERY / JQUERY UI -->
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
 <!-- DATATABLES -->
 <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.js"></script>
-<!-- END POPUP WINDOW UAT -->
+<!-- END POPUP WINDOW PROD -->
 </html>
