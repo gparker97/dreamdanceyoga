@@ -2,19 +2,113 @@
 <html lang="en">
 	<head>        
       	<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-        <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.css"></link>
+        <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.css"></link>        
   		
         <style type="text/css">
-        .hide {
-			display: none;
+        .center {
+            text-align: center;
         }
 
+        .class-details {
+            padding: 10px;
+            text-align: center;
+            border-radius: 5px;
+            /* background-color: #acbad4; */
+            background-color: maroon;
+            position: relative;
+        }
+
+        .class-details h3 {			
+            color: white;
+            font-size: 200%;
+        }
+
+        .class-title h2 {
+            padding: 10px;
+            margin: 5px;
+            text-align: center;
+            border-radius: 5px;
+            /* background-color: #acbad4; */
+            background-color: #4D4A4A;
+            color: white;
+            font-size: 250% !important;
+        }
+        
+        .class-full h3 {
+            background-color: maroon !important;
+        }
+        
+        .classpass {
+            font-weight: bold;
+        }        
+
+        .checkin-message h3 {            
+            font-weight: bold;
+            text-align: center;
+            font-size: 100% !important;
+            background-color: none !important;
+        }
+
+        .checkin-table {            
+            font-size: 110%;
+        }        
+
+        .ddy-member {
+            /* background-color: #acbad4 !important; */
+            color: maroon;
+            font-weight: bold;
+        }
+        
         .debug-output {
 			border: 1px solid lightgray;
-			border-radius: 2px;  
+			border-radius: 2px;
 			display: block;			
 			margin: 5px 0px;
 			padding: 5px;
+        }
+
+        .details-item {                        
+            font-family: futura-pt;
+        }
+        
+        
+        .disabled, button:disabled {
+			border: 1px solid #999999;
+			background-color: #cccccc;
+			color: #666666;
+        }
+
+        .dropdown {
+            color: black;
+        }
+        
+        .font-size-15x {
+            font-size: 150% !important;
+        }
+
+        .inline {
+            display: inline-block;            
+        }
+
+        .instructor {
+            /* background-color: #acbad4 !important; */
+            color: DimGrey;
+            font-weight: bold;
+        }
+
+        html, body {
+            min-height: 100%;
+            margin: auto;
+            background-color: white;
+        }
+
+        .languagewrapper {
+            display: none;
+        }
+
+        .modal-output {            
+            font-family: futura-pt !important;
+            border-radius: 5px;
         }
 
         .my-link {
@@ -22,186 +116,183 @@
             text-decoration: underline;
         }
 
-        .inline {
-            display: inline-block;
-            padding: 5px;
+        .overflow {
+            overflow: hidden;
+        }        
+
+        .register-now {
+            padding: 10px;            
+            display: inline-block;            
+            font-size: 150%;
+            font-weight: bold;
+            margin-left: auto;
         }
 
         .right {
             float: right;
+            text-align: right;
         }
 
-        .center {
-            text-align: center;
+        .select-another-class {            
+            position: absolute;
+            right: 5px;
+            bottom: 5px;
+            font-size: 14px;
         }
 
-        .disabled,
-		button:disabled {
-			border: 1px solid #999999;
-			background-color: #cccccc;
-			color: #666666;
-		}
-
-        .table-footer {            
-            padding: 5px;
-            background-color: #acbad4;
+        .selected {
+            background-color: #acbad4 !important;             
+            color: DimGrey !important;
         }
         
-        .class-details h3 {
-			padding: 10px;
-            text-align: center;
-            background-color: #acbad4;
-            font-size: 200% !important;
-        }
-
-        .checkin-message h3 {
-            padding: 20px;
-            font-weight: bold;
-            text-align: center;
-        }        
-
         .slot-details h3 {
             color: white;
-            background-color: #acbad4;
-            padding: 10px;            
-        }
-
-        .class-full h3 {
-            background-color: maroon !important;
-        }
-
-        .register-now {
+            border-radius: 10px;
+            background-color: #4D4A4A;
             padding: 10px;
-            background-color: #acbad4;
-            display: inline-block;            
-            font-size: 150%;
-            font-weight: bold;
+            font-size: 100% !important;
         }
-
+        
+        .spacer {
+            padding: 5px;
+        }
+        
+        .student-name {
+            font-weight: bold;  
+            font-size: 140%;          
+        }
+        
+        .sqsp-font {
+            font-family: futura-pt !important;
+        }
+        
         .submit-button {            
             font-weight: bold;
+            color: black;            
         }
 
         .submit-button-bold {
             font-size: 150%;
             font-weight: bold;
+            color: black;
         }
 
         .submit-button-large {
-			font-size: 150%;
+			font-size: 180%;
 			font-weight: bold;
-			padding: 20px;			
-		}
-
-        .spacer {
-            padding: 5px;
+            padding: 20px;            
         }
         
-        .selected {
-            background-color: #acbad4 !important;             
-            color: DimGrey !important;
+        .table {
+            width: 100% !important;
         }
 
-        .checkin-table {            
-            font-size: 110%;
-        }
-
-        .student-name {
-            font-weight: bold;  
-            font-size: 140%;          
-        }
-
-        .classpass {
-            /* background-color: #acbad4 !important; */            
-            font-weight: bold;
-        }
-
-        .trialclass {
-            /* background-color: #acbad4 !important; */
-            background-color: plum;
-            font-weight: bold;
-        }
-
-        .ddy-member {
-            /* background-color: #acbad4 !important; */
-            color: orangered;
-            font-weight: bold;
-        }
-
-    .instructor {
-            /* background-color: #acbad4 !important; */
-            color: DimGrey;
-            font-weight: bold;
+        .table thead {
+            display: none;
         }
         
-        .modal-output {
-            font-size: 120%;
-        }
-
         .table tbody tr {
             cursor: pointer;
         }
+        
+        .table-footer {
+            display: flex;
+            border-radius: 5px;
+            padding: 5px;
+            background-color: maroon;
+            color: white;
+        }
+
+        .teacher-checkin {
+            padding: 10px;
+        }
+
+        .top-of-table {            
+            width: 100%;
+            padding: 10px;
+        }
+
+        .top-of-table h3 {
+            font-size: 125%;
+            color: black;
+        }
+
+        .trialclass {            
+            background-color: maroon;
+            color: white;
+            font-weight: bold;
+        }
+
+        .hide {
+			display: none;
+        }
+        
+        /* Datatables disable header
+        .dataTables_wrapper table thead {            
+            display: none;
+        } */
+
         </style>	
     </head>
 
 <body>
-    <!-- Placeholder to hold teacher and class info -->
-    <div id="class_info_div" class="class-details"></div>
-    <div id="close_window_div" class="inline right">
-            <input type="submit" id="close_window_submit" class="submit-button" value="Select a different class" />
-    </div>
-    <div id="checkin_message" class="checkin-message">
-        <h3>Please tap your name to check in</h3>
-    </div>
-    <div id="spacer_div" class="spacer"></div>
+    <div id="popup_window_div" class="popup-window-top">
+        <!-- Placeholder to hold teacher and class info -->
+        <div id="class_title_div" class="class-title"></div>
+        <div id="class_info_div" class="class-details"></div>
+        
+        <div id="top_of_table_div" class="top-of-table">
+            <div class="center"><h3><strong>点击您的名字登录 | TAP YOUR NAME TO CHECK IN!</h3></strong></div>
+        </div>
+        
+        <div id="spacer_div" class="spacer"></div>
 
-    <div id="loading"></div>
+        <div id="loading"></div>
 
-	<!-- Placeholder HTML table for student check-in list - populated by DataTable() -->
-    <div id="checkin_table_div" class="details-item">
-        <table id="checkin_table" class="display table">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>First Name</th>
-                    <th>Type</th>
-                    <th>Check In</th>					
-                </tr>
-            </thead>
-        </table>
-    </div>
-    
-    <div id="spacer_div" class="spacer"></div>
-    
-    <!-- Table footer -->
-    <div id="table_footer_div" class="table-footer">
-        <div id="teacher_checkin_div" class="teacher-checkin inline">
-            <!-- Dropdown to hold DDY teacher names -->
-            <div id="teacher_checkin_dropdown_div" class="inline">
-                <label for="teacher_checkin_dropdown" class="form-label"><b>Instructor: </b></label>
-                <select id="teacher_checkin_dropdown" class="dropdown">
-                    <option value="select">Select One</option>
-                </select>
-                <input type="submit" id="teacher_checkin_submit" class="submit-button" value="Instructor Check-In" />
-            </div>
+        <!-- Placeholder HTML table for student check-in list - populated by DataTable() -->    
+        <div id="checkin_table_div">
+            <table id="checkin_table" class="display table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>First Name</th>
+                        <th></th>
+                        <th></th>					
+                    </tr>
+                </thead>
+            </table>
         </div>        
-        <div id="register_now_div" class="inline right">
-            <input type="submit" id="register_now_submit" class="submit-button-bold" value="REGISTER WALK-IN" />
-        </div>        
+        
+        <!-- Table footer -->
+        <div id="table_footer_div" class="table-footer">
+            <div id="teacher_checkin_div" class="teacher-checkin">
+                <!-- Dropdown to hold DDY teacher names -->
+                <div id="teacher_checkin_dropdown_div">
+                    <label for="teacher_checkin_dropdown" class="form-label"><b>Instructor: </b></label>
+                    <select id="teacher_checkin_dropdown" class="dropdown">
+                        <option value="select">Select One</option>
+                    </select>
+                    <input type="submit" id="teacher_checkin_submit" class="submit-button" value="Instructor Check-In" />
+                </div>
+            </div>        
+            <div id="register_now_div" class="register-now">
+                <input type="submit" id="register_now_submit" class="submit-button right" value="Register Now!" />
+            </div>        
+        </div>
+        
+        <div id="spacer_div" class="spacer"></div>
+        
+        <!-- Fullscreen and slots info -->
+        <input type="submit" id="fullscreen_submit" class="submit-button inline" value="Toggle Fullscreen" />
+        <div id="slots_info_div" class="slot-details right"></div>
     </div>
-    
-    <div id="spacer_div" class="spacer"></div>
-    
-    <!-- Fullscreen and slots info -->
-    <input type="submit" id="fullscreen_submit" class="submit-button inline" value="Toggle Fullscreen" />
-    <div id="slots_info_div" class="slot-details right"></div>
     
     <!-- Debug and errors -->
     <div id="debug_output" class="hide"></div>    
     <div id="error_message"></div>
     
     <!-- JQUERY UI MODAL CONTAINER -->
-	<div id="modal_output" class="modal-output"></div>
+	<div id="modal_output"></div>
 </body>
 
 <script type="text/javascript">
@@ -253,7 +344,11 @@ $( async () => {
         var classDate = selectedAppointments[0].date;
         var classTime = selectedAppointments[0].time;
 
-        var classInfoDetailsHTML = `<h3><strong>${className}</strong><br>${classDate} ${classTime}`;
+        var classTitleHTML = `<h2>Welcome to Dream Dance and Yoga!</h2>`;
+        $('#class_title_div').html(classTitleHTML);
+        
+        var classInfoDetailsHTML = `<h3 class="inline"><strong>${className}</strong><br>${classDate} ${classTime}
+        <input type="submit" id="close_window_submit" class="select-another-class submit-button" value="Select another class" /></h3>`;
         $('#class_info_div').html(classInfoDetailsHTML);
 
         // Store slots available info and populate slots_info HTML        
@@ -306,7 +401,7 @@ $( async () => {
     function prepareApptData(selectedAppointments) {
         $.each(selectedAppointments, (i, val) => {
             // Append check-in button HTML
-            selectedAppointments[i].buttonHTML = `<button type="button" id="${selectedAppointments[i].id}" class="check-in">Check In!</button>`;
+            selectedAppointments[i].buttonHTML = `<button type="button" id="${selectedAppointments[i].id}" class="submit-button">Check In!</button>`;
             if (debug) {
                 console.log(`selectedAppointments[${i}].buttonHTML is: `, selectedAppointments[i].buttonHTML);
             }
@@ -318,16 +413,14 @@ $( async () => {
             cert = selectedAppointments[i].certificate;
             
             if (debug) {
-                console.log(`Cert for ${selectedAppointments[i].firstName} is: ${cert}`);
+                console.log(`Cert for ${selectedAppointments[i].firstName}: ${cert}`);
             }
 
             if (cert) {
                 if (cert.includes('TRIAL')) { cert = "TRIALCLASS"; }
-                console.log('cert is: ', cert);
-                
                 switch (cert) {
                     case 'CLASSPASS':
-                        selectedAppointments[i].studentType = 'Classpass';
+                        selectedAppointments[i].studentType = 'CP';
                         break;
                     case 'TRIALCLASS':
                     case 'FIRSTCLASSFREE':
@@ -341,9 +434,11 @@ $( async () => {
                         $('#teacher_checkin_submit').val('Cancel Instructor Check-in');
                         $('#teacher_checkin_dropdown').prop('disabled', true);
                         $('#teacher_checkin_dropdown').addClass('disabled');
+                        // Hack to ensure the instructor name is listed at top of the table
+                        selectedAppointments[i].firstName=`00${selectedAppointments[i].firstName}`;
                         break;
                     default:
-                        selectedAppointments[i].studentType = "<p class='ddy-member'>Dream Dance and Yoga Member <img src='https://sophiadance.squarespace.com/s/dancer-icon-transparent-32px.png' alt='We love our DDY Members :)'></p>";
+                        selectedAppointments[i].studentType = "<p class='ddy-member'>Dream Dance and Yoga Member <img src='https://sophiadance.squarespace.com/s/dancer-icon-transparent-24px.png'></p>";
                 }
             } else {
                 selectedAppointments[i].studentType = 'Single class';
@@ -371,15 +466,14 @@ $( async () => {
                 "paging": false,
                 "info": false,
                 "searching": false,
-                // "ordering": false,            
-                responsive: true,
                 columnDefs: [
                     { targets: 0, className: "student-name dt-center" },
-                    { targets: '_all', orderable: false, className: "checkin-table dt-center" },                
+                    { targets: '_all', orderable: false, className: "checkin-table dt-center" },
                     { targets: 1, visible: false },                
-                    { targets: 0, width: "65%" },
-                    { targets: 2, width: "25%" },
+                    // { targets: 0, width: "65%" },
+                    { targets: 3, width: "25%" },
                     { targets: 2,
+                        width: "30%",
                         createdCell: function(td, cellData, rowData, col) {
                             switch (cellData) {
                                 case 'Classpass':
@@ -413,7 +507,6 @@ $( async () => {
             var message = { title: 'ERROR', body: `Error building student check-in table, please check and try again` };
             writeMessage('modal', message);
         }
-
         return checkin_table;
     }
     
@@ -513,10 +606,10 @@ $( async () => {
             }
         } else {
             // Student / Instructor has not checked in yet, gather data and make Acuity API call to update notes
-            if (checkInType === 'student' ) {
-                var checkInNote = `${timestamp}: ${firstName} ${lastName} checked in to ${className}`;
-            } else {
+            if (checkInType === 'instructor' ) {
                 var checkInNote = `${timestamp}: [INSTRUCTOR CHECK-IN] ${firstName} ${lastName} checked in to ${className}`;
+            } else {
+                var checkInNote = `${timestamp}: ${firstName} ${lastName} checked in to ${className}`;
             }
             var params = {
                 id: apptId,
@@ -665,6 +758,36 @@ $( async () => {
         return appointmentsResult;
     }
 
+    // FUNCTION: initializeAppointmentsTable()
+    // 1) Run the required functions to gather and prepare data
+    // 2) Build the datatable
+    async function initializeAppointmentsTable(firstLoad) {
+        // Retrieve all appointments for selected class
+        selectedAppointments = await retrieveAppointments(upcoming_classes, classDate, selected_class_index);
+        console.log('Appointments result: ', selectedAppointments);    
+
+        // Capture list of instructors the first time the window is open
+        instructors = await getInstructors();
+
+        // Update appointments array with data for table
+        selectedAppointments = prepareApptData(selectedAppointments);
+
+        // Build the table
+        if (firstLoad) {
+            checkin_table = buildDatatable(selectedAppointments);
+        } else {
+            checkin_table.clear().draw();
+            checkin_table.rows.add(selectedAppointments)
+            checkin_table.columns.adjust().draw();
+        }
+
+        // Add class detail to webpage
+        classFull = addClassInfo(upcoming_classes, selected_class_index, selectedAppointments);
+
+        // Apply colors to the table rows as required
+        initRowStyles(checkin_table);
+    }
+
     // MAIN //
     console.log('Popup window ready');
     
@@ -673,7 +796,17 @@ $( async () => {
     var environment = window.opener.environment;
     var upcoming_classes = window.opener.upcoming_classes;
     var classDate = window.opener.classDate;
-    var selected_class_index = window.opener.selected_class_index;    
+    var selected_class_index = window.opener.selected_class_index;
+
+    // Declare vars
+    var selectedAppointments = [];
+    var instructors = [];
+    var checkin_table = {};
+    var classFull = false;
+    var firstLoad = true;
+
+    // Declare var to hold array of div/button elements to clean up
+    var $revealedElements = [];
 
     if (debug) {
         $('#debug_output').removeClass('hide').addClass('debug-output');
@@ -682,26 +815,10 @@ $( async () => {
         // Log passed vars
         console.log('Upcoming classes: ');
         console.log(upcoming_classes);
-    }
+    }    
 
-    // Retrieve all appointments for selected class
-    var selectedAppointments = await retrieveAppointments(upcoming_classes, classDate, selected_class_index);
-    console.log('Appointments result: ', selectedAppointments);    
-    
-    // Capture list of instructors the first time the window is open
-    var instructors = await getInstructors();
-    
-    // Update appointments array with data for table
-    selectedAppointments = prepareApptData(selectedAppointments);
-    
-    // Build the table
-    var checkin_table = buildDatatable(selectedAppointments);
-
-    // Add class detail to webpage
-    var classFull = addClassInfo(upcoming_classes, selected_class_index, selectedAppointments);
-    
-    // Apply colors to the table rows as required
-    initRowStyles(checkin_table);
+    // Gather data and build the table
+    await initializeAppointmentsTable(firstLoad);    
 
     // EVENT: CHECK-IN TABLE ROW / CHECK-IN BUTTON click - event to be captured after dynamic table is generated    
     $('#checkin_table tbody').on('click', 'tr', async function(e) {
@@ -716,18 +833,28 @@ $( async () => {
         // Capture clicked row data
         var studentData = checkin_table.row(this).data();
 
-        // Check if student has already checked in or not
-        var checkedIn = $(this).hasClass('selected');
         if (debug) {
             console.log('This row: ', this);
-            console.log(`CheckedIn for ${studentData.firstName}: ${checkedIn}`);
+            console.log('studentData: ', studentData);            
         }
 
-        // Call checkIn function to amend student record in Acuity
-        checkIn(studentData, checkedIn);
+        // Check if instructor row was clicked, otherwise proceed
+        if (studentData.certificate === 'DDYINSTRUCTOR') {
+            var message = { title: 'Note', body: `Cancel check-in for instructors using the Instructor button below.` };
+            writeMessage('modal', message);
+        } else {
+            // Check if student has already checked in or not
+            var checkedIn = $(this).hasClass('selected');
+            if (debug) {                
+                console.log(`CheckedIn for ${studentData.firstName}: ${checkedIn}`);
+            }
 
-        // Apply row Styles etc        
-        applyRowStyle(this, studentData, checkedIn);        
+            // Call checkIn function to amend student record in Acuity
+            checkIn(studentData, checkedIn);
+
+            // Apply row Styles etc        
+            applyRowStyle(this, studentData, checkedIn);    
+        }
     });
 
     // EVENT: TEACHER CHECK-IN BUTTON click
@@ -745,17 +872,17 @@ $( async () => {
         // Bring up modal with search and student dropdown fields to register a walk-in student
         var message = {
             title: 'Instructor Check-in',
-            body: `<div id="instructor_pin_div" class="details-item">                        
+            body: `<div id="instructor_pin_div" class="sqsp-font">                        
                         <form id="instructor_pin_form">
-                            <label for="instrutor_pin" class="form-label"><b>Enter PIN: </b></label>
+                            <label for="instrutor_pin" class="sqsp-font"><b>Enter PIN: </b></label>
                             <input type="password" name="instructor_pin" id="instructor_pin" autocomplete="new-password" />
-                            <input type="submit" name="instructor_pin_submit" id="instructor_pin_submit" value="Submit" />
+                            <input type="submit" name="instructor_pin_submit" id="instructor_pin_submit" class="sqsp-font" value="Submit" />
                         </form>
                     </div>
                     <br>
-                    <div id="pin_message_div" class="hide"><b>Pin Incorrect! Please try again.</b></div>`
+                    <div id="pin_message_div" class="hide center"><b>Pin Incorrect! Please try again.</b></div>`
         };
-        writeMessage('modal-no-button', message);
+        writeMessage('modal-cancel', message);
         $('#instructor_pin_form').focus();
 
         // Retrieve actual PIN from server            
@@ -780,8 +907,7 @@ $( async () => {
 
             if (inputPin != pin) {
                 console.log('PIN incorrect!');
-                // Show alert, clear PIN field and re-enable submit button
-                // alert('PIN incorrect - please try again!');
+                // Show alert, clear PIN field and re-enable submit button                
                 $('#pin_message_div').removeClass('hide');
                 $('#instructor_pin').val('');
                 $submitButton = $('#instructor_pin_submit');
@@ -789,7 +915,8 @@ $( async () => {
             } else {
                 // PIN is correct - proceed with instructor check-in
                 console.log('PIN correct');
-                $('#pin_message_div').html('Thank you!');                                
+                $('#pin_message_div').removeClass('hide');
+                $('#pin_message_div').html('<b>Thank you!</b>');
                 // Filter instructor object for selected instructor
                 var selectedInstructor = $('#teacher_checkin_dropdown').val();
                 
@@ -834,10 +961,11 @@ $( async () => {
                         $('#teacher_checkin_dropdown').prop('disabled', false);
                         $('#teacher_checkin_dropdown').removeClass('disabled');
 
-                        // If successful reload window
+                        // If successful reload table
                         if (appointmentsResult) {
-                            console.log('Reloading window...!');
-                            window.location.reload();
+                            console.log('Reloading table...!');
+                            // window.location.reload();
+                            initializeAppointmentsTable();
                         }
                     }
                     catch (e) {
@@ -866,8 +994,9 @@ $( async () => {
 
                         // If successful reload window
                         if (addInstructorResult) {
-                            console.log('Reloading window...!');                
-                            window.location.reload();
+                            console.log('Reloading table...!');                
+                            // window.location.reload();
+                            initializeAppointmentsTable();
                         }
                     }
                     catch (e) {
@@ -904,30 +1033,27 @@ $( async () => {
         // Bring up modal with search and student dropdown fields to register a walk-in student
         var message = {
             title: 'Register Walk-in Student',
-            body: `<div id="search_student_div" class="details-item">
+            body: `<div id="search_student_div" class="sqsp-font">
                 <form id="search_student" action="" method="post">  
-			        <label for="search_student" class="form-label"><b>Enter Your Name: </b></label>
+			        <label for="search_student" class="sqsp-font"><b>Enter Your Name: </b></label>
 			        <input type="search" name="search_student_form" id="search_student_form" />
-			        <input type="submit" name="search_submit" id="search_submit" value="Search" />			
+			        <input type="submit" name="search_submit" id="search_submit" class="sqsp-font" value="Search" />			
                 </form>
-            </div>
-            <br>
-            <div id="search_student_dropdown_div" class="details-item">
-		        <label for="search_student_dropdown" class="form-label"><b>Select Your Name: </b></label>
-		        <select id="search_student_dropdown" name="search_student_dropdown" class="dropdown">
+            </div>            
+            <div id="search_student_dropdown_div" class="sqsp-font hide">
+		        <label for="search_student_dropdown" class="sqsp-font"><b>Select Your Name: </b></label>
+		        <select id="search_student_dropdown" name="search_student_dropdown" class="sqsp-font">
 			        <option value="Select One">Select One</option>	
                 </select>
                 <input type="checkbox" name="Trial_class" id="trial_class_walkin_checkbox" value="trial_class">
-		        <label for="trial_class_walkin_checkbox"> <b>Trial Class? </b></label>
+		        <label for="trial_class_walkin_checkbox">  <b>Trial Class? </b></label>
                 <br><br>
-                <div id="register_walkin_submit_div" class="center">
-                    <input type="submit" id="register_walkin_submit" class="submit-button-large" value="REGISTER" />
+                <div id="register_walkin_submit_div" class="center hide">
+                    <input type="submit" id="register_walkin_submit" class="submit-button-large sqsp-font font-size-15x" value="REGISTER" />
                 </div>
-            </div>`
-            // width: 600,
-            // height: 300
+            </div>`            
         };    
-        var $modalDialog = await writeMessage('modal-no-button', message);
+        var $modalDialog = await writeMessage('modal-cancel', message);
         
         // AUTOCOMPLETE TEST
         var studentNames = ['Greg Parker', 'Sophia Meng', 'Larry Parker', 'Grace Meng', 'Zhifen Liang'];
@@ -942,7 +1068,7 @@ $( async () => {
         $('#search_student').on('submit', async (e) => {
             e.preventDefault();		
             if (debug) {
-                writeMessage('debug', `<br>Submit invoked on search_student`);                
+                writeMessage('debug', `<br>Submit invoked on search_student`);
             }
 
             // Cache and disable submit button, clear error messages
@@ -952,11 +1078,18 @@ $( async () => {
             
             // Retrieve student data
             try {
-                clients = await retrieveStudents();
+                var checkIn = true;
+                clients = await retrieveStudents(checkIn);
                 if (debug) {
                     console.log("Clients:");
                     console.log(clients);
-                }                
+                }
+
+                // If successful reveal select student dropdown and submit button
+                var $element = $('#search_student_dropdown_div');
+                $revealedElements = revealElement($element, $revealedElements);
+                var $element = $('#register_walkin_submit_div');
+                $revealedElements = revealElement($element, $revealedElements);
             }
             catch (e) {
                 var message = { title: 'ERROR', body: "Error retrieving students, please try again." };
@@ -978,7 +1111,7 @@ $( async () => {
             }
 
             // Cache and disable submit button, clear error messages
-            writeMessage('error', "");
+            writeMessage('error', "");            
 
             // Store selected student name from dropdown
             var selectedClientVal = $('#search_student_dropdown').val();
@@ -986,21 +1119,43 @@ $( async () => {
                 return `${i.firstName} ${i.lastName}` === selectedClientVal;
             });
 
-            // Store trial class checkbox entry
-            var trialClassChecked = $('#trial_class_walkin_checkbox').is(':checked');            
-            
-            // Get the appropriate certificate to apply
-            var certificate = await getCertificateForStudent(selectedClient, trialClassChecked);            
-            
-            // Set check-in type and add student to class
-            var checkInType = 'student';
-            var addStudentResult = await addStudentToClass(selectedClient, certificate, checkInType);
-            console.log('addStudentResult:', addStudentResult);
+            // Check if student is already registered 
+            console.log('Selected appts:', selectedAppointments);
+            var studentExists = false;
+            $.each(selectedAppointments, (i, val) => {
+                if (`${selectedAppointments[i].email}` === `${selectedClient[0].email}`) {
+                    console.log(`${selectedClient[0].firstName} already registered!`);
+                    var message = { title: 'Student Already Registered!', body: `${selectedClient[0].firstName} ${selectedClient[0].lastName} is already registered for this class.` };
+                    writeMessage('modal', message);
+                    studentExists = true;
+                    return false;
+                }
+            });
 
-            // If successful reload window
-            if (addStudentResult) {
-                console.log('Reloading window...!');                
-                window.location.reload();
+            if (!studentExists) {
+                // Store trial class checkbox entry
+                var trialClassChecked = $('#trial_class_walkin_checkbox').is(':checked');            
+                
+                // Get the appropriate certificate to apply
+                var certificate = await getCertificateForStudent(selectedClient, trialClassChecked);
+
+                // If no certificate then alert student to contact staff
+                if (!certificate || certificate === '') {
+                    var message = { title: 'No Certificate!', body: "Sorry, we couldn't find a valid certificate code! Please check with Dream Dance and Yoga staff to register for this class." };
+                    writeMessage('modal', message);
+                } else {            
+                    // Set check-in type and add student to class
+                    var checkInType = 'student';
+                    var addStudentResult = await addStudentToClass(selectedClient, certificate, checkInType);
+                    console.log('addStudentResult:', addStudentResult);
+
+                    // If successful reload window
+                    if (addStudentResult) {
+                        console.log('Reloading table...!');                
+                        // window.location.reload();
+                        initializeAppointmentsTable();
+                    }
+                }
             }
         });
     });

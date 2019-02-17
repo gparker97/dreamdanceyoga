@@ -13,7 +13,7 @@ const path = require('path');
 const Joi = require('joi');
 
 // Version
-const acuityRestControllerVersion = '1.0.0';
+const acuityRestControllerVersion = '1.1.0';
 
 // DEBUG mode
 const debug = true;
@@ -300,65 +300,11 @@ async function createXeroInvoice(params, reqFunc) {
     }
 
     if (price > 0) {
-        console.log('Price of package is greater than 0, creating invoice...');
-        
-        // Translate Acuity package name into Xero Item ID        
-        var itemCode = "";
-        switch (productId) {
-            case '539782':
-                itemCode = "TEST-PACKAGE-1";
-                break;
-            case '501622':
-                itemCode = "BELLY-16-CLASS";
-                break;
-            case '501618':
-                itemCode = "BELLY-8-CLASS";
-                break;
-            case '501678':
-                itemCode = "YOGA-16-CLASS";
-                break;
-            case '501676':
-                itemCode = "YOGA-8-CLASS";
-                break;
-            case '506912':
-                itemCode = "SILVER-BELLY-YEARLY-ONETIME";
-                break;
-            case '554068':
-                itemCode = "SILVER-YOGA-YEARLY-ONETIME";
-                break;
-            case '551767':
-                itemCode = "GOLD-6MONTH-ONETIME";
-                break;
-            case '556141':
-                itemCode = "SILVER-YOGA-MONTHLY-ONETIME";
-                break;
-            case '8067151':
-                itemCode = "TEST-SERIES-1";
-                break;
-            case '8735137':
-                itemCode = "BELLY-CHOREO-L2-FIONA-JAN2019";
-                break;
-            case '8954238':
-                itemCode = "BELLY-INTENSIVE-5MAR2019";
-                break;
-            case '8765245':
-                itemCode = "MOTHER-CHILD-BELLY-4-6-MAR2019";
-                break;
-            case '8765254':
-                itemCode = "MOTHER-CHILD-BELLY-7-9-MAR2019";
-                break;
-            case '8998950':
-                itemCode = "BELLY-WORKSHOP-YAYA-FEB2019";
-                break;
-            default:
-                // (FUTURE) Create inventory item if not defined yet
-                console.log(`XERO ERROR: Class ${productId} not defined.  Cannot create invoice.`);
-                return { xeroInvoiceStatus: false, xeroInvoiceStatusMessage: "XERO: Product / package not defined" };
-        }
+        console.log('Price of package is greater than 0, creating invoice...');        
     } else {
         return { xeroInvoiceStatus: false, xeroInvoiceStatusMessage: "XERO: Package price is 0 - invoice NOT created" };
     }
-        
+
     // Initialize Xero API
     let xero = new XeroClient(configXero);
 
@@ -385,7 +331,8 @@ async function createXeroInvoice(params, reqFunc) {
     // const invoiceStatus = 'DRAFT';
     const invoiceStatus = 'AUTHORISED';
     const tax = 'NoTax';
-    const ref = `${productName} ${acuityStudentInfo[studentIndex].firstName} ${acuityStudentInfo[studentIndex].lastName}`;
+    const ref = `${productName} ${acuityStudentInfo[studentIndex].firstName} ${acuityStudentInfo[studentIndex].lastName} (Added by Xero API)`;
+    const accountCode = 200;
         
     // Calculate due date
     var daysUntilDue = 7 // Set to number of days before invoice is due
@@ -408,7 +355,10 @@ async function createXeroInvoice(params, reqFunc) {
         Reference: eval(`'${ref}'`),
         LineItems: [
             {
-                ItemCode: eval(`'${itemCode}'`),
+                // ItemCode: eval(`'${itemCode}'`),
+                Description: eval(`'${productName}'`),
+                UnitAmount: eval(`'${price}'`),
+                AccountCode: eval(`'${accountCode}'`)
             }
         ]
     }

@@ -1,6 +1,6 @@
 // Setup script
 const environment = 'PROD';
-const version = '1.1.0';
+const version = '1.2.1';
 
 // Set API host
 // var apiHostUAT = 'https://greg-monster.dreamdanceyoga.com:3443/api/acuity'; // GREG computer
@@ -43,11 +43,19 @@ async function initApiCall(func, activity, params) {
             switch (activity) {
                 case 'getClassesByDate':
                     // Find all classes scheduled for given date
-                    var classDate = params;                
-                    var minDate = $.datepicker.formatDate('yy/mm/dd', classDate);
-                    var maxDate = classDate;
-                    maxDate.setDate(classDate.getDate() + 1);
-                    var maxDate = $.datepicker.formatDate('yy/mm/dd', maxDate);                    
+                    var classDateMin = params[0] || params;
+                    var minDate = $.datepicker.formatDate('yy/mm/dd', classDateMin);
+                    var classDateMax = params[1] || params;
+                    var maxDate = classDateMax;
+                    if (classDateMin === classDateMax) {
+                        // Get availability for single date - set maxDate to date + 1                        
+                        maxDate.setDate(classDateMin.getDate() + 1);
+                        maxDate = $.datepicker.formatDate('yy/mm/dd', maxDate);
+                    } else {
+                        // Get availabilty for date range
+                        maxDate.setDate(classDateMax.getDate() + 1);
+                        maxDate = $.datepicker.formatDate('yy/mm/dd', classDateMax);
+                    }
                     var params = {		
                         minDate,
                         maxDate,
@@ -85,6 +93,17 @@ async function initApiCall(func, activity, params) {
                         minDate,
                         maxDate,
                         max: maxResults
+                    };
+                    break;
+                case 'getApptsByDateRange':                    
+                    var minDate = params[0];
+                    var maxDate = params[1];
+                    minDate = $.datepicker.formatDate('mm/dd/yy', minDate);
+                    maxDate = $.datepicker.formatDate('mm/dd/yy', maxDate);
+                    var params = {
+                        minDate,
+                        maxDate,
+                        max: 9999
                     };
                     break;
                 default:
@@ -238,6 +257,8 @@ async function initApiCall(func, activity, params) {
                         email: client_email
                     };
                     break;
+                case 'retrieveAllCertificates':                    
+                    break;
                 default:
                     return 'Activity not defined';
                 }                
@@ -390,7 +411,7 @@ async function callAPI(func, params) {
                     writeMessage('debug', `<br><b>API CALL COMPLETE</b><br>Function: ${func}`);						
                 }
             },
-            timeout: 10000
+            timeout: 30000
         });
         return result;
     } catch (e) {
@@ -530,6 +551,8 @@ async function retrieveUpcomingClasses(action, $revealedElements) {
             var activity = 'getClassesByDate';            
             // Get today's date for params to API call
             var classDate = new Date();
+            // Format class date for display
+            var datePretty = $.datepicker.formatDate('yy/mm/dd', classDate);
             var dropdownLabel = "Today's Classes: ";
             break;
         case 'pastDate':
@@ -541,41 +564,37 @@ async function retrieveUpcomingClasses(action, $revealedElements) {
             var datePretty = $.datepicker.formatDate('yy/mm/dd', classDate);
             var dropdownLabel = `Classes for ${datePretty}: `;            
             break;
-    }
-
-    console.log('Selected class date is: ', classDate);
+    }    
+    console.log('Selected class date is: ', datePretty);
 
     // API call to retrieve today's classes
     try {
         var result = await initApiCall(funcType, activity, classDate);
-        console.log(`${funcType} result:`);
-        console.log(result);
-        
-        if (debug) {
-            writeMessage('debug', `<br>Completed initApicall: ${funcType}`);				
-        }
-        
-        // If successful populate dropdown table with today's classes and update label text
-        $('#upcoming_classes_dropdown_label').text(dropdownLabel);
-        var $dropdown = $('#upcoming_classes_dropdown');
-        var func = "classes";
-        populateDropdown($dropdown, result, func);
-        
-        // Reveal dropdown and enable button to generate table
-        $element = $('#generate_checkin_table_div');
-        var $revealedElements = revealElement($element, $revealedElements);
-        return result;
+        console.log(`${funcType} result:`, result);        
     }
     catch(e) {
         console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
         console.log (e);
         var message = { title: 'ERROR', body: `No classes scheduled on ${datePretty}.  Please try another date!` };
-        writeMessage('modal', message);
-        return false;
+        writeMessage('modal', message);        
     }
+    // Populate dropdown table with classes and update label text
+    $('#upcoming_classes_dropdown_label').text(dropdownLabel);
+    var $dropdown = $('#upcoming_classes_dropdown');
+    var func = "classes";
+    populateDropdown($dropdown, result, func);
+    
+    // Reveal dropdown and enable button to generate table
+    $element = $('#generate_checkin_table_div');
+    $revealedElements = revealElement($element, $revealedElements);
+    
+    return result;
 }
 
-async function retrieveStudents() {		
+// FUNCTION: retrieveStudents()
+// 1. Take a search query from form and make API call to Acuity to receive list of students
+// 2. Populate the appropriate dropdown with the list of students returned
+async function retrieveStudents(checkIn) {
     // Cache dropdown menu to populate
     var $dropdown = $('#search_student_dropdown');
 
@@ -597,8 +616,12 @@ async function retrieveStudents() {
     catch(e) {
         console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
         console.error(e);
-        if (e.responseText === "No records returned") {
-            var message = { title: 'ERROR', body: '<strong>Student not found!<br>Try again or <a class="my-link" href="https://secure.acuityscheduling.com/clients.php#" target="_blank">CREATE NEW STUDENT HERE</a>.</strong>' };
+        if (e.responseText === "No records returned") {            
+            if (checkIn) {
+                var message = { title: 'ERROR', body: '<strong>Student not found!<br>Please check with Dream Dance and Yoga staff to register.</strong>' };
+            } else {
+                var message = { title: 'ERROR', body: '<strong>Student not found!<br>Try again or <a class="my-link" href="https://secure.acuityscheduling.com/clients.php#" target="_blank">CREATE NEW STUDENT HERE</a>.</strong>' };
+            }
             writeMessage('modal', message);				
         } else {
             writeMessage('modal', "<strong>An error occured, please check and try again</strong>");
@@ -723,7 +746,7 @@ async function buyClass() {
     // Move xero invoice create code block to a separate function and invoke
 }
 
-// FUNCTION: buySeries()
+// FUNCTION: buySeries(products, clients)
 // 1. Register for all classes in a class series
 // 2. Generate a *single* invoice in Xero for all classes in the series for the class series price
 // 3. Apply full payment to the Xero invoice based on the payment method selected
@@ -896,9 +919,349 @@ async function retrieveAppointments(upcoming_classes, classDate, selected_class_
     }
 }
 
+// FUNCTION: generateInstructorReport()
+// 1. Retrieve list of appointments for the selected month
+// 2. Iterate through list an filter for instructor appointments only
+// 3. Add instructor appointments to an object with relevant stats
+// 4. Display instructor report for user
+// 5. Provide option to generate a pay run in Xero
+async function generateInstructorReport(reportMonth, $revealedElements) {
+    // Get first and last day of report month
+    var minDate = new Date(reportMonth.getFullYear(), reportMonth.getMonth(), 1);
+    var maxDate = new Date(reportMonth.getFullYear(), reportMonth.getMonth() + 1, 0);
+    console.log(`minDate: ${minDate}, maxDate: ${maxDate}`);
+    
+    // Retrieve appointments for selected month
+    var func = 'appointments_get';
+    var activity = 'getApptsByDateRange';
+    var params = [minDate, maxDate];
+    appointmentsResult = await initApiCall(func, activity, params);
+    console.log('Instructor report appointments result:', appointmentsResult);
+    
+    // Loop through data and store instructor info
+    var instructorData = [];
+    var instructorCounts = {};
+    var instructorCheckinNote = 'INSTRUCTOR CHECK-IN';
+    $.each(appointmentsResult, (i, val) => {
+        var notes = val.notes;        
+        if (notes.includes(instructorCheckinNote)) {
+            // Gather required data to store
+            var name = `${val.firstName} ${val.lastName}`;            
+            var classType = val.type;
+            var engClassType = $.trim(classType.split('|')[1]) || classType;
+            var date = val.datetime;
+            // Format date to look nice here
+            // var datePretty = xxxxx
+            
+            // Create instructor data object and push to array
+            var data = {
+                name,
+                class: engClassType,
+                date
+            }
+            instructorData.push(data);
+
+            if (!instructorCounts.hasOwnProperty(name)) {
+                instructorCounts[name] = {};
+                instructorCounts[name][engClassType] = 1;                
+            } else {
+                if (!instructorCounts[name].hasOwnProperty(engClassType)) {
+                    instructorCounts[name][engClassType] = 1;
+                } else {
+                    instructorCounts[name][engClassType]++;
+                }                
+            }
+        }
+    });
+    console.log('Instructor data: ', instructorData);
+    console.log('Instructor counts: ', instructorCounts);
+
+    // Iterate through object and output report
+    var msg = '<h3 class="center"><b>INSTRUCTOR REPORT</h3></b><br>';
+    
+    $.each(instructorCounts, (key, val) => {
+        console.log(`${key} | ${val}`);
+        msg += `<b>${key}: </b>`;
+        $.each(val, (key1, val1) => {
+            console.log(`${key1} | ${val1}`);
+            msg += `${key1} x ${val1} `;
+        });
+        msg += '<br>';
+    });    
+    console.log(msg);
+    
+    // Build details table
+    var instructorReportDetailsTable = $('#instructor_report_details_table').DataTable({
+        "data": instructorData,                
+        "pageLength": 25,            
+        "order": [[0, 'asc']],
+        // "paging": false,
+        // "info": false,
+        destroy: true,
+        "columns": [
+            { "data": "name"},
+            { "data": "class"},
+            { "data": "date"}
+        ]
+    });
+    console.log('instructor report details table: ', instructorReportDetailsTable);
+
+    // Reveal instructor report div and display report
+    var $element = $('#instructor_report_container_div');
+    $revealedElements = revealElement($element, $revealedElements);    
+
+    var $element = $('#instructor_report_display_div');
+    $element.html(msg);
+    
+    return appointmentsResult;
+}
+
+// FUNCTION: buildStudioMetricsCharts(fromDate, toDate)
+// 1. Retrieve list of appointments for the selected date range
+// 2. Retrieve the relevant appointment and appointment type data
+// 3. Build relevant charts for display
+async function buildStudioMetricsCharts(fromDate, toDate) {
+    // Get appointment data for selected date range
+    // Get first and last day of report month
+    var minDate = fromDate;
+    var maxDate = toDate;
+    console.log(`minDate: ${minDate}, maxDate: ${maxDate}`);
+
+    // Retrieve appointments for selected month
+    var funcType = 'appointments_get';
+    var activity = 'getApptsByDateRange';
+    var params = [minDate, maxDate];
+    try {
+        appointmentsResult = await initApiCall(funcType, activity, params);
+        console.log('Appointments result:', appointmentsResult);
+    }
+    catch(e) {
+        console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
+        console.log (e);
+        var message = { title: 'ERROR', body: `No appointments on ${minDate} - ${maxDate}.  Please try another date!` };
+        writeMessage('modal', message);
+        return false;
+    }
+
+    // Parse appointments result using D3.JS grouping functions
+    var apptsByDayCounts = d3.nest().key(function(i) {
+        return i.date;
+    }).rollup(function(i2) {
+        return i2.length;
+    }).entries(appointmentsResult);
+    console.log('apptsByDayCounts: ', apptsByDayCounts);
+
+    // Push values to 2-dimensional array and reverse order for chronological chart display
+    var appointmentsByDay = [];    
+    $.each(apptsByDayCounts, (i, val) => {			
+        appointmentsByDay.push([val.key, val.value]);        
+    });    
+    appointmentsByDay.reverse();    
+    console.log('appts by day: ', appointmentsByDay);    
+
+    // Retrieve available classes for date range
+    var funcType = 'availability--classes_get';
+    var activity = 'getClassesByDate';
+    var params = [minDate, maxDate];
+    try {
+        availClassesResult = await initApiCall(funcType, activity, params);
+        console.log('Classes availability result:', availClassesResult);
+    }
+    catch(e) {
+        console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
+        console.log (e);
+        var message = { title: 'ERROR', body: `No classes scheduled on ${minDate} - ${maxDate}.  Please try another date!` };
+        writeMessage('modal', message);
+        return false;
+    }
+
+    // Parse and rollup appointments array by class day and certificate for class availability chart
+    var weekday = ['Sun', 'Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat'];
+    $.each(appointmentsResult, (i, val) => {
+        // Create value for day of week + class name + time
+        var engClassName = val.type.split('|')[1] || val.type;
+        engClassName = engClassName.trim();
+        var classTime = val.datetime.split('T')[1].split('+')[0];
+        var classDateText = val.datetime.split('T')[0];
+        var classDate = new Date(classDateText);
+        var classDay = weekday[classDate.getDay()];
+        val.dayOfWeek = `${engClassName} - ${classDay} ${classTime}`;
+        
+        // Create value for certificate type
+        var cert = val.certificate || '';
+        if (cert.includes('TRIAL')) { cert = "TRIALCLASS"; }
+        switch (cert) {
+            case 'CLASSPASS':
+                val.certType = 'CLASSPASS';
+                break;
+            case 'FIRSTCLASSFREE':
+            case 'TRIALCLASS':
+                val.certType = 'FREE TRIAL';
+                break;
+            case '':
+                val.certType = 'SINGLE CLASS';
+                break;
+            default:
+                val.certType = 'DDY MEMBER';
+                break;
+        }        
+    });
+    console.log('NEW appts result: ', appointmentsResult);
+
+    // Rollup appointments array by day of week to generate cert type numbers
+    var appointmentsGrouped = d3.nest().key(function(i) {
+        return i.dayOfWeek;
+    }).key(function(i2) {
+        return i2.certType;
+    }).rollup(function(i2) { return {
+        count: i2.length,        
+        };
+    }).object(appointmentsResult);
+    console.log('Appointments GROUPED: ', appointmentsGrouped);
+
+    // Parse and rollup appointments availability    
+    $.each(availClassesResult, (i, val) => {
+        var engClassName = val.name.split('|')[1] || val.name;
+        engClassName = engClassName.trim();            
+        var classTime = val.time.split('T')[1].split('+')[0];
+        var classDateText = val.time.split('T')[0];
+        var classDate = new Date(classDateText);
+        var classDay = weekday[classDate.getDay()];
+        val.dayOfWeek = `${engClassName} - ${classDay} ${classTime}`;
+    });
+    console.log('NEW class avail: ', availClassesResult);
+
+    // Rollup class availabilty by day of week and time in order to calculate average class size
+    var classAvailGrouped = d3.nest().key(function(i) {
+        return i.dayOfWeek;
+    }).rollup(function(i2) { return {
+        count: i2.length,
+        totalSlots: d3.sum(i2, function(i) { return i.slots; }),
+        totalSlotsAvail: d3.sum(i2, function(i) { return i.slotsAvailable; }),
+        };
+    }).object(availClassesResult);
+
+    // Calculate average class full size from grouped array    
+    $.each(classAvailGrouped, (i, val) => {        
+        classAvailGrouped[i].avgPctFullByCert = {};
+        $.each(appointmentsGrouped[i], (i2, val2) => {            
+            // val[i2] = (val2.count / val.totalSlots) * 100;
+            val.avgPctFullByCert[i2] = (val2.count / val.totalSlots) * 100;
+        });        
+        val.avgPercentFull = ((val.totalSlots - val.totalSlotsAvail) / val.totalSlots) * 100;        
+    });
+    console.log('Class avail grouped: ', classAvailGrouped);
+
+    // Push data points to 2-dimensional array for charting
+    // var classesFull = [];
+    // $.each(classAvailGrouped, (i, val) => {
+        // classesFull.push([i, val.avgPercentFull]);
+    // });
+
+    // Push data points for all certs to nested 2-dimensional array of objects for highcharts
+    var classFullByCert = [];
+    $.each(classAvailGrouped, (i, val) => {
+        $.each(val.avgPctFullByCert, (i2, val2) => {
+            if (!classFullByCert.some(obj => obj.name === i2)) {
+                // Object with cert type doesn't exist yet, create object and empty data array
+                classFullByCert.push({name: i2, data: []});
+            }
+            // Find index of cert type and push class full data to array
+            // Also push total class full percentage to sort by total later
+            index = classFullByCert.findIndex(obj => obj.name === i2);            
+            classFullByCert[index].data.push([i, val2, val.avgPercentFull]);            
+        });        
+    });
+    console.log('Class full BY CERT: ', classFullByCert);
+
+    // Sort array by class full percentage for chart display
+    // classesFull.sort(function(a, b) {
+        // return b[1] - a[1];
+    // }); 
+    // console.log('Classes full: ', classesFull);
+
+    // Sort classes full by cert array by array at index 0 for chart display
+    // Looks at 3rd position of array, which contains the total pct full for each type of class
+    // This will only sort for the cert types present in the first cert, which is typically DDY MEMBER
+    classFullByCert[0].data.sort(function(a, b) {        
+        return b[2] - a[2];
+    });
+    console.log('Class full BY CERT SORTED: ', classFullByCert);
+
+    // Build appointments chart
+    var apptsChart = Highcharts.chart('metrics_data_chart_1', {
+        chart: {
+            type: 'line'
+        },
+        title: {
+            text: 'Appointments'
+        },        
+        xAxis: {            
+            type: 'category',
+            title: {
+                text: 'Date'
+            }
+        },
+        yAxis: {
+            title: {
+                text: '# of Appointments'
+            }
+        },
+        series: [{
+            name: '# of Appointments',
+            data: appointmentsByDay
+        }],
+        credits: false
+    });
+
+    // Build % full chart
+    var percentClassFullChart = Highcharts.chart('metrics_data_chart_2', {
+        chart: {
+            type: 'bar',
+            height: 700
+        },
+        title: {
+            text: '% Average Class Attendance'
+        },        
+        xAxis: {            
+            labels: {
+                step: 1
+            },
+            type: 'category',
+            title: {
+                text: 'Classes'
+            }
+        },
+        yAxis: {
+            labels: {
+                formatter: function() {
+                    return `${this.value}%`;
+                }
+            },
+            title: {
+                text: '% Full'
+            }
+        },
+        plotOptions: {
+            series: {
+                stacking: 'normal'
+            }
+        },
+        series: classFullByCert,
+        tooltip: {
+            valueDecimals: 1,
+            valueSuffix: '%'
+        },
+        credits: false
+    });
+
+    return appointmentsResult;
+}
+
 function revealElement($elementId, $revealedElements) {
     // Reveal container or button and store ID in array for cleanup later        
-    $elementId.show('drop'); // $elementId.removeClass('hide');
+    $elementId.show('drop');
+    // $elementId.removeClass('hide');
     $revealedElements.push($elementId);
 
     if (debug) {
@@ -915,7 +1278,8 @@ function cleanUp($revealedElements) {
     writeMessage('error', "");
     // Loop through each item in revealed elements and re-hide				
     $.each($revealedElements, (i, $element) => {			
-        $element.hide(); // $element.addClass('hide');
+        $element.hide();
+        // $element.addClass('hide');
     });
     
     // Reset revealed elements
@@ -943,34 +1307,46 @@ function writeMessage(type, msg, $output) {
         case 'debug':
             var $output = $('#debug_output');
             break;
-        case 'modal':
-            var $output = $('#modal_output');
-            $output.html(msg.body);            
-            var modalOptions = {
-                modal: true,
-                title: msg.title,
-                width: msg.width || 'auto',
-                height: msg.height || 'auto',
-                buttons: {
-                    OK: () => { $modalDialog.dialog('close'); }
-                }
-            }            
+        case 'modal':            
+            var modalButtons = [{
+                text: "OK",
+                icon: "ui-icon-check",
+                class: "modal-output",
+                click: () => { $modalDialog.dialog('close'); }
+            }];                    
             break;
-        case 'modal-no-button':
-            var $output = $('#modal_output');
-            $output.html(msg.body);            
-            var modalOptions = {
-                modal: true,
-                title: msg.title,
-                width: msg.width || 'auto',
-                height: msg.height || 'auto',
-                buttons: { Cancel: () => { $modalDialog.dialog('close'); } }
-            }            
+        case 'modal-cancel':            
+            var modalButtons = [{
+                text: "Cancel",
+                icon: "ui-icon-closethick",
+                class: "modal-output",
+                click: () => { $modalDialog.dialog('close'); }
+            }];
             break;
     }
-    
+
     // Clear or append to message
     if (type.includes('modal')) {
+        // Build modal options
+        var modalOptions = {
+            modal: true,
+            classes: { 
+                "ui-dialog": "modal-output",
+                "ui-dialog-content": "modal-output",
+                "ui-dialog-titlebar": "modal-output",
+                "ui-dialog-title": "modal-output",
+                "ui-dialog-titlebar-close": "modal-output",
+                "ui-dialog-buttons": "modal-output",
+                "ui-dialog-buttonpane": "modal-output",
+                "ui-dialog-buttonset": "modal-output"
+            },
+            title: msg.title,
+            width: msg.width || 'auto',
+            height: msg.height || 'auto',            
+            buttons: modalButtons
+        }            
+        var $output = $('#modal_output');
+        $output.html(msg.body);
         var $modalDialog = $output.dialog(modalOptions);
     } else {
         var message = "";
@@ -985,6 +1361,86 @@ function writeMessage(type, msg, $output) {
     return $modalDialog;
 }
 
+// FUNCTION: populateDDYInfo()
+// 1) Retrieve certificates
+// 2) Iterate through and store info on memberships, etc
+// 3) Populate the DDY information div with relevant info
+async function populateDDYInfo() {
+    try {
+        // Retrieve all certificates
+        var funcType = "certificates_get";
+        var activity = "retrieveAllCertificates"	
+        var allCerts = await initApiCall(funcType, activity);
+        console.log('All certificates: ', allCerts);
+        
+        // Initialize vars to hold DDY info numbers
+        var validCerts = 0;
+        var expiredCerts = 0;
+        var goldMembers = 0;
+        var silverMembers = 0;
+        var packageMembers = 0;
+        var today = new Date();
+
+        $.each(allCerts, (i, val) => {
+            var certExpiryString = val.expiration;
+            var certExpiry = new Date(certExpiryString);	
+            if (certExpiry < today) {                
+                expiredCerts++;
+            } else {
+                validCerts++;
+                var certType = allCerts[i].name;
+                if (certType.includes('GOLD')) {
+                    goldMembers++;
+                } else if (certType.includes('Silver')) {
+                    silverMembers++;
+                } else if (certType.includes('Package')) {
+                    packageMembers++;
+                }
+            }
+        });
+        var subscribers = goldMembers + silverMembers;
+        var totalMembers = subscribers + packageMembers;
+        console.log(`Valid certs: ${validCerts}`);
+        console.log(`Expired certs: ${expiredCerts}`);
+
+        // Populate DDY info element
+        var $element = $('#ddy_card_1');
+        $element.html(`<div class="ddy-card-heading">TOTAL MEMBERS</div>
+                        <div class="ddy-card-text">${totalMembers}</div>
+                        <div class="ddy-card-subtext">As of today</div>`);
+        /*
+        $element.html(`<div>Valid certificates: ${validCerts}
+                        <br>Expired certificates: ${expiredCerts}
+                        <br>Subscribers (Gold + Silver): ${subscribers}
+                        <br>GOLD Members: ${goldMembers}
+                        <br>Silver Members: ${silverMembers}
+                        <br>Package Members: ${packageMembers}                            
+                        <br>TOTAL Members: ${totalMembers}
+                        </div>`); */        
+        
+        var $element = $('#ddy_card_2');
+        $element.html(`<div class="ddy-card-heading">GOLD MEMBERS</div>
+                        <div class="ddy-card-text">${goldMembers}</div>
+                        <div class="ddy-card-subtext">As of today</div>`);
+
+        var $element = $('#ddy_card_3');
+        $element.html(`<div class="ddy-card-heading">SILVER MEMBERS</div>
+                        <div class="ddy-card-text">${silverMembers}</div>
+                        <div class="ddy-card-subtext">As of today</div>`);
+
+        var $element = $('#ddy_card_4');
+        $element.html(`<div class="ddy-card-heading">PACKAGES</div>
+                        <div class="ddy-card-text">${packageMembers}</div>
+                        <div class="ddy-card-subtext">As of today</div>`);
+    }
+    catch (e) {        
+        console.error('ERROR: Error caught populating DDY info!');
+        console.error(e);
+        var $element = $('#studio_metrics_data_div');
+        $element.html(`Error caught populating DDY information.`);        
+    }
+}
+
 async function populateEnvironment() {
     // Populate environment and version container
     try {
@@ -993,6 +1449,7 @@ async function populateEnvironment() {
     }
     catch (e) {			
         console.error('ERROR: Error caught retrieving rest controller version');
+        console.error(e);
         $('#environment').html(`Client version: ${version}<br>Server version: <b>CANNOT CONTACT SERVER</b><br>Environment: ${environment}`);
         message = { title: "ERROR", body: "<b>Unable to contact server!!</b><br>Please check server process is up and running." };
         writeMessage('modal', message, $('#modal_output'));

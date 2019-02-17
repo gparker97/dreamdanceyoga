@@ -5,6 +5,10 @@
 		<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.css">	
 		<style type="text/css">				
 
+		.block {
+			display: block !important;
+		}
+		
 		.hide {
 			display: none;
 		}
@@ -12,10 +16,17 @@
 		.debug-output {
 			border: 1px solid lightgray;
 			border-radius: 2px;  
-			display: block;
+			display: flex;
 			max-width: 100%;
 			margin: 5px 0px;
 			padding: 5px;  
+		}
+
+		.highcharts-test {			
+			overflow: hidden;
+			border: 1px solid lightgray;
+			width: 100%;
+			padding: 5px;
 		}
 		
 		.disabled,
@@ -26,7 +37,7 @@
         }
         
         .checked-in {
-            background-color: blue;
+            background-color: #acbad4;
             color: red;
         }
 		</style>
@@ -88,7 +99,7 @@
 	<button type="button" id="get_codes" disabled>GET CODES</button>
 	<button type="button" id="delete_code" disabled>DELETE CODE</button>
 	<br><br>
-	<button type="button" id="get_student_list">GET STUDENT LIST</button>
+	<button type="button" id="get_student_list">GET CLASSES</button>
 
 	<!-- Dropdown to hold upcoming classes to generate student check-in list -->
 	<div id="upcoming_classes_div">
@@ -99,6 +110,10 @@
 	</div>
 	
 	<button type="button" id="generate_checkin_table" disabled>GENERATE CHECK-IN TABLE</button>
+
+	<button type="button" id="highcharts_test_button">HIGHCHARTS TEST</button>
+
+	<button type="button" id="d3js_test_button">D3.JS TEST</button>
 
 	<div id="loading"></div>
 	<div id="error_message"></div>
@@ -119,8 +134,18 @@
 		</table>
 	</div>
 
-	<div id="debug_output_select" class="hide"></div>
-	<div id="debug_output_api" class="hide"></div>
+	<!-- HIGHCHARTS TEST -->
+	<div id="highcharts_test_div" class="highcharts-test">HIGHCHARTS TEST
+		<div id="highcharts_test"></div>
+	</div>
+
+	<!-- D3.JS TEST -->
+	<div id="d3js_test_div" class="highcharts-test">D3.JS TEST
+		<div id="d3js_test"></div>
+	</div>
+
+	<div id="debug_output_select" class="block hide"></div>
+	<div id="debug_output_api" class="block hide"></div>
 </div>
 </body>
 
@@ -163,11 +188,14 @@ $( () => {
                 var params = {};
                 break;
             case 'availability--classes_get':
-				if (args) {
-					// Find classes for the date passed to the function
-					minDate = args;
-					// maxDate = args + 1; ADD ONE DAY TO MIN DATE
-					maxDate = '2019-01-11';
+				if (args === 'upcoming_classes') {
+					// Find all classes scheduled for today
+					// var today = new Date();
+					var today = new Date(02/02/2019);
+                    var minDate = $.datepicker.formatDate('yy/mm/dd', today);					
+                    var maxDate = new Date();
+                    maxDate.setDate(today.getDate() + 1);
+                    var maxDate = $.datepicker.formatDate('yy/mm/dd', maxDate);
 					var params = {		
 						minDate,
 						maxDate,
@@ -718,9 +746,8 @@ $( () => {
 
 		// API call to retrieve today's classes
 		try {			
-			var funcType = "availability--classes_get";
-			var today = $.datepicker.formatDate('yy/mm/dd', new Date());
-			upcoming_classes = await initApiCall(funcType, today);
+			var funcType = "availability--classes_get";			
+			upcoming_classes = await initApiCall(funcType, 'upcoming_classes');
 			console.log('upcoming_classes is:');
 			console.log(upcoming_classes);
 			// Populate dropdown table with today's classes
@@ -820,12 +847,52 @@ $( () => {
 		});
 	});
 
-	
+	// EVENT: HIGHCHARTS TEST button click
+	$('#highcharts_test_button').on('click', function(e) {
+		e.preventDefault();
+
+		// Clear any error message
+		err_msg = "";
+		$error_output.html(err_msg);
+
+		if (debug) {
+			debug_msg += "<br><b>clicked HIGHCHARTS TEST button...</b>";
+			$debug_output.html(debug_msg);				
+		}
+
+		var myChart = Highcharts.chart('highcharts_test', {			
+			chart: {
+				type: 'bar'
+			},
+			title: {
+				text: 'Fruit Consumption'
+			},
+			xAxis: {
+				categories: ['Apples', 'Bananas', 'Oranges']
+			},
+			yAxis: {
+				title: {
+					text: 'Fruit eaten'
+				}
+			},
+			series: [{
+				name: 'Jane',
+				data: [1, 0, 4]
+			}, {
+				name: 'John',
+				data: [5, 7, 3]
+			}]
+		});
+	});
 });
 </script>
 <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
 <!-- DATATABLES TEST -->
 <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.js"></script>
+<!-- HIGHCHARTS TEST-->
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<!-- D3-JS TEST-->
+<script src="https://d3js.org/d3.v5.min.js"></script>
 <!-- END DEV/TEST -->
 </html>

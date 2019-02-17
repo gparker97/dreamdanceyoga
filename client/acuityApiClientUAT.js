@@ -5,42 +5,8 @@
 		<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 		<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.css">
 		<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
-        <style type="text/css">
-        .my-link {
-            color: blue !important;
-            text-decoration: underline;
-        }
-
-		.debug-output {
-			border: 1px solid lightgray;
-			border-radius: 2px;  
-			display: block;			
-			margin: 5px 0px;
-			padding: 5px;  
-		}
-
-		.submit-button {
-			font-size: 150%;
-			font-weight: bold;
-			padding: 20px;			
-		}
-		
-		.margin {
-			margin: 5px
-		}
-
-		.disabled,
-		button:disabled {
-			border: 1px solid #999999;
-			background-color: #cccccc;
-			color: #666666;
-		}
-
-		.top-cards {
-            text-align: center;
-		}
-
-		.card {		    
+        <style type="text/css">		
+		.card {
 			background-color: #F2F2F2;
 			box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
 			transition: 0.3s;
@@ -57,28 +23,129 @@
 		
 		.card:hover {
 			box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
-        }        
+		}
 		
-		.details {
-            display: block;            
-			vertical-align: middle;
-			max-height: 500px;
+		.center {
+            text-align: center;
+        }
+		
+		.ddy-info {			
+			display: inline-block;
+			border: 1px solid lightgray;
+			margin: 5px 0px;
+			padding: 5px;
+		}
+
+		.ddy-data {			
+			float: left;
+			width: 100%;
+			border: 1px solid lightgray;
+			margin: 5px 0px;
+			padding: 5px;			
+		}
+		
+		.debug-output {
+			border: 1px solid lightgray;
+			border-radius: 2px;  
+			display: block;			
+			margin: 5px 0px;
+			padding: 5px;
+		}
+		
+		.details {            
+			vertical-align: middle;			
 			padding: 30px;
 			margin: 20px;		
 			background-color: #F2F2F2;
+			display: flex;
+			flex-direction: column;
         }        
 
         .details-item {            
             margin: 10px;
 		}
 
+		.disabled,
+		button:disabled {
+			border: 1px solid #999999;
+			background-color: #cccccc;
+			color: #666666;
+		}
+
+		.float-right {
+			float: right;
+		}
+		
+		.inline-block {
+			display: inline-block;
+		}
+		
+		.instructor-container {
+			overflow: hidden;			
+		}
+		
+		.instructor-info {			
+			background-color: #F2F2F2;
+			margin: 0px 5px;
+			padding: 5px;
+			vertical-align: top;
+			float: left;
+			min-width: 25%;
+		}
+
+		.instructor-table {			
+			background-color: #F2F2F2;
+			margin: 0px 5px;
+			padding: 5px;
+			vertical-align: top;
+			overflow: hidden;
+		}
+
 		.form-label {
 			font-weight: bold;
 		}
+
+		.modal-output {            
+            font-family: futura-pt !important;
+            border-radius: 5px;
+        }
 		
+		.my-link {
+            color: blue !important;
+            text-decoration: underline;
+		}		
+
+		.spacer {
+            padding: 5px;
+		}
+		
+		.studio-metrics {
+			overflow: hidden;
+			text-align: center;
+		}
+		
+		.submit-button {
+			font-size: 150%;
+			font-weight: bold;
+			padding: 20px;			
+		}
+		
+		.margin {
+			margin: 5px
+		}
+
+		.table {
+			width: 100% !important;
+		}
+		
+		.top-cards {
+            text-align: center;
+		}		
+
 		.hide {
 			display: none;
 		}
+		
 		</style>
 	</head>
 <body>
@@ -110,7 +177,19 @@
 	
 	<a href="#">
 		<div id="checkin_table_top" class="card">
-			<h3><strong><i class="fas fa-table fa-3x"></i><br>STUDENT CHECK-IN</strong></h3>
+			<h3><strong><i class="fas fa-table fa-3x"></i><br>CHECK-IN TABLE</strong></h3>
+		</div>
+	</a>
+
+	<a href="#">
+		<div id="instructor_report_top" class="card">
+			<h3><strong><i class="fas fa-graduation-cap fa-3x"></i><br>INSTRUCTOR REPORT</strong></h3>
+		</div>
+	</a>
+
+	<a href="#">
+		<div id="studio_metrics_top" class="card">
+			<h3><strong><i class="fas fa-chart-bar fa-3x"></i><br>DDY STUDIO METRICS</strong></h3>
 		</div>
 	</a>
 </div>
@@ -146,7 +225,6 @@
 		<p>Select or Enter Updated Package Price Here</p>
 	</div>
 
-
 	<div id="payment_method_div" class="details-item hide">
 		<label for="payment_method_dropdown" class="form-label">Select Payment Method: </label>
 		<select id="payment_method_dropdown" class="select_dropdown">
@@ -165,10 +243,9 @@
 		<input type="checkbox" name="apply_payment" id="apply_payment_checkbox" value="apply_payment" checked>
 		<label for="apply_payment_checkbox">Apply Payment to Invoice</label>
 	</div>
-	
-	<div id="add_to_class_div" class="details-item hide">Test div ADD TO CLASS</div>
 
-    <div id="generate_checkin_table_div" class="details-item hide">
+    <!-- CHECK-IN TABLE -->
+	<div id="generate_checkin_table_div" class="details-item hide">
         <!-- Dropdown to hold upcoming classes to generate student check-in list -->
         <div id="upcoming_classes_div">
             <label for="upcoming_classes_dropdown" id="upcoming_classes_dropdown_label" class="form-label">Today's classes: </label>
@@ -177,9 +254,22 @@
             </select>
 		</div>
 		<div id="select_upcoming_class_date_div">
-			<p>Or select another date: <input type="text" id="checkin_datepicker" class="margin"></p>
+			<p>Or select another date: <input type="text" id="checkin_datepicker" class="margin" /></p>
         </div>
     </div>
+
+	<!-- INSTRUCTOR REPORT -->
+	<div id="instructor_report_div" class="details-item hide">        		
+		<div id="select_instructor_report_date_div">
+			<p>Select month: <input type="text" id="instructor_report_datepicker" class="margin" /></p>
+        </div>		
+    </div>
+
+	<!-- STUDIO METRICS -->
+	<div id="studio_metrics_div" class="inline-block hide">		
+		Start date: <input type="text" id="metrics_date_range_from" class="margin" />
+		End date: <input type="text" id="metrics_date_range_to" class="margin" />        
+	</div>
 
 	<!-- JQUERY UI MODAL CONTAINER -->
 	<div id="modal_output"></div>
@@ -188,14 +278,45 @@
 	<input type="submit" id="buy_package_submit" class="submit-button hide" value="BUY PACKAGE" />
 	<input type="submit" id="buy_class_submit" class="submit-button hide" value="BUY CLASS" />
 	<input type="submit" id="buy_single_class_submit" class="submit-button hide" value="BUY SINGLE CLASS" />
-	<input type="submit" id="view_packages_submit" class="submit-button hide" value="VIEW PACKAGES" />
-	<input type="submit" id="add_to_class_submit" class="submit-button hide" value="ADD TO CLASS" />	
+	<input type="submit" id="view_packages_submit" class="submit-button hide" value="VIEW PACKAGES" />	
 	<button type="button" id="generate_checkin_table_submit" class="submit-button hide" disabled>GENERATE CHECK-IN TABLE</button>
+	<button type="button" id="get_instructor_report_submit" class="submit-button hide" disabled>GET INSTRUCTOR REPORT</button>
+	<input type="submit" id="studio_metrics_submit" class="submit-button hide" value="GET STUDIO METRICS" />
+
+	<!-- INSTRUCTOR REPORT -->	
+	<div id="instructor_report_container_div" class="intructor-container hide">
+		<br><hr><br>
+		<div id="instructor_report_display_div" class="instructor-info"></div>
+		<div id="instructor_report_display_details_div" class="instructor-table">
+			<!-- Placeholder HTML table for instructor report details - populated by DataTable() -->    
+			<table id="instructor_report_details_table" class="display table">
+				<caption><h3 class="center"><strong>Class Details</h3></strong></caption>
+				<thead>
+					<tr>
+						<th>Name</th>
+						<th>Class</th>
+						<th>Date</th>
+					</tr>
+				</thead>
+			</table>
+		</div>
+	</div>
+	
+	<!-- STUDIO METRICS DATA-->
+	<div id="studio_metrics_data_div" class="studio-metrics hide">
+		<br><hr><br>
+		<div id="ddy_info" class="ddy-info"></div>
+		<div id="ddy_info_2" class="ddy-info"></div>
+		<div id="ddy_info_3" class="ddy-info"></div>
+		<div id="metrics_data_charts" class="ddy-data"></div>
+	</div>
 </div>
 
+<div class="spacer"></div>
+<div id="environment" class="inline-block"></div>
+
+<div class="spacer"></div>
 <div id="error_message"></div>
-<div id="spacer"><br><br></div>
-<div id="environment" class="env"></div>
 <div id="debug_output" class="hide"></div>
 </body>
 
@@ -204,7 +325,7 @@
 $( () => {
 	// Setup script
 	const environment = 'UAT';
-	const version = '1.1.0';
+	const version = '1.1.4';
 	
 	// Arrays to cache Acuity API call responses (avoid making multiple calls)
 	var clients = [];
@@ -212,12 +333,15 @@ $( () => {
     var certificates = [];
     var upcoming_classes = [];
 
-	// Decalre var to dold array of div/button elements to clean up
+	// Var to hold selected action
+	var action = '';
+	
+	// Declare var to hold array of div/button elements to clean up
 	var $revealedElements = [];
-
-	// Debug mode
+	
+	// Set debug based on environment
     if (environment === 'UAT') {
-        var debug = true;
+		var debug = true;		
     } else {
         var debug = false;
     }
@@ -233,15 +357,18 @@ $( () => {
 		writeMessage('debug', "<b>Debug mode ON</b>");
 	}
 
+	// Grab certificates and populate with relevant DDY info
+	populateDDYInfo();
+	
 	// Fill in version and environment details at bottom of page
-	populateEnvironment();
+	populateEnvironment();	
 
 	// EVENT: TOP LEVEL CARD CLICK
 	$('.card').on('click', async (e) => {	
 		e.preventDefault();
 			
 		// Store action
-		action = e.currentTarget.id	
+		action = e.currentTarget.id;
 		console.log(`Event captured: ${action}`);
 		console.log(e);
 		
@@ -249,9 +376,12 @@ $( () => {
 		cleanUp($revealedElements);
 		
 		// Reveal details div and append action type
-		$detailsContainer = $('#details');
-		$detailsTop = $('#details-top');
+		var $detailsContainer = $('#details');
+		var $detailsTop = $('#details-top');
 		$revealedElements = revealElement($detailsContainer, $revealedElements);
+
+		// Clear student dropdown if it exists
+		clearDropdown($('#search_student_dropdown'));
 		
 		switch (action) {
 			case 'buy_class_top':
@@ -281,24 +411,14 @@ $( () => {
 				// $('#search_student_form').autocomplete({source: studentNames});
 				// END AUTOCOMPLETE TEST
 				break;
-			case 'add_to_class_top':
-				$detailsTop.html('<h2>ADD STUDENTS TO A CLASS</h2><hr/>Not implemented yet!');
-				var message = { title: 'ALERT', body: "Not implemented yet!" };
-				writeMessage('modal', message);
-				// Select date/time and store in var
-				// Show all classes from that date/time
-				// Store class id (appointmentId) in var
-				// Search student name
-				// Display in multi-select box
-				// When selected ask if cert code to apply
-				// Add as object to array
-				// Loop through all student names and add to class
-				break;
             case 'checkin_table_top':
-                $detailsTop.html('<h2>STUDENT CHECK-IN LIST</h2><hr/>');
-                // Reveal dropdown table and store action				
+                $detailsTop.html('<h2>CHECK-IN TABLE - SELECT CLASS</h2><hr/>');
+                // Reveal dropdown table and store action
 				$('#generate_checkin_table_div').data('action', e.currentTarget.id);
-                // Make API call to retrieve today's classes
+				// Clear date value from datepicker if one exists
+				var selectedDate = $('#checkin_datepicker').val();
+				if (selectedDate) { $('#checkin_datepicker').val(''); }
+				// Make API call to retrieve today's classes
                 upcoming_classes = await retrieveUpcomingClasses(action, $revealedElements);
 				console.log('Upcoming Classes:', upcoming_classes);
 				// Show datepicker to select past class if required
@@ -308,8 +428,86 @@ $( () => {
 					buttonImageOnly: true,
 					buttonText: ''
 				});
+				break;
+			case 'instructor_report_top':
+				$detailsTop.html('<h2>INSTRUCTOR REPORT</h2><hr/>');
+				$element = $('#instructor_report_div');
+				$revealedElements = revealElement($element, $revealedElements);
+				// $element.removeClass('hide');
+				// Show datepicker to select month to generate report
+				// Month year only datepicker
+				$("#instructor_report_datepicker").datepicker({
+					showOn: "button",
+					buttonImage: "https://sophiadance.squarespace.com/s/calendar-tiny.gif",
+					buttonImageOnly: true,
+					buttonText: '',
+					changeMonth: true,
+					changeYear: true,
+					dateFormat: "M yy",
+					showButtonPanel: true,
+					currentText: "This Month",
+					onChangeMonthYear: function (year, month, inst) {
+						$(this).val($.datepicker.formatDate('M yy', new Date(year, month - 1, 1)));
+					},
+					onClose: function(dateText, inst) {
+						var month = $(".ui-datepicker-month :selected").val();
+						var year = $(".ui-datepicker-year :selected").val();
+						$(this).val($.datepicker.formatDate('M yy', new Date(year, month, 1)));
+						// Reveal and enable submit button
+						var $element = $('#get_instructor_report_submit');
+						$element.prop('disabled', false).removeClass('disabled');
+						$revealedElements = revealElement($element, $revealedElements);
+					}
+				}).focus(function () {
+					$(".ui-datepicker-calendar").hide();
+				});
+				
 				// Clear date value from label if it exists
-				$('#checkin_datepicker').val('');
+				$('#instructor_report_datepicker').val('');
+				break;
+			case 'studio_metrics_top':
+				$detailsTop.html('<h2>DDY STUDIO METRICS</h2><hr/>');
+				// Reveal datepicker
+				$element = $('#studio_metrics_div');
+				$revealedElements = revealElement($element, $revealedElements);
+				// Store action
+				$('#studio_metrics_div').data('action', e.currentTarget.id);
+				// Clear date value from datepicker if one exists				
+				$('#metrics_date_range_from').val('');
+				$('#metrics_date_range_to').val('');
+				// Show datepicker to select date range				
+				var dateFormat = "mm/dd/yy";
+				var from = $('#metrics_date_range_from').datepicker({
+					showOn: "button",
+					buttonImage: "https://sophiadance.squarespace.com/s/calendar-tiny.gif",
+					buttonImageOnly: true,
+					buttonText: '',
+					defaultDate: "-1w",
+					changeMonth: true,
+					numberOfMonths: 3
+					}).on('change', function() {
+						to.datepicker('option', 'minDate', getDate(this));
+					});
+				var to = $('#metrics_date_range_to').datepicker({
+					showOn: "button",
+					buttonImage: "https://sophiadance.squarespace.com/s/calendar-tiny.gif",
+					buttonImageOnly: true,
+					buttonText: '',
+					defaultDate: "-1d",
+					changeMonth: true,
+					numberOfMonths: 3
+				}).on('change', function() {
+					from.datepicker('option', 'maxDate', getDate(this));
+				});			
+				function getDate(element) {
+					var date;
+					try {
+						date = $.datepicker.parseDate(dateFormat, element.value);
+					} catch(e) {
+						date = null;
+					}			
+					return date;
+				}
 				break;
             default:
 				console.error('ERROR: Unsupported action');
@@ -379,7 +577,9 @@ $( () => {
         
         // Re-enable submit button, clear student search dropdown
 		$('#buy_package_submit').prop('disabled', false).removeClass('disabled');
-		clearDropdown($('#search_student_dropdown'));
+		
+		// Clear dropdown at top level instead
+		// clearDropdown($('#search_student_dropdown'));
 	});
 
 	// EVENT: BUY CLASS SUBMIT
@@ -425,7 +625,9 @@ $( () => {
 			
 		// Re-enable submit button, clear student search dropdown
 		$('#buy_class_submit').prop('disabled', false).removeClass('disabled');		
-		clearDropdown($('#search_student_dropdown'));
+		
+		// Clear dropdown at top level instead
+		// clearDropdown($('#search_student_dropdown'));
 	});		
 
 	// EVENT: VIEW PACKAGES SUBMIT
@@ -468,8 +670,10 @@ $( () => {
 		writeMessage('modal', message);
 
 		// CLEAN UP: Re-enable view packages submit button, clear search dropdown		
-		clearDropdown($('#search_student_dropdown'));		
 		$('#view_packages_submit').prop('disabled', false).removeClass('disabled');
+		
+		// Clear dropdown at top level instead
+		// clearDropdown($('#search_student_dropdown'));
 	});
 
 	// EVENT: BUY SINGLE CLASS SUBMIT
@@ -523,7 +727,7 @@ $( () => {
 		// Retrieve requested action (buy class or package)
 		var action = $('#search_student_div').data('action');
 		
-		$dropdown = $('#payment_method_dropdown');
+		var $dropdown = $('#payment_method_dropdown');
 		switch (action) {
 			case 'buy_class_top':
 				$element = $('#buy_class_submit');
@@ -562,8 +766,8 @@ $( () => {
 		console.log(e);
 
 		// Reveal and enable checkin table button unless dropdown value is "select one"
-		$dropdown = $('#upcoming_classes_dropdown');
-		$element = $('#generate_checkin_table_submit');
+		var $dropdown = $('#upcoming_classes_dropdown');
+		var $element = $('#generate_checkin_table_submit');
 		
 		if (debug) {
 			console.log('Upcoming classes dropdown val: ', $dropdown.val());
@@ -572,7 +776,7 @@ $( () => {
 		if ($dropdown.val() === 'Select One') {
 			$element.prop('disabled', true).addClass('disabled');
 		} else {			
-			$element.prop('disabled', false).removeClass('disabled')
+			$element.prop('disabled', false).removeClass('disabled');
 			$revealedElements = revealElement($element, $revealedElements);
 		}
 	});
@@ -581,7 +785,7 @@ $( () => {
 	$('#checkin_datepicker').change( async (e) => {
 		e.preventDefault();
 		console.log(`Event captured: ${e.currentTarget.id}`);
-		console.log(e);
+		console.log(e);		
 
 		if (debug) {
             writeMessage('debug', "<br><b>Caught change in find class date datepicker...</b>");
@@ -590,7 +794,7 @@ $( () => {
 		// Store selected date		
 		selectedDate = $('#checkin_datepicker').datepicker('getDate');
 		classDate = $.datepicker.formatDate('yy/mm/dd', selectedDate);
-		console.log('Selected class date is: ', classDate);		
+		console.log('Selected class date is: ', classDate);
 		
 		// Make API call to retrieve selected day's classes and populate dropdown
 		action = 'pastDate';
@@ -640,8 +844,8 @@ $( () => {
 					window.classDate = classDate;
 					window.selected_class_index = selected_class_index;
 					
-					// Clear date value from label
-					$('#checkin_datepicker').val('');
+					// Clear date value from label - causing bug when selecting new class after closing window
+					// $('#checkin_datepicker').val('');
 				} else {
 					alert('Please enable pop-ups to view the student check-in table');
 				}				
@@ -655,6 +859,79 @@ $( () => {
 			writeMessage('modal', message);	
 		}
 	});
+	
+	// EVENT: GET INSTRUCTOR REPORT button click
+	$('#get_instructor_report_submit').on('click', async (e) => {
+		e.preventDefault();
+		console.log(`Event captured: ${e.currentTarget.id}`);
+		console.log(e);
+        // Clear any error message
+		writeMessage('error', "");
+
+		if (debug) {
+            writeMessage('debug', "<br><b>clicked GET INSTRUCTOR REPORT button...</b>");
+		}
+
+		// Store selected date		
+		var selectedMonthVal = $('#instructor_report_datepicker').val();
+		var selectedMonth = new Date(selectedMonthVal);
+		console.log('Selected report month and date is: ', selectedMonthVal, selectedMonth);
+
+		// Make API call to retrieve appointments for selected month
+		var appointmentsResult = await generateInstructorReport(selectedMonth, $revealedElements);		
+	});
+
+	
+	// EVENT: Studio metrics datepicker change - reveal submit button upon datepicker change
+	$('#metrics_date_range_from, #metrics_date_range_to').change( (e) => {
+		e.preventDefault();
+		console.log(`Event captured: ${e.currentTarget.id}`);
+		console.log(e);
+		console.log(`action is: ${action}`);
+
+		if (debug) {
+            writeMessage('debug', "<br><b>Caught datepicker change...</b>");
+		}
+		
+		// Store selected dates
+		var selectedDateFrom = $('#metrics_date_range_from').datepicker('getDate');
+		var selectedDateTo = $('#metrics_date_range_to').datepicker('getDate');
+		// classDate = $.datepicker.formatDate('yy/mm/dd', selectedDate);
+		console.log(`CHANGE: Selected date range is ${selectedDateFrom} TO ${selectedDateTo}`);
+		
+		if (selectedDateFrom && selectedDateTo) {
+			// Enable and reveal submit button
+			var $element = $('#studio_metrics_submit');
+			$element.prop('disabled', false).removeClass('disabled');
+			$revealedElements = revealElement($element, $revealedElements);
+		}
+	});
+	
+	// EVENT: GET STUDIO METRICS button click
+	$('#studio_metrics_submit').on('click', async (e) => {
+		e.preventDefault();
+		console.log(`Event captured: ${e.currentTarget.id}`);
+		console.log(e);
+        // Clear any error message
+		writeMessage('error', "");
+
+		if (debug) {
+            writeMessage('debug', "<br><b>clicked GET STUDIO METRICS button...</b>");
+		}
+
+		// Get date range from datepicker
+		var selectedDateFrom = $('#metrics_date_range_from').datepicker('getDate');
+		var selectedDateTo = $('#metrics_date_range_to').datepicker('getDate');
+		
+		console.log(`SUBMIT: Selected date range is ${selectedDateFrom} TO ${selectedDateTo}`);
+
+		// GET APPOINTMENTS DATA AND BUILD CHARTS
+		await buildStudioMetricsCharts(selectedDateFrom, selectedDateTo);
+				
+		// Reveal studio metrics container
+		$element = $('#studio_metrics_data_div');
+		$revealedElements = revealElement($element, $revealedElements);
+	});
 });
 }
 </script>
@@ -663,6 +940,10 @@ $( () => {
 <!-- JQUERY / JQUERY UI -->
 <!--script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script-->
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
+<!-- DATATABLES -->
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.js"></script>
+<!-- HIGHCHARTS -->
+<script src="https://code.highcharts.com/highcharts.js"></script>
 <!-- BOOTSTRAP -->
 <!--script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script-->
 <!--script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script-->
