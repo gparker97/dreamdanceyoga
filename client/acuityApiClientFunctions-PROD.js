@@ -1,6 +1,6 @@
 // Setup script
 const environment = 'PROD';
-const version = '1.2.1';
+const version = '1.3.0';
 
 // Set API host
 // var apiHostUAT = 'https://greg-monster.dreamdanceyoga.com:3443/api/acuity'; // GREG computer
@@ -20,8 +20,10 @@ if (environment === 'UAT') {
 async function initApiCall(func, activity, params) {
     if (debug) {
         writeMessage("debug", `<br>Starting initApiCall: ${func} - ${activity}`);        
-        console.log('InitApiCall params:');
-        console.log(params);
+        if (params) {
+            console.log('InitApiCall params:');
+            console.log(params);
+        }
     }	
 
     // Initialize parameters for API call
@@ -106,6 +108,18 @@ async function initApiCall(func, activity, params) {
                         max: 9999
                     };
                     break;
+                case 'getApptsByEmail':
+                    var clients = params;
+                    var selectedClientVal = $('#search_student_dropdown').val();
+                    var selected_client = $.grep(clients, (i) => {
+                        return `${i.firstName} ${i.lastName}` === selectedClientVal;
+                    });
+                    var clientEmail = selected_client[0].email;
+                    var params = {
+                        email: clientEmail,
+                        max: 9999
+                    };
+                    break;
                 default:
                     return 'Activity not defined';
             }
@@ -120,6 +134,7 @@ async function initApiCall(func, activity, params) {
                     var lastName = studentInfo.lastName;
                     var email = studentInfo.email;
                     var certificate = studentInfo.certificate;
+                    var calendarID = studentInfo.calendarID;
                     var OBJECT = 'labels_id';
                     var labels_id = studentInfo.labelID;
                     var params = {
@@ -130,6 +145,7 @@ async function initApiCall(func, activity, params) {
                         lastName,
                         email,
                         certificate,
+                        calendarID,
                         OBJECT,
                         labels_id
                     };
@@ -176,24 +192,21 @@ async function initApiCall(func, activity, params) {
                 case 'createAppt':
                     // Create an appointment in Acuity for selected student
                     // Set createInvoice to determine whether to create an invoice in Xero - only 1 invoice created for each class series
-                    var products = params[0];
+                    var classTimes = params[0];
                     var clients = params[1];
                     var createInvoice = params[2];
+                    console.log('classTimes is: ', classTimes);
 
                     var selectedClientVal = $('#search_student_dropdown').val();
                     var selected_client = $.grep(clients, (i) => {
                         return `${i.firstName} ${i.lastName}` === selectedClientVal;
                     });
-                    var classTime = $('#buy_class_submit').data('classTime');								
-                    var selectedClassVal = $('#select_package_class_dropdown').val();
-                    var selectedClass = $.grep(products, (i) => {
-                        return i.name === selectedClassVal;
-                    });				
-                    var classId = selectedClass[0].id;
+                    var classTime = $('#buy_class_submit').data('classTime');
+                    var classId = classTimes[0].appointmentTypeID;
+                    var calendarId = classTimes[0].calendarID;
                     if (debug) {
-                        console.log(`selectedClassVal is ${selectedClassVal}`);
-                        console.log(`selectedClass is ${selectedClass}`);
                         console.log(`classId is ${classId}`);
+                        console.log(`calendarID is ${calendarId}`);
                     }
                     var client_firstName = selected_client[0].firstName;
                     var client_lastName = selected_client[0].lastName;
@@ -221,11 +234,12 @@ async function initApiCall(func, activity, params) {
                         xeroApplyPayment: applyPaymentChecked,
                         datetime: classTime,
                         appointmentTypeID: classId,
+                        calendarID: calendarId,
                         firstName: client_firstName,
                         lastName: client_lastName,
                         email: client_email,
                         phone: client_phone
-                    };
+                    };                    
                     break;
                 default:
                     return 'Activity not defined';
@@ -411,7 +425,7 @@ async function callAPI(func, params) {
                     writeMessage('debug', `<br><b>API CALL COMPLETE</b><br>Function: ${func}`);						
                 }
             },
-            timeout: 30000
+            timeout: 45000
         });
         return result;
     } catch (e) {
@@ -791,7 +805,7 @@ async function buySeries(products, clients) {
             var bookClass = [];
             var funcType = "appointments_create";
             var activity = 'createAppt';            
-            var params = [ products, clients, false ];
+            var params = [ classTimes, clients, false ];
             for (var i = 0; i < classTimes.length; i++) {                    
                 $('#buy_class_submit').data('classTime', classTimes[i].time);
                 
@@ -938,10 +952,19 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
     appointmentsResult = await initApiCall(func, activity, params);
     console.log('Instructor report appointments result:', appointmentsResult);
     
+    // Rollup appointments array by class and notes
+    var instructorCheckinNote = 'INSTRUCTOR CHECK-IN';
+    var apptsByType = d3.nest().key(function(i) {
+        return `${i.type} ${i.datetime}`;
+    }).entries(appointmentsResult);
+    console.log('Appointments by Class Type: ', apptsByType);
+
     // Loop through data and store instructor info
     var instructorData = [];
     var instructorCounts = {};
     var instructorCheckinNote = 'INSTRUCTOR CHECK-IN';
+    
+    /*
     $.each(appointmentsResult, (i, val) => {
         var notes = val.notes;        
         if (notes.includes(instructorCheckinNote)) {
@@ -954,12 +977,12 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
             // var datePretty = xxxxx
             
             // Create instructor data object and push to array
-            var data = {
-                name,
-                class: engClassType,
-                date
-            }
-            instructorData.push(data);
+            // var data = {
+                // name,
+                // class: engClassType,
+                // date
+            // }
+            // instructorData.push(data);
 
             if (!instructorCounts.hasOwnProperty(name)) {
                 instructorCounts[name] = {};
@@ -969,42 +992,115 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
                     instructorCounts[name][engClassType] = 1;
                 } else {
                     instructorCounts[name][engClassType]++;
-                }                
+                }
             }
+        } else {
+            // Populate name with blank as no instructor has checked in yet
+            var name = 'NO CHECK IN';            
         }
+        // Create instructor data object and push to array
+        var data = {
+            name,
+            class: engClassType,
+            date
+        }
+        instructorData.push(data);
     });
     console.log('Instructor data: ', instructorData);
     console.log('Instructor counts: ', instructorCounts);
+    */
+
+    // 2ND ATTEMPT - TEST
+    $.each(apptsByType, (i, className) => {
+        className['hasInstructor'] = false;
+        var classType = className.values[0].type;
+        var engClassType = $.trim(classType.split('|')[1]) || classType;
+        var date = className.values[0].datetime;
+        
+        // Format class date for display
+        var dateString = date.split('T')[0];
+        var timeString = date.split('T')[1].split('+')[0];
+        var datePretty = `${dateString} ${timeString}`
+        
+        // var classDate = new Date(date);
+        // var datePretty = classDate.toLocaleString();
+
+        // Push class names and times
+        className['class'] = engClassType;
+        className['date'] = datePretty;
+
+        $.each(className.values, (i2, apptDetails) => {
+            var notes = apptDetails.notes;
+            if (notes.includes(instructorCheckinNote)) {
+                // Gather required data to store
+                var name = `${apptDetails.firstName} ${apptDetails.lastName}`;               
+
+                // Push data to object
+                className['hasInstructor'] = true;
+                className['instructor'] = name;
+    
+                // Initialize and increment class counter object for instructors
+                if (!instructorCounts.hasOwnProperty(name)) {
+                    instructorCounts[name] = {};
+                    instructorCounts[name][engClassType] = 1;                
+                } else {
+                    if (!instructorCounts[name].hasOwnProperty(engClassType)) {
+                        instructorCounts[name][engClassType] = 1;
+                    } else {
+                        instructorCounts[name][engClassType]++;
+                    }
+                }
+            }
+        });
+
+        if (className['hasInstructor'] === false) {
+            // Populate name with blank as no instructor has checked in yet
+            var name = 'NO CHECK IN';
+            // Push data to object                    
+            className['instructor'] = name;
+        }
+
+        // Create instructor data object and push to array
+        var data = {
+            name,
+            class: engClassType,
+            date
+        }
+        instructorData.push(data);
+    });
+    console.log('Instructor data: ', instructorData);
+    console.log('Instructor counts: ', instructorCounts);
+    console.log('Appointments by Class Type AFTER iteration: ', apptsByType);
 
     // Iterate through object and output report
-    var msg = '<h3 class="center"><b>INSTRUCTOR REPORT</h3></b><br>';
+    var selectedMonthVal = $('#instructor_report_datepicker').val();
+    var msg = `<h3 class="center"><b>INSTRUCTOR REPORT for ${selectedMonthVal}</h3></b><hr>`;
     
-    $.each(instructorCounts, (key, val) => {
-        console.log(`${key} | ${val}`);
-        msg += `<b>${key}: </b>`;
-        $.each(val, (key1, val1) => {
-            console.log(`${key1} | ${val1}`);
-            msg += `${key1} x ${val1} `;
+    $.each(instructorCounts, (name, className) => {
+        console.log(`${name} | ${className}`);
+        msg += `<b>${name}: </b>`;
+        $.each(className, (className1, count) => {
+            console.log(`${className1} | ${count}`);
+            msg += `${className1} x ${count} `;
         });
         msg += '<br>';
-    });    
+    });
+    msg += '<hr>';
     console.log(msg);
     
     // Build details table
     var instructorReportDetailsTable = $('#instructor_report_details_table').DataTable({
-        "data": instructorData,                
-        "pageLength": 25,            
-        "order": [[0, 'asc']],
-        // "paging": false,
-        // "info": false,
+        // "data": instructorData,
+        "data": apptsByType,
+        "pageLength": 50,            
+        "order": [[2, 'asc']],
         destroy: true,
         "columns": [
-            { "data": "name"},
+            { "data": "instructor"},
             { "data": "class"},
             { "data": "date"}
         ]
     });
-    console.log('instructor report details table: ', instructorReportDetailsTable);
 
     // Reveal instructor report div and display report
     var $element = $('#instructor_report_container_div');
@@ -1043,9 +1139,15 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
         return false;
     }
 
-    // Parse appointments result using D3.JS grouping functions
+    // CHART #1: APPOINTMENTS BY DATE
+    // Parse appointments result using D3.JS grouping functions to group by day / week / month
     var apptsByDayCounts = d3.nest().key(function(i) {
-        return i.date;
+        // return i.date;
+        var apptDate = new Date(i.date);
+        // var apptMonthYear = $.datepicker.formatDate('MM yy', apptDate);
+        var apptMonth = $.datepicker.formatDate('MM', apptDate);
+        var apptWeek = $.datepicker.iso8601Week(apptDate);
+        return `${apptMonth} Week ${apptWeek}`;
     }).rollup(function(i2) {
         return i2.length;
     }).entries(appointmentsResult);
@@ -1057,8 +1159,10 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
         appointmentsByDay.push([val.key, val.value]);        
     });    
     appointmentsByDay.reverse();    
-    console.log('appts by day: ', appointmentsByDay);    
+    console.log('appts by day: ', appointmentsByDay);
+    // CHART #1 END
 
+    // CHART #2: AVERAGE CLASS FULL PERCENTAGE
     // Retrieve available classes for date range
     var funcType = 'availability--classes_get';
     var activity = 'getClassesByDate';
@@ -1170,7 +1274,7 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
             // Also push total class full percentage to sort by total later
             index = classFullByCert.findIndex(obj => obj.name === i2);            
             classFullByCert[index].data.push([i, val2, val.avgPercentFull]);            
-        });        
+        });
     });
     console.log('Class full BY CERT: ', classFullByCert);
 
@@ -1187,6 +1291,47 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
         return b[2] - a[2];
     });
     console.log('Class full BY CERT SORTED: ', classFullByCert);
+    
+    // Calculate average percent full for average line
+    totalAppts = appointmentsResult.length;
+
+    // Rollup class availabilty by day of week and time in order to calculate average class size
+    var totalSlots = d3.nest().rollup(function(i) { return {        
+        slots: d3.sum(i, function(i) { return i.slots; }),
+        };
+    }).object(availClassesResult);
+
+    var totalPctFull = ((totalAppts / totalSlots.slots) * 100).toFixed(1);
+
+    console.log('total appts: ', totalAppts);
+    console.log('total slots: ', totalSlots.slots);
+    console.log(`Avg percent avail: ${totalPctFull}%`);
+
+    // CHART #2 END
+
+    // CHART #3: APPOINTMENTS BOOKED BY STUDENT
+    // Parse appointments result using D3.JS grouping functions
+    var apptsByStudentCounts = d3.nest().key(function(i) {
+        return `${i.firstName} ${i.lastName}`;
+    }).rollup(function(i) {
+        return i.length;
+    }).entries(appointmentsResult);
+    console.log('apptsByStudentCounts: ', apptsByStudentCounts);
+
+    // Push values to 2-dimensional array and sort from top to bottom
+    var appointmentsByStudent = [];    
+    $.each(apptsByStudentCounts, (i, val) => {			
+        appointmentsByStudent.push([val.key, val.value]);        
+    });    
+    appointmentsByStudent.sort(function(a, b) {
+        return b[1] - a[1];
+    });    
+
+    // Reduce to top XX students only
+    var numOfStudents = 20;
+    appointmentsByStudent.length = numOfStudents;
+    console.log('Appts by student sorted and reduced: ', appointmentsByStudent);
+    // CHART #3 END
 
     // Build appointments chart
     var apptsChart = Highcharts.chart('metrics_data_chart_1', {
@@ -1194,7 +1339,7 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
             type: 'line'
         },
         title: {
-            text: 'Appointments'
+            text: 'How many appointments are booked each week and what is the trend?'
         },        
         xAxis: {            
             type: 'category',
@@ -1214,14 +1359,39 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
         credits: false
     });
 
+    // Add moving average to appointments chart
+    var series = apptsChart.series[0];
+    var data = [];
+    var period = 2;
+    var sumForAverage = 0;
+    var i;
+    for(i=0; i<series.data.length; i++) {
+        sumForAverage += series.data[i].y;
+        if (i < period) {
+            data.push(null);
+        } else {
+            sumForAverage -= series.data[i-period].y;
+            data.push([series.data[i].x, sumForAverage/period]);
+        }
+    }
+    apptsChart.addSeries({
+        name: 'Moving Average',
+        data: data,
+        type: 'spline',
+        color: '#adadad',
+        marker: {
+            enabled: false
+        }
+    });
+
     // Build % full chart
     var percentClassFullChart = Highcharts.chart('metrics_data_chart_2', {
         chart: {
             type: 'bar',
-            height: 700
+            height: 900,
         },
         title: {
-            text: '% Average Class Attendance'
+            text: 'How full are my classes on average?'
         },        
         xAxis: {            
             labels: {
@@ -1240,7 +1410,23 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
             },
             title: {
                 text: '% Full'
-            }
+            },
+            plotLines: [{
+                color: 'red',
+                value: totalPctFull,
+                width: '2',
+                dashStyle: 'LongDash',
+                label: {
+                    text: `AVERAGE: ${totalPctFull}%`,                    
+                    textAlign: 'left',
+                    rotation: 0,
+                    style: {
+                        fontWeight: 'bold',
+                        color: 'red',
+                    }
+                },
+                zIndex: 99
+            }]
         },
         plotOptions: {
             series: {
@@ -1252,6 +1438,33 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
             valueDecimals: 1,
             valueSuffix: '%'
         },
+        credits: false
+    });
+
+    // Build appointments by student chart
+    var apptsChart = Highcharts.chart('metrics_data_chart_3', {
+        chart: {
+            type: 'bar',
+            height: 700
+        },
+        title: {
+            text: 'Which students book the most appointments?'
+        },        
+        xAxis: {            
+            type: 'category',
+            title: {
+                text: 'Date'
+            }
+        },
+        yAxis: {
+            title: {
+                text: '# of Appointments'
+            }
+        },
+        series: [{
+            name: '# of Appointments',
+            data: appointmentsByStudent
+        }],
         credits: false
     });
 
@@ -1321,6 +1534,13 @@ function writeMessage(type, msg, $output) {
                 icon: "ui-icon-closethick",
                 class: "modal-output",
                 click: () => { $modalDialog.dialog('close'); }
+            }];
+        case 'modal-close-window':
+            var modalButtons = [{
+                text: "Close Window",
+                icon: "ui-icon-closethick",
+                class: "modal-output",
+                click: () => { window.close(); }
             }];
             break;
     }

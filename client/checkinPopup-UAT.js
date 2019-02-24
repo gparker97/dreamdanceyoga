@@ -20,18 +20,18 @@
 
         .class-details h3 {			
             color: white;
-            font-size: 200%;
+            font-size: 150%;
         }
 
         .class-title h2 {
             padding: 10px;
-            margin: 5px;
+            margin: 15px;
             text-align: center;
             border-radius: 5px;
             /* background-color: #acbad4; */
-            background-color: #4D4A4A;
-            color: white;
-            font-size: 250% !important;
+            /* background-color: #4D4A4A; */
+            /* color: #4D4A4A; */
+            font-size: 200% !important;
         }
         
         .class-full h3 {
@@ -56,7 +56,8 @@
         .ddy-member {
             /* background-color: #acbad4 !important; */
             color: maroon;
-            font-weight: bold;
+            font-weight: bold;            
+            vertical-align: middle;
         }
         
         .debug-output {
@@ -106,6 +107,10 @@
             display: none;
         }
 
+        .margin-small {
+            margin: 20px;            
+        }
+
         .modal-output {            
             font-family: futura-pt !important;
             border-radius: 5px;
@@ -123,7 +128,7 @@
         .register-now {
             padding: 10px;            
             display: inline-block;            
-            font-size: 150%;
+            font-size: 125%;
             font-weight: bold;
             margin-left: auto;
         }
@@ -133,11 +138,16 @@
             text-align: right;
         }
 
-        .select-another-class {
+        .select-another-class {            
             position: absolute;
             right: 5px;
             bottom: 5px;
             font-size: 14px;
+        }
+
+        .select-name-dropdown {
+            display: inline-block;
+            padding-right: 40px;            
         }
 
         .selected {
@@ -149,8 +159,8 @@
             color: white;
             border-radius: 10px;
             background-color: #4D4A4A;
-            padding: 10px;
-            font-size: 100% !important;
+            padding: 5px;
+            font-size: 75%;
         }
         
         .spacer {
@@ -159,7 +169,7 @@
         
         .student-name {
             font-weight: bold;  
-            font-size: 140%;          
+            font-size: 140%;
         }
         
         .sqsp-font {
@@ -198,9 +208,10 @@
         .table-footer {
             display: flex;
             border-radius: 5px;
-            padding: 5px;
-            background-color: maroon;
-            color: white;
+            padding: 2px;
+            margin: 10px;            
+            background-color: #EEEEEE;
+            color: black;
         }
 
         .teacher-checkin {
@@ -209,15 +220,23 @@
 
         .top-of-table {            
             width: 100%;
-            padding: 10px;
+            padding: 5px;
         }
 
         .top-of-table h3 {
             font-size: 125%;
-            color: black;
+            color: white;
+            background-color: #4D4A4A;
+            padding: 5px 30px;
+            border-radius: 10px;
         }
 
-        .trialclass {            
+        .trial-class-checkbox {
+            display: inline-block;
+            float: right;            
+        }
+
+        .trialclass {
             background-color: maroon;
             color: white;
             font-weight: bold;
@@ -232,7 +251,7 @@
             display: none;
         } */
 
-        </style>	
+        </style>
     </head>
 
 <body>
@@ -242,7 +261,7 @@
         <div id="class_info_div" class="class-details"></div>
         
         <div id="top_of_table_div" class="top-of-table">
-            <div class="center"><h3><strong>点击您的名字登录 | TAP YOUR NAME TO CHECK IN!</h3></strong></div>
+            <div class="center"><h3 class="inline"><strong>点击您的名字登录 | TAP YOUR NAME TO CHECK IN!</h3></strong></div>
         </div>
         
         <div id="spacer_div" class="spacer"></div>
@@ -278,12 +297,10 @@
             <div id="register_now_div" class="register-now">
                 <input type="submit" id="register_now_submit" class="submit-button right" value="Register Now!" />
             </div>        
-        </div>
-        
-        <div id="spacer_div" class="spacer"></div>
+        </div>        
         
         <!-- Fullscreen and slots info -->
-        <input type="submit" id="fullscreen_submit" class="submit-button inline" value="Toggle Fullscreen" />
+        <input type="submit" id="fullscreen_submit" class="submit-button inline" value="Fullscreen" />
         <div id="slots_info_div" class="slot-details right"></div>
     </div>
     
@@ -303,6 +320,7 @@ $( async () => {
     function toggleFullScreen($element) {
         $element = $element || document.documentElement;
         if (!document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+            $('#fullscreen_submit').val('Exit Fullscreen');
             if ($element.requestFullscreen) {
                 $element.requestFullscreen();
             } else if ($element.msRequestFullscreen) {
@@ -313,6 +331,7 @@ $( async () => {
                 $element.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
             }
         } else {
+            $('#fullscreen_submit').val('Fullscreen');
             if (document.exitFullscreen) {
                 document.exitFullscreen();
             } else if (document.msExitFullscreen) {
@@ -356,7 +375,7 @@ $( async () => {
             var slotsInfoHTML = `<h3><strong>CLASS FULL!</strong></h3>`;
             $('#slots_info_div').addClass('class-full');
         } else {
-            var slotsInfoHTML = `<h3>Spaces available: <strong>${slotsAvail}</strong></h3>`;
+            var slotsInfoHTML = `<h3>Slots available: <strong>${slotsAvail}</strong></h3>`;
         }
         $('#slots_info_div').html(slotsInfoHTML);
 
@@ -420,7 +439,8 @@ $( async () => {
                 if (cert.includes('TRIAL')) { cert = "TRIALCLASS"; }
                 switch (cert) {
                     case 'CLASSPASS':
-                        selectedAppointments[i].studentType = 'CP';
+                        // selectedAppointments[i].studentType = 'CP';
+                        selectedAppointments[i].studentType = "<img class='ddy-member' src='https://sophiadance.squarespace.com/s/classpass-logo-transparent.png'>";
                         break;
                     case 'TRIALCLASS':
                     case 'FIRSTCLASSFREE':
@@ -438,7 +458,8 @@ $( async () => {
                         selectedAppointments[i].firstName=`00${selectedAppointments[i].firstName}`;
                         break;
                     default:
-                        selectedAppointments[i].studentType = "<p class='ddy-member'>Dream Dance and Yoga Member <img src='https://sophiadance.squarespace.com/s/dancer-icon-transparent-24px.png'></p>";
+                        // selectedAppointments[i].studentType = "<p class='ddy-member'><img src='https://sophiadance.squarespace.com/s/dancer-icon-transparent-24px.png'></p>";
+                        selectedAppointments[i].studentType = "<img class='ddy-member' src='https://sophiadance.squarespace.com/s/ddy-logo-small.png'>";
                 }
             } else {
                 selectedAppointments[i].studentType = 'Single class';
@@ -462,18 +483,17 @@ $( async () => {
             var checkin_table = $('#checkin_table').DataTable({
                 "data": selectedAppointments,                
                 "pageLength": 25,            
-                "order": [[1, 'asc']],
+                "order": [[2, 'asc']],
                 "paging": false,
                 "info": false,
                 "searching": false,
                 columnDefs: [
-                    { targets: 0, className: "student-name dt-center" },
+                    { targets: 1, className: "student-name dt-center" },
                     { targets: '_all', orderable: false, className: "checkin-table dt-center" },
-                    { targets: 1, visible: false },                
+                    { targets: 2, visible: false },                
                     // { targets: 0, width: "65%" },
                     { targets: 3, width: "25%" },
-                    { targets: 2,
-                        width: "30%",
+                    { targets: 0,                        
                         createdCell: function(td, cellData, rowData, col) {
                             switch (cellData) {
                                 case 'Classpass':
@@ -493,9 +513,9 @@ $( async () => {
                     }
                 ],
                 "columns": [
+                    { "data": "studentType"},
                     { "data": "fullName"},
-                    { "data": "firstName"},                
-                    { "data": "studentType"}, 
+                    { "data": "firstName"},                    
                     { "data": "buttonHTML"}
                     // { "defaultContent": `<button type="button" class="check-in">Check In!</button>` }                
                 ]
@@ -544,10 +564,10 @@ $( async () => {
         console.log('In applyRowStyle() checkedIn is: ', checkedIn);
         if (checkedIn) {
             $($row).removeClass('selected');
-            $(`#${data.id}`).html('Check-in!');
+            $(`#${data.id}`).html('Check In!');
         } else {            
             $($row).addClass('selected');
-            $(`#${data.id}`).html('Cancel Check-in');
+            $(`#${data.id}`).html('Cancel Check In');
         }
     }
 
@@ -710,13 +730,14 @@ $( async () => {
         if (certificate === 'DDYINSTRUCTOR') {
             var labelID = instructorLabelID;
         }
-
+        
         // Store required parameters for appointment post API call
         var classId = selectedAppointments[0].appointmentTypeID;
         var datetime = selectedAppointments[0].datetime;
         var firstName = selectedClient[0].firstName;
         var lastName = selectedClient[0].lastName;
         var email = selectedClient[0].email;
+        var calendarID = upcoming_classes[selected_class_index].calendarID;
         var params = {
             classId,
             datetime,
@@ -724,23 +745,26 @@ $( async () => {
             lastName,
             email,
             certificate,
+            calendarID,
             labelID
         };
         
         if (debug) {
-            console.log('Appointments POST params:', params);                
+            console.log('Appointments POST params:', params);
         }
         
         // Make API call to add walk-in student to class
-        try {                
+        try {
             var funcType = 'appointments_post';
             var activity = 'addToClass';
             var appointmentsResult = await initApiCall(funcType, activity, params);
             console.log('AppointmentsResult is:', appointmentsResult);
             
             // If successful call check-in for added student to add notes
-            var checkInResult = await checkIn(appointmentsResult, false, checkInType);
-            console.log('Check-in result: ', checkInResult);
+            if (appointmentsResult) {
+                var checkInResult = await checkIn(appointmentsResult, false, checkInType);
+                console.log('Check-in result: ', checkInResult);
+            }
         }
         catch (e) {
             console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
@@ -748,10 +772,10 @@ $( async () => {
             var errorText = e.responseText;
             console.log(`Error text is: ${errorText}`);
             if (errorText.includes('invalid for appointment type')) {
-                var message = { title: 'ERROR', body: `No valid code for this student to book classes!  Please try again.` };
+                var message = { title: 'ERROR', body: `No valid code for this student to book classes!  Please check with Dream Dance and Yoga staff.` };
             } else {
-                var message = { title: 'ERROR', body: `Error creating appointment!  Please try again.` };
-            }                
+                var message = { title: 'ERROR', body: `Error creating appointment!  Please tell Greg!` };
+            }
             writeMessage('modal', message);
             return false;
         }
@@ -763,8 +787,15 @@ $( async () => {
     // 2) Build the datatable
     async function initializeAppointmentsTable(firstLoad) {
         // Retrieve all appointments for selected class
+        
         selectedAppointments = await retrieveAppointments(upcoming_classes, classDate, selected_class_index);
-        console.log('Appointments result: ', selectedAppointments);    
+        console.log('Appointments result: ', selectedAppointments);
+        
+        if (!selectedAppointments) {
+            var message = { title: 'No Appointments!', body: `No appointments scheduled for this class!` };
+            writeMessage('modal-close-window', message);            
+            return false;
+        }
 
         // Capture list of instructors the first time the window is open
         instructors = await getInstructors();
@@ -939,7 +970,7 @@ $( async () => {
                         var classInstructorAppt = $(selectedAppointments).filter((i) => {
                             return (`${selectedAppointments[i].certificate}` === 'DDYINSTRUCTOR');
                         });                        
-                        console.log('Class instructor appt is:', classInstructorAppt);                        
+                        console.log('Class instructor appt is:', classInstructorAppt);
                         
                         var cancelNote = 'Instructor check-in cancel';
                         var apptId = classInstructorAppt[0].id;
@@ -969,9 +1000,9 @@ $( async () => {
                         }
                     }
                     catch (e) {
-                        console.log(`ERROR: Error cancelling instructor check-in!`);
+                        console.log(`ERROR: Error cancelling instructor check in!`);
                         console.log (e);
-                        var message = { title: 'ERROR!', body: `Error while cancelling instructor check-in!  Please try again.` };
+                        var message = { title: 'ERROR!', body: `Error while cancelling instructor check in!  Please try again.` };
                         writeMessage('modal', message);
                     }
                 } else {
@@ -984,19 +1015,19 @@ $( async () => {
                         console.log('addInstructorResult:', addInstructorResult);
 
                         // Alert instructor check-in was successful
-                        var message = { title: `Instructor Check-in Successful for ${classInstructor[0].firstName} ${classInstructor[0].lastName}!`, body: `Thanks for checking in, ${classInstructor[0].firstName}.  Enjoy your class!` };
-                        writeMessage('modal', message);
-
-                        // If successful update check-in button
-                        $('#teacher_checkin_submit').val('Cancel Instructor Check-in');
-                        $('#teacher_checkin_dropdown').prop('disabled', true);
-                        $('#teacher_checkin_dropdown').addClass('disabled');
-
-                        // If successful reload window
                         if (addInstructorResult) {
+                            var message = { title: `Instructor Check-in Successful for ${classInstructor[0].firstName} ${classInstructor[0].lastName}!`, body: `Thanks for checking in, ${classInstructor[0].firstName}.  Enjoy your class!` };
+                            writeMessage('modal', message);
+
+                            // If successful update check-in button
+                            $('#teacher_checkin_submit').val('Cancel Instructor Check-in');
+                            $('#teacher_checkin_dropdown').prop('disabled', true);
+                            $('#teacher_checkin_dropdown').addClass('disabled');
+
+                            // If successful reload window                            
                             console.log('Reloading table...!');                
                             // window.location.reload();
-                            initializeAppointmentsTable();
+                            initializeAppointmentsTable();                            
                         }
                     }
                     catch (e) {
@@ -1033,25 +1064,31 @@ $( async () => {
         // Bring up modal with search and student dropdown fields to register a walk-in student
         var message = {
             title: 'Register Walk-in Student',
-            body: `<div id="search_student_div" class="sqsp-font">
-                <form id="search_student" action="" method="post">  
-			        <label for="search_student" class="sqsp-font"><b>Enter Your Name: </b></label>
-			        <input type="search" name="search_student_form" id="search_student_form" />
-			        <input type="submit" name="search_submit" id="search_submit" class="sqsp-font" value="Search" />			
-                </form>
-            </div>            
-            <div id="search_student_dropdown_div" class="sqsp-font hide">
-		        <label for="search_student_dropdown" class="sqsp-font"><b>Select Your Name: </b></label>
-		        <select id="search_student_dropdown" name="search_student_dropdown" class="sqsp-font">
-			        <option value="Select One">Select One</option>	
-                </select>
-                <input type="checkbox" name="Trial_class" id="trial_class_walkin_checkbox" value="trial_class">
-		        <label for="trial_class_walkin_checkbox">  <b>Trial Class? </b></label>
-                <br><br>
-                <div id="register_walkin_submit_div" class="center hide">
-                    <input type="submit" id="register_walkin_submit" class="submit-button-large sqsp-font font-size-15x" value="REGISTER" />
-                </div>
-            </div>`            
+            body: `<div id="search_student_div" class="margin-small sqsp-font">
+                        <form id="search_student" action="" method="post">  
+                            <label for="search_student" class="sqsp-font"><b>Enter Your Name: </b></label>
+                            <input type="search" name="search_student_form" id="search_student_form" />
+                            <input type="submit" name="search_submit" id="search_submit" class="sqsp-font" value="Search" />			
+                        </form>
+                    </div>            
+                    <div id="search_student_dropdown_div" class="margin-small sqsp-font hide">
+                        <div class="margin-small">
+                            <div class="select-name-dropdown">
+                                <label for="search_student_dropdown" class="sqsp-font"><strong>Select Your Name: </strong></label>
+                                <select id="search_student_dropdown" name="search_student_dropdown" class="sqsp-font">
+                                    <option value="Select One">Select One</option>	
+                                </select>
+                            </div>
+                            <div class="trial-class-checkbox">
+                                <input type="checkbox" name="trial_class" id="trial_class_walkin_checkbox" value="trial_class">
+                                <label for="trial_class_walkin_checkbox"><strong>Trial Class?</strong></label>
+                            </div>
+                        </div>
+                        <hr>
+                        <div id="register_walkin_submit_div" class="margin-small center hide">
+                            <input type="submit" id="register_walkin_submit" class="submit-button-large sqsp-font font-size-15x" value="REGISTER" />
+                        </div>
+                    </div>`
         };    
         var $modalDialog = await writeMessage('modal-cancel', message);
         

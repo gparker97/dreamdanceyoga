@@ -27,13 +27,55 @@
 		
 		.center {
             text-align: center;
-        }
+		}
 		
-		.ddy-info {			
+		.certificate-valid {
+			color: green;
+		}
+		
+		.certificate-expired {
+			color: red;
+			font-weight: bold;
+		}
+		
+		.ddy-card {
+			background-color: green;
+			color: white;
 			display: inline-block;
 			border: 1px solid lightgray;
 			margin: 5px 0px;
 			padding: 5px;
+		}
+
+		.ddy-card-gold {
+			background-color: goldenrod;
+		}
+		
+		.ddy-card-green {
+			background-color: green;
+		}
+
+		.ddy-card-maroon {
+			background-color: maroon;
+		}
+
+		.ddy-card-heading {
+			font-size: 120%;
+		}
+
+		.ddy-card-silver {
+			background-color: silver;
+		}
+
+		.ddy-card-subtext {
+			font-size: 80%;
+			color: ghostwhite;
+		}
+
+		.ddy-card-text {
+			font-size: 250%;
+			font-weight: bold;
+			padding: 20px;
 		}
 
 		.ddy-data {			
@@ -81,29 +123,29 @@
 		}
 		
 		.instructor-container {
-			overflow: hidden;			
+			text-align: center;
 		}
 		
 		.instructor-info {			
-			background-color: #F2F2F2;
-			margin: 0px 5px;
-			padding: 5px;
-			vertical-align: top;
-			float: left;
-			min-width: 25%;
+			background-color: #fafafa;
+			padding: 10px;
+			text-align: left;
+			display: inline-block;
 		}
 
 		.instructor-table {			
 			background-color: #F2F2F2;
-			margin: 0px 5px;
-			padding: 5px;
-			vertical-align: top;
+			margin: 30px 0px;
 			overflow: hidden;
 		}
 
 		.form-label {
 			font-weight: bold;
 		}
+
+		.margin-small {
+			margin-bottom: 15px;
+		} 
 
 		.modal-output {            
             font-family: futura-pt !important;
@@ -153,43 +195,43 @@
 <div id="top_level_options" class="top-cards">	
 	<a href="#">
 		<div id="buy_package_top" class="card">
-			<h3><strong><i class="fas fa-gift fa-3x"></i><br>BUY PACKAGE / SUBSCRIPTION</strong></h3>
+			<h3><strong><i class="fas fa-gift fa-3x margin-small"></i><br>BUY PACKAGE / SUBSCRIPTION</strong></h3>
 		</div>
 	</a>
 	
 	<a href="#">
 		<div id="buy_class_top" class="card">
-			<h3><strong><i class="fas fa-cubes fa-3x"></i><br>BUY CLASS SERIES</strong></h3>
+			<h3><strong><i class="fas fa-cubes fa-3x margin-small"></i><br>BUY CLASS SERIES</strong></h3>
 		</div>
 	</a>
 	
 	<a href="#">
 		<div id="buy_single_class_top" class="card">
-			<h3><strong><i class="fas fa-cube fa-3x"></i><br>BUY SINGLE CLASS</strong></h3>
+			<h3><strong><i class="fas fa-cube fa-3x margin-small"></i><br>BUY SINGLE CLASS</strong></h3>
 		</div>
 	</a>
 
 	<a href="#">
 		<div id="view_student_package_top" class="card">
-			<h3><strong><i class="fas fa-glasses fa-3x"></i><br>VIEW STUDENT PACKAGES</strong></h3>
+			<h3><strong><i class="fas fa-glasses fa-3x margin-small"></i><br>VIEW STUDENT INFO</strong></h3>
 		</div>
 	</a>
 	
 	<a href="#">
 		<div id="checkin_table_top" class="card">
-			<h3><strong><i class="fas fa-table fa-3x"></i><br>CHECK-IN TABLE</strong></h3>
+			<h3><strong><i class="fas fa-table fa-3x margin-small"></i><br>CHECK-IN TABLE</strong></h3>
 		</div>
 	</a>
 
 	<a href="#">
 		<div id="instructor_report_top" class="card">
-			<h3><strong><i class="fas fa-graduation-cap fa-3x"></i><br>INSTRUCTOR REPORT</strong></h3>
+			<h3><strong><i class="fas fa-graduation-cap fa-3x margin-small"></i><br>INSTRUCTOR REPORT</strong></h3>
 		</div>
 	</a>
 
 	<a href="#">
 		<div id="studio_metrics_top" class="card">
-			<h3><strong><i class="fas fa-chart-bar fa-3x"></i><br>DDY STUDIO METRICS</strong></h3>
+			<h3><strong><i class="fas fa-chart-bar fa-3x margin-small"></i><br>DDY STUDIO METRICS</strong></h3>
 		</div>
 	</a>
 </div>
@@ -231,7 +273,6 @@
 			<option value="select">Select One</option>			
 			<option value="none">NONE (No Charge)</option>
 			<option value="cc-online">Credit Card ONLINE (Acuity)</option>
-			<option value="cc-terminal">Credit Card (Terminal)</option>
 			<option value="cash">Cash</option>
 			<option value="bankXfer-DDY">Bank Transfer DDY</option>
 			<option value="bankXfer-Sophia">Bank Transfer Sophia POSB</option>
@@ -254,12 +295,12 @@
             </select>
 		</div>
 		<div id="select_upcoming_class_date_div">
-			<p>Or select another date: <input type="text" id="checkin_datepicker" class="margin" /></p>
+			<p><strong>OR</strong> Select another date: <input type="text" id="checkin_datepicker" class="margin" /></p>
         </div>
     </div>
 
 	<!-- INSTRUCTOR REPORT -->
-	<div id="instructor_report_div" class="details-item hide">        		
+	<div id="instructor_report_div" class="details-item hide">
 		<div id="select_instructor_report_date_div">
 			<p>Select month: <input type="text" id="instructor_report_datepicker" class="margin" /></p>
         </div>		
@@ -284,13 +325,13 @@
 	<input type="submit" id="studio_metrics_submit" class="submit-button hide" value="GET STUDIO METRICS" />
 
 	<!-- INSTRUCTOR REPORT -->	
-	<div id="instructor_report_container_div" class="intructor-container hide">
+	<div id="instructor_report_container_div" class="instructor-container hide">
 		<br><hr><br>
 		<div id="instructor_report_display_div" class="instructor-info"></div>
 		<div id="instructor_report_display_details_div" class="instructor-table">
 			<!-- Placeholder HTML table for instructor report details - populated by DataTable() -->    
 			<table id="instructor_report_details_table" class="display table">
-				<caption><h3 class="center"><strong>Class Details</h3></strong></caption>
+				<caption><h3 class="center"><strong>Class Details<hr></h3></strong></caption>
 				<thead>
 					<tr>
 						<th>Name</th>
@@ -298,17 +339,23 @@
 						<th>Date</th>
 					</tr>
 				</thead>
-			</table>
+			</table>		
 		</div>
 	</div>
 	
 	<!-- STUDIO METRICS DATA-->
 	<div id="studio_metrics_data_div" class="studio-metrics hide">
-		<br><hr><br>
-		<div id="ddy_info" class="ddy-info"></div>
-		<div id="ddy_info_2" class="ddy-info"></div>
-		<div id="ddy_info_3" class="ddy-info"></div>
-		<div id="metrics_data_charts" class="ddy-data"></div>
+		<br><hr>
+		<div id="ddy_card_1" class="ddy-card ddy-card-maroon"></div>
+		<div id="ddy_card_2" class="ddy-card ddy-card-gold"></div>
+		<div id="ddy_card_3" class="ddy-card ddy-card-silver"></div>
+		<div id="ddy_card_4" class="ddy-card ddy-card-green"></div>
+		<br><hr>
+		<div id="metrics_data_chart_1" class="ddy-data"></div>
+		<div id="metrics_data_chart_2" class="ddy-data"></div>
+		<div id="metrics_data_chart_3" class="ddy-data"></div>
+		<div id="metrics_data_chart_4" class="ddy-data"></div>
+		<div id="metrics_data_chart_5" class="ddy-data"></div>
 	</div>
 </div>
 
@@ -325,7 +372,7 @@
 $( () => {
 	// Setup script
 	const environment = 'UAT';
-	const version = '1.1.4';
+	const version = '1.3.0';
 	
 	// Arrays to cache Acuity API call responses (avoid making multiple calls)
 	var clients = [];
@@ -400,7 +447,7 @@ $( () => {
 				products = await retrieveProductsClasses(action, $revealedElements);
 				break;
 			case 'view_student_package_top':
-				$detailsTop.html('<h2>VIEW STUDENT PACKAGES</h2><hr/>');
+				$detailsTop.html('<h2>VIEW STUDENT INFO</h2><hr/>');
 				// Reveal student search form and store action
 				$revealedElements = revealElement($('#search_student_div'), $revealedElements);
 				$('#search_student_form').focus();
@@ -484,7 +531,7 @@ $( () => {
 					buttonText: '',
 					defaultDate: "-1w",
 					changeMonth: true,
-					numberOfMonths: 3
+					numberOfMonths: 1
 					}).on('change', function() {
 						to.datepicker('option', 'minDate', getDate(this));
 					});
@@ -495,7 +542,7 @@ $( () => {
 					buttonText: '',
 					defaultDate: "-1d",
 					changeMonth: true,
-					numberOfMonths: 3
+					numberOfMonths: 1
 				}).on('change', function() {
 					from.datepicker('option', 'maxDate', getDate(this));
 				});			
@@ -582,7 +629,7 @@ $( () => {
 		// clearDropdown($('#search_student_dropdown'));
 	});
 
-	// EVENT: BUY CLASS SUBMIT
+	// EVENT: BUY CLASS SERIES SUBMIT
 	$('#buy_class_submit').on('click', async (e) => {
 		e.preventDefault();
 		console.log(`Event captured: ${e.currentTarget.id}`);
@@ -645,24 +692,88 @@ $( () => {
 			writeMessage('debug', "<br><b>clicked VIEW PACKAGES button...</b>");            
 		}
 
-		// View certificates for selected student		
-        var certificates = await retrieveCertificates(clients);
+		// Retrieve certificates for selected student
+		var certificates = await retrieveCertificates(clients);
+
+		// Get student email
+		var selectedClientVal = $('#search_student_dropdown').val();
+		var selectedClient = $.grep(clients, (i) => {
+			return `${i.firstName} ${i.lastName}` === selectedClientVal;
+		});
+		var clientEmail = selectedClient[0].email || 'No email registered';
+		
+		// Retrieve appointments for selected student
+		try {
+			var func = 'appointments_get';
+			var activity = 'getApptsByEmail';
+			var appointments = await initApiCall(func, activity, clients);
+			console.log('Appointments from certificates by email: ', appointments);
+			var apptsBooked = appointments.length;
+		}
+		catch (e) {
+			console.log('Error or no appointments booked: ', e)
+			var apptsBooked = 0;
+		}
         
-        // Populate output and display in modal        
+        // Populate output and display in modal
         if (certificates) {
-            // Set var to hold retrieved products            
-            var certificatesOutput = "";            
-            
-            // FUTURE: if TYPE = value or type = appointments, add logic (value / price) to show remaining classes / appointments            
-            for (var i=0; i < certificates.length; i++) {
-                certificatesOutput += `<strong>${certificates[i].name}</strong><br>Email: ${certificates[i].email}<br>Code: ${certificates[i].certificate}<br>Expiry: <strong>${certificates[i].expiration}</strong>`;
-                if (i !== (certificates.length - 1)) {
+			// Set single class prices to compute remaining value
+			var bdPrice = 32;
+			var yogaPrice = 39;
+			
+			// Set var to hold student info for display in modal
+            var certificatesOutput = "";
+            for (var i=0; i < certificates.length; i++) {				
+				// Store expiration and remaining values
+				var certName = certificates[i].name;				
+				var classPrice = bdPrice;
+				if (certName.includes('Yoga')) {					
+					classPrice = yogaPrice;
+				}
+				var expiry = certificates[i].expiration;
+				var expiryDate = new Date(expiry);
+				var today = new Date();
+				var expired = false;
+				if (expiryDate < today) { expired = true; }
+
+				var remainingValue = 'Unlimited';
+				var remainingType = 'Classes';
+				switch (certificates[i].type) {
+					case 'value':
+						remainingValue = (certificates[i].remainingValue / classPrice);
+						break;
+					case 'count':
+						remainingValue = certificates[i].remainingCounts;
+						break;
+					case 'minutes':
+						remainingValue = certificates[i].remainingMinutes;
+						remainingType = 'Minutes';
+						break;
+				}
+
+				certificatesOutput += `<strong>${certificates[i].name}</strong><br>
+										<strong>Email:</strong> ${clientEmail}<br>
+										<strong>Code:</strong> ${certificates[i].certificate}<br>
+										<strong>Remaining:</strong> ${remainingValue} ${remainingType}<br>`
+				
+				// Update expiration date style if certificate is already expired
+				if (expired) {
+					certificatesOutput += `<strong>Expiry:</strong> <span id="certificate_expiry" class="certificate-expired"><strong>${certificates[i].expiration}</strong></span><br>`;
+				} else {
+					certificatesOutput += `<strong>Expiry:</strong> <span id="certificate_expiry" class="certificate-valid"><strong>${certificates[i].expiration}</strong></span><br>`;
+				}
+				
+				// Output a line unless at last certificate
+				if (i !== (certificates.length - 1)) {
                     certificatesOutput += '<hr>';
                 }
 			}
 		} else {
 			certificatesOutput = "<strong>No certificates found!</strong>";
-        }
+		}
+		
+		// Add number of appointments booked
+		certificatesOutput += `<hr><strong>Appointments booked:</strong> ${apptsBooked}`;
 		
 		// Generate modal message with certificate details
 		var selectedStudent = $('#search_student_dropdown option:selected').text();
@@ -791,7 +902,11 @@ $( () => {
             writeMessage('debug', "<br><b>Caught change in find class date datepicker...</b>");
 		}		
 
-		// Store selected date		
+		// Disable GENERATE TABLE SUBMIT button
+		var $element = $('#generate_checkin_table_submit');
+		$element.prop('disabled', true).addClass('disabled');
+
+		// Store selected date
 		selectedDate = $('#checkin_datepicker').datepicker('getDate');
 		classDate = $.datepicker.formatDate('yy/mm/dd', selectedDate);
 		console.log('Selected class date is: ', classDate);
@@ -799,7 +914,7 @@ $( () => {
 		// Make API call to retrieve selected day's classes and populate dropdown
 		action = 'pastDate';
 		upcoming_classes = await retrieveUpcomingClasses(action, $revealedElements);
-		console.log('Upcoming Classes:', upcoming_classes);
+		console.log('Upcoming Classes:', upcoming_classes);		
 	});
 
     // EVENT: GENERATE CHECK-IN TABLE button click
@@ -833,7 +948,8 @@ $( () => {
 				} else {
 					winName = 'checkin-window';			
 				}
-				var win = window.open(winName, '_blank', 'fullscreen=yes,width=' + screen.availWidth + ',height=' + screen.availHeight);
+				// var win = window.open(winName, '_blank', 'fullscreen=yes,width=' + screen.availWidth + ',height=' + screen.availHeight);
+				var win = window.open(winName, '_blank', 'fullscreen=yes, width=828, height=1200');
 				// var w = window.open("popup-table-uat", "Dream Dance and Yoga Student Check-In", "menubar='no',toolbar='no',location='no',width=" + screen.availWidth + ",height=" + screen.availHeight);
 				if (win) {
 					win.focus();					
@@ -919,6 +1035,10 @@ $( () => {
             writeMessage('debug', "<br><b>clicked GET STUDIO METRICS button...</b>");
 		}
 
+		// Disable submit button while fetching data
+		var $element = $('#studio_metrics_submit');
+		$element.prop('disabled', true).addClass('disabled');
+
 		// Get date range from datepicker
 		var selectedDateFrom = $('#metrics_date_range_from').datepicker('getDate');
 		var selectedDateTo = $('#metrics_date_range_to').datepicker('getDate');
@@ -926,11 +1046,16 @@ $( () => {
 		console.log(`SUBMIT: Selected date range is ${selectedDateFrom} TO ${selectedDateTo}`);
 
 		// GET APPOINTMENTS DATA AND BUILD CHARTS
-		await buildStudioMetricsCharts(selectedDateFrom, selectedDateTo);
+		var result = await buildStudioMetricsCharts(selectedDateFrom, selectedDateTo);
 				
-		// Reveal studio metrics container
-		$element = $('#studio_metrics_data_div');
-		$revealedElements = revealElement($element, $revealedElements);
+		if (result) {
+			// Reveal studio metrics container and re-enable submit button
+			$element = $('#studio_metrics_data_div');
+			$revealedElements = revealElement($element, $revealedElements);
+
+			var $element = $('#studio_metrics_submit');
+			$element.prop('disabled', false).removeClass('disabled');
+		}
 	});
 });
 }
@@ -944,6 +1069,8 @@ $( () => {
 <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.js"></script>
 <!-- HIGHCHARTS -->
 <script src="https://code.highcharts.com/highcharts.js"></script>
+<!-- D3.JS -->
+<script src="https://d3js.org/d3.v5.min.js"></script>
 <!-- BOOTSTRAP -->
 <!--script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script-->
 <!--script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script-->
