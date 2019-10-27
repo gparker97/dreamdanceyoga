@@ -1,11 +1,11 @@
 // Setup script
 const environment = 'UAT';
-const version = '1.3.0';
+const version = '1.4.2';
 
 // Set API host
-// var apiHostUAT = 'https://greg-monster.dreamdanceyoga.com:3443/api/acuity'; // GREG computer
-var apiHostUAT = 'https://api.dreamdanceyoga.com:3444/api/acuity'; // AWS UAT
-var apiHostPROD = 'https://api.dreamdanceyoga.com:3443/api/acuity'; // AWS PROD
+// var apiHostUAT = 'https://greg-monster.dreamdanceyoga.com:3443/api/ddy'; // GREG computer
+var apiHostUAT = 'https://api.dreamdanceyoga.com:3444/api/ddy'; // AWS UAT
+var apiHostPROD = 'https://api.dreamdanceyoga.com:3443/api/ddy'; // AWS PROD
 
 // Debug mode
 if (environment === 'UAT') {
@@ -29,11 +29,40 @@ async function initApiCall(func, activity, params) {
     // Initialize parameters for API call
     switch (func) {        
         case 'clients_search':
-            var searchTerm = $('#search_student_form').val();
-            if (!searchTerm) { searchTerm = ''; }
+            switch (activity) {
+                case 'retrieveAllClients':
+                    var searchTerm = '';
+                    break;
+                default:            
+                    var searchTerm = $('#search_student_form').val();
+                    if (!searchTerm) { searchTerm = ''; }                    
+                    break;
+            }
+            // Set search parameters
             var params = {
                 search: searchTerm
             };
+            break;
+        case 'clients_add':
+            switch (activity) {
+                case 'addStudent':
+                    var firstName = params.firstName;
+                    var lastName = params.lastName;
+                    var email = params.email;
+                    var phone = params.phone;
+                    var notes = params.notes;
+                    var params = {
+                        method: 'POST',
+                        firstName,
+                        lastName,
+                        email,
+                        phone,
+                        notes
+                    };
+                    break;
+                default:
+                    return 'Activity not defined';
+            }
             break;
         case 'products_get':
             var params = {};
@@ -190,10 +219,11 @@ async function initApiCall(func, activity, params) {
         case 'appointments_create':
             switch (activity) {
                 case 'createAppt':
-                    // Create an appointment in Acuity for selected student
-                    // Set createInvoice to determine whether to create an invoice in Xero - only 1 invoice created for each class series
+                    // BOOK A CLASS SERIES AND CREATE INVOICE
+                    // Create an appointment in Acuity for selected student                    
                     var classTimes = params[0];
                     var clients = params[1];
+                    // Set createInvoice to determine whether to create an invoice in Xero - only 1 invoice created for each class series
                     var createInvoice = params[2];
                     console.log('classTimes is: ', classTimes);
 
@@ -214,6 +244,10 @@ async function initApiCall(func, activity, params) {
                     var client_phone = selected_client[0].phone;
                     var paymentMethod = $('#payment_method_dropdown option:selected').val();                    
                     
+                    // Get updated package price if specified
+                    var newPrice = $('#updated_price').val() || false;
+                    console.log('UPDATED PRICE: ', newPrice);
+
                     // Check Xero invoice checkboxes to determine whether to create invoice / apply payment
                     // Check checkboxes on last run of class series booking
                     if (createInvoice) {
@@ -238,7 +272,8 @@ async function initApiCall(func, activity, params) {
                         firstName: client_firstName,
                         lastName: client_lastName,
                         email: client_email,
-                        phone: client_phone
+                        phone: client_phone,
+                        newPrice
                     };                    
                     break;
                 default:
@@ -310,6 +345,10 @@ async function initApiCall(func, activity, params) {
                     }
                     // var client_email = clients[selected_client].email;
                     var client_email = selected_client[0].email;
+
+                    // Get updated package price if specified
+                    var newPrice = $('#updated_price').val() || false;
+                    console.log('UPDATED PRICE: ', newPrice);
                     
                     // Check Xero invoice checkboxes to determine whether to create invoice / apply payment
                     var createInvoiceChecked = $('#create_invoice_checkbox').is(':checked');
@@ -326,7 +365,8 @@ async function initApiCall(func, activity, params) {
                         xeroCreateInvoice: createInvoiceChecked,
                         xeroApplyPayment: applyPaymentChecked,
                         productID: productId,
-                        email: client_email
+                        email: client_email,
+                        newPrice
                     };
                     break;
                 default:
@@ -358,11 +398,6 @@ async function initApiCall(func, activity, params) {
 }
 
 async function callAPI(func, params) {
-    var $loading = $('#loading');
-    if (debug) {
-        console.log('loading is: ', $loading);
-    }
-
     // set apiHost based on environment
     apiHost = eval(`apiHost${environment}`);		
     
@@ -385,6 +420,10 @@ async function callAPI(func, params) {
     if (debug) { 
         writeMessage('debug', `<br>STARTED CALL API FUNCTION<br>Function: ${func}<br>URL: ${url}`);
     }
+
+    // Define loader div
+    // var $loading = $('#loading');
+    var $loading = $('#loader-div');
     
     // AJAX GET call to acuityRestController
     // Refactor later to send POST with JSON body - no longer sustainable as GET with long query string
@@ -392,13 +431,14 @@ async function callAPI(func, params) {
         let result = await $.ajax({
             method: "GET",
             crossDomain: true,
+            xhrFields: { withCredentials: true },
+            headers: { 
+                'Authorization': '***REMOVED***',
+            },
             url: url,
-            datatype: "json",
-            beforeSend: function() { 
-                // $loading.html('<div id="load"><h2><b>LOADING - PLEASE WAIT</b></h2></div>');
-                $loading.progressbar({
-                    value: false						
-                });
+            datatype: 'json',            
+            beforeSend: function(xhr) {
+                $loading.show();                
             },
             success: function(response, status, xhr) {
                 console.log('API call response:');
@@ -418,9 +458,8 @@ async function callAPI(func, params) {
                     writeMessage('debug', `<br><b>API FAIL</b><br>Function: ${func}<br>XHR status: ${xhr.status}<br>XHR statusText: ${xhr.statusText}<br>XHR responseText: ${xhr.responseText}`);						
                 }
             },
-            complete: function(response) {			
-                // $('#load').remove();
-                $loading.progressbar('destroy');
+            complete: function(response) {
+                $loading.hide();
                 if (debug) {
                     writeMessage('debug', `<br><b>API CALL COMPLETE</b><br>Function: ${func}`);						
                 }
@@ -466,9 +505,12 @@ function populateDropdown($drop, data, func) {
                     $drop.append($('<option>').text(`${data[i].name} Code: ${data[i].certificate}`).attr('value', data[i].certificate));
             });
             break;
-        case 'classes':
+        case 'classes':            
             $.each(data, (i, val) => {
-                    $drop.append($('<option>').text(`${data[i].name} - ${data[i].time}`).attr('value', `${data[i].name}-${data[i].time}`));
+                // Format date for dropdown display
+                var options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour12: true, hour: 'numeric', minute: 'numeric' };
+                var datePretty = new Date(data[i].time).toLocaleString('en-US', options);
+                $drop.append($('<option>').text(`${data[i].name} - ${datePretty}`).attr('value', `${data[i].name}-${datePretty}`));
             });            
             break;
         default:
@@ -494,8 +536,7 @@ async function retrieveProductsClasses(action, $revealedElements) {
 
     try {			
         var result = await initApiCall(funcType);
-        console.log(`${funcType} result:`);
-        console.log(result);
+        console.log(`${funcType} result:`, result);        
         
         if (debug) {
             writeMessage('debug', `<br>Completed initApicall: ${funcType}`);				
@@ -576,7 +617,7 @@ async function retrieveUpcomingClasses(action, $revealedElements) {
             classDate = $('#checkin_datepicker').datepicker('getDate');
             // Format class date for display
             var datePretty = $.datepicker.formatDate('yy/mm/dd', classDate);
-            var dropdownLabel = `Classes for ${datePretty}: `;            
+            var dropdownLabel = `Classes for ${datePretty}: `;
             break;
     }    
     console.log('Selected class date is: ', datePretty);
@@ -632,25 +673,250 @@ async function retrieveStudents(checkIn) {
         console.error(e);
         if (e.responseText === "No records returned") {            
             if (checkIn) {
-                var message = { title: 'ERROR', body: '<strong>Student not found!<br>Please check with Dream Dance and Yoga staff to register.</strong>' };
+                var message = { 
+                    title: 'Student Not Found',
+                    body: `<div class="center"><strong>Student not found!</strong></div>
+                            <strong>NOTE:</strong> Use "Firstname Lastname" to search your name.<br>
+                            If not found, please check with Dream Dance and Yoga staff to register.`
+                };
             } else {
-                var message = { title: 'ERROR', body: '<strong>Student not found!<br>Try again or <a class="my-link" href="https://secure.acuityscheduling.com/clients.php#" target="_blank">CREATE NEW STUDENT HERE</a>.</strong>' };
+                var message = { 
+                    title: 'Student Not Found',
+                    body: `<div class="center"><strong>Student not found!</strong></div>
+                            <strong>NOTE:</strong> Use "Firstname Lastname" to search students.<br>
+                            Click the button below to create a new student.<br>
+                            <div class="center margin10"><button type="button" id="add_new_student_modal"><strong>CREATE STUDENT</strong></button></div>`
+                };
             }
-            writeMessage('modal', message);				
+            writeMessage('modal-cancel', message);
         } else {
             writeMessage('modal', "<strong>An error occured, please check and try again</strong>");
         }			
         clearDropdown($dropdown);
+
+        // ADD EVENT TO CAPTURE NEW STUDENT BUTTON CLICK
+        $('#add_new_student_modal').on('click', async (e) => {
+            e.preventDefault();                
+            if (debug) {
+                writeMessage('debug', "<br><b>clicked ADD NEW STUDENT INSIDE MODAL button...</b>");
+            }
+            // Gather student info and kick off process to create new student
+            gatherNewStudentInfo();        
+        });
+
         return false;
     }		
+}
+
+// FUNCTION: gatherNewStudentInfo()
+// 1. Display modal to gather information for new student
+async function gatherNewStudentInfo() {
+    // Gather new student information
+    var message = {
+        title: 'ADD NEW STUDENT',
+        body: `<div id="add_new_student_div" class="margin sqsp-font">
+                    <label for="student_first_name"><b>First Name: </b></label>
+                    <input type="text" id="student_first_name" class="margin" placeholder="名" name="student_first_name" required>
+                    <label for="student_last_name"><b>Last Name: </b></label>
+                    <input type="text" id="student_last_name" class="margin" placeholder="姓" name="student_last_name" required>
+                    <br>
+                    <label for="student_phone"><b>Phone Number: </b></label>
+                    <input type="text" id="student_phone" class="margin" placeholder="电话号码" name="student_phone" value="+65 " required>
+                    <label for="student_email"><b>Email: </b></label>
+                    <input type="email" id="student_email" class="margin" placeholder="电子邮箱" name="student_email" required>
+                    <br>
+                    <label for="select_language_dropdown" class="form-label">Preferred Language: </label>
+                    <select id="select_language_dropdown" class="select_dropdown margin">
+                        <option value="English">English</option>			
+                        <option value="Chinese">Chinese</option>                        
+                    </select>                    
+                    <label for="select_english_level_dropdown" class="form-label">English Level: </label>
+                    <select id="select_english_level_dropdown" class="select_dropdown margin">
+                        <option value="None">None</option>
+                        <option value="Basic">Basic</option>
+                        <option value="Advanced">Advanced</option>
+                    </select>
+                    <div id="modal_error" class="margin10"></div>
+                </div>`
+    }
+    writeMessage('modal-new-student', message);
+    $('#student_first_name').focus();
+}
+
+// FUNCTION: addNewStudent()
+// 1. Retrieve new student info from new student modal
+// 2. Make POST call to Acuity API to add new student
+async function addNewStudent() {
+    // Capture student info from form values
+    var firstName = $('#student_first_name').val() || false;
+    var lastName = $('#student_last_name').val() || false;
+    var phone = $('#student_phone').val() || false;
+    var email = $('#student_email').val() || false;
+    var language = $('#select_language_dropdown').val();
+    var englishLevel = $('#select_english_level_dropdown').val();
+    var notes = `Preferred language: ${language} English Level: ${englishLevel}`;
+
+    try {
+        var funcType = 'clients_add';
+        var activity = 'addStudent';
+        var params = {
+            firstName,
+            lastName,
+            phone,
+            email,
+            notes
+        }
+        console.log('New student params: ', params);        
+        
+        var result = await initApiCall(funcType, activity, params);
+        console.log(`${funcType} result:`, result);        
+        
+        if (debug) {
+            writeMessage('debug', `<br>Completed initApicall: ${funcType}`);				
+        }
+
+        // Next, book any upcoming appointment and delete the appointment
+        // In order for new student data to be pushed to Xero, Acuity requires an appointment to be booked        
+        console.log('Booking/cancelling temporary class to trigger Xero contact synchronization...');
+        
+        // Retrieve list of upcoming classes and select one
+        var funcType = 'availability--classes_get';
+        var activity = 'getClassesByDate';
+        var classDate = new Date();
+        var classExists = false;
+
+        // API call to retrieve class list for selected date, if no classes then try next day
+        while (!classExists) {
+            try {                
+                var result = await initApiCall(funcType, activity, classDate);
+                console.log(`${funcType} result:`, result);
+                var classId = result[0].appointmentTypeID;
+                classExists = true;
+                console.log(`Class found, will book class ${result[0].name} on ${result[0].localeTime}, ID ${classId}`);
+            }
+            catch(e) {                
+                console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
+                console.log (e);
+                console.log(`No classes detected on ${classDate}!  Trying next day...`);
+                classDate.setDate(classDate.getDate() + 1);
+                console.log(`NEW classDate is: ${classDate}`);
+            }
+        }        
+
+        // Once a class is found, book a temp appointment
+        // Store required parameters for appointment post API call                
+        var calendarID = result[0].calendarID;
+        var datetime = result[0].time;
+        var certificate = 'DDYINSTRUCTOR';
+        var params = {
+            classId,
+            datetime,
+            firstName,
+            lastName,
+            email,
+            certificate,
+            calendarID
+        };
+
+        // Make API call to book temporary appointment
+        try {
+            console.log('Booking temp appointment...');
+
+            var funcType = 'appointments_post';
+            var activity = 'addToClass';
+            var appointmentsResult = await initApiCall(funcType, activity, params);
+            console.log('AppointmentsResult is:', appointmentsResult);
+            
+            // Store temp appointment ID for the cancellation
+            var apptId = appointmentsResult.id;
+        }
+        catch (e) {
+            console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
+            console.log (e);
+            var errorText = e.responseText;
+            console.log(`Error text is: ${errorText}`);
+        }        
+
+        // Cancel the same appointment
+        try {
+            console.log(`Cancelling temp appointment id ${apptId}...`);
+            
+            var cancelNote = 'Temp appt cancel';            
+            var funcType = 'appointments_put';
+            var activity = 'cancelAppointment';
+            var params = {
+                apptId,
+                cancelNote
+            }                        
+            
+            var appointmentsResult = await initApiCall(funcType, activity, params);
+            console.log('AppointmentsResult is:', appointmentsResult);
+        }
+        catch (e) {
+            console.log(`ERROR: Error cancelling temp appointment!`);
+            console.log (e);
+        }
+
+        // If successful inform user
+        var message = { 
+            title: 'Student Created!',
+            body: `<strong>New student created successfully!</strong><br><br>
+                    <strong>Name:</strong> ${firstName} ${lastName}<br>
+                    <strong>Phone:</strong> ${phone}<br>
+                    <strong>Email:</strong> ${email}<br>
+                    <strong>Preferred Language:</strong> ${language}<br>
+                    <strong>English Level:</strong> ${englishLevel}`
+        };
+        writeMessage('modal', message);        
+        return result;
+    }
+    catch(e) {
+        console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
+        console.error(e);
+        var message = { title: 'ERROR', body: "<strong>Error occured creating new student, please check and try again</strong>" };
+        writeMessage('modal', message);        
+        return false;
+    }		
+}
+
+// FUNCTION: confirmPaymentDetails()
+// 1. Gather all details for upcoming payment
+// 2. Present details to user for confirmation
+function confirmPaymentDetails(event, products, $revealedElements) {
+    // Populate confirmation details
+    var $confirmElement = $('#confirm_details_div');
+    var studentName = $('#search_student_dropdown option:selected').text();
+    var productName = $('#select_package_class_dropdown option:selected').text();
+    var paymentMethod = $('#payment_method_dropdown option:selected').text();
+    var updatedPrice = $('#updated_price').val() || false;    
+    
+    // Find the array index of the selected product / package and extract price
+    var selectedProductVal = $('#select_package_class_dropdown').val();
+    var selectedProduct = $.grep(products, (i) => {
+        return i.name === selectedProductVal;
+    });    
+    var price = updatedPrice || selectedProduct[0].price;
+    price = parseFloat(price).toFixed(2);
+
+    var confirmDetails = `<div class="center confirm-title"><strong>CONFIRM DETAILS</strong></div>
+                            <strong>Student Name:</strong> ${studentName}<br>
+                            <strong>Package / Class:</strong> ${productName}<br>
+                            <strong>Payment Method:</strong> ${paymentMethod}<br>
+                            <strong>Price:</strong> $${price}<br><br>
+                            <div class="confirm-final"><strong>SINGAPORE #1 CONFIRM?</strong></div>`;
+    $confirmElement.html(confirmDetails);
+    
+    // If payment method dropdown was changed, reveal confirm container
+    if (event === 'payment_method_dropdown') {        
+        $revealedElements = revealElement($confirmElement, $revealedElements);
+    }
 }
 
 // FUNCTION: buyPackage()
 // 1. Generate a package certificate and assign to user's email address
 // 2. Generate a Xero invoice for the package price (if requested)
 // 3. Apply full payment to Xero invoice based on payment method selected (if requested)
-
-async function buyPackage(products, clients) {		
+async function buyPackage(products, clients) {
     try {			
         // Find the array index of the selected product / package and extract expiry date to determine if package or subscription
         var selectedProductVal = $('#select_package_class_dropdown').val();
@@ -965,6 +1231,7 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
     var instructorCheckinNote = 'INSTRUCTOR CHECK-IN';
     
     /*
+    // Only loop through appointments where there is a check-in already
     $.each(appointmentsResult, (i, val) => {
         var notes = val.notes;        
         if (notes.includes(instructorCheckinNote)) {
@@ -1010,7 +1277,7 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
     console.log('Instructor counts: ', instructorCounts);
     */
 
-    // 2ND ATTEMPT - TEST
+    // Iterate through ALL appointments and prepare for display in table
     $.each(apptsByType, (i, className) => {
         className['hasInstructor'] = false;
         var classType = className.values[0].type;
@@ -1018,12 +1285,11 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
         var date = className.values[0].datetime;
         
         // Format class date for display
-        var dateString = date.split('T')[0];
-        var timeString = date.split('T')[1].split('+')[0];
-        var datePretty = `${dateString} ${timeString}`
-        
-        // var classDate = new Date(date);
-        // var datePretty = classDate.toLocaleString();
+        // var dateString = date.split('T')[0];
+        // var timeString = date.split('T')[1].split('+')[0];
+        // var datePretty = `${dateString} ${timeString}`
+        var options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour12: true, hour: 'numeric', minute: 'numeric' };
+        var datePretty = new Date(date).toLocaleString('en-US', options);
 
         // Push class names and times
         className['class'] = engClassType;
@@ -1094,7 +1360,25 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
         "data": apptsByType,
         "pageLength": 50,            
         "order": [[2, 'asc']],
+        "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+        dom: 'lfrtipB',
+        buttons: [{ extend: 'excel', text: '<strong>Export to Excel</strong>'}],
         destroy: true,
+        columnDefs: [
+            { "type": "date", "targets": 2 },
+            { targets: 0,
+                createdCell: function(td, cellData, rowData, col) {
+                    switch (cellData) {
+                        case 'NO CHECK IN':
+                            $(td).addClass('instructor-table-no-checkin');
+                            break;
+                        default:
+                            $(td).addClass('instructor-table-checkedin');
+                            break;
+                    }
+                }
+            }
+        ],
         "columns": [
             { "data": "instructor"},
             { "data": "class"},
@@ -1145,15 +1429,48 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
         // return i.date;
         var apptDate = new Date(i.date);
         // var apptMonthYear = $.datepicker.formatDate('MM yy', apptDate);
-        var apptMonth = $.datepicker.formatDate('MM', apptDate);
+        var apptMonth = $.datepicker.formatDate('M', apptDate);
         var apptWeek = $.datepicker.iso8601Week(apptDate);
         return `${apptMonth} Week ${apptWeek}`;
-    }).rollup(function(i2) {
-        return i2.length;
+    }).rollup(function(i) {
+        return i.length;
     }).entries(appointmentsResult);
     console.log('apptsByDayCounts: ', apptsByDayCounts);
 
-    // Push values to 2-dimensional array and reverse order for chronological chart display
+    var apptsByCert = d3.nest().key(function(i) {
+        var apptDate = new Date(i.date);
+        var apptMonth = $.datepicker.formatDate('M', apptDate);
+        var apptWeek = $.datepicker.iso8601Week(apptDate);
+        return `${apptMonth} Week ${apptWeek}`;
+    }).key(function(i) {
+        if (i.certificate === 'CLASSPASS') {
+            return i.certificate
+        } else {
+            return 'DDY'
+        }        
+    }).rollup(function(i) {
+        return i.length;        
+    }).entries(appointmentsResult);
+    console.log('apptsByCert: ', apptsByCert);
+
+    // Push cert values to 2-dimensional array and reverse order for chronological chart display
+    var apptsByCertCP = [];
+    var apptsByCertDDY = [];
+    $.each(apptsByCert, (i, val) => {        
+        $.each(val.values, (i2, certType) => {            
+            if (certType.key === 'CLASSPASS') {
+                apptsByCertCP.push([val.key, certType.value]);
+            } else {
+                apptsByCertDDY.push([val.key, certType.value]);
+            }
+        });        
+    });    
+    apptsByCertCP.reverse();
+    apptsByCertDDY.reverse();
+    console.log('appts by cert CP: ', apptsByCertCP);
+    console.log('appts by cert DDY: ', apptsByCertDDY);
+
+    // Push total appt values to 2-dimensional array and reverse order for chronological chart display
     var appointmentsByDay = [];    
     $.each(apptsByDayCounts, (i, val) => {			
         appointmentsByDay.push([val.key, val.value]);        
@@ -1353,8 +1670,18 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
             }
         },
         series: [{
-            name: '# of Appointments',
-            data: appointmentsByDay
+            name: 'TOTAL Appointments',
+            data: appointmentsByDay,
+            lineWidth: 3,
+            color: 'maroon'
+        }, {
+            name: 'DDY Appointments',
+            data: apptsByCertDDY,
+            dashStyle: 'dash'
+        }, {       
+            name: 'ClassPass Appointments',
+            data: apptsByCertCP,
+            dashStyle: 'dash'
         }],
         credits: false
     });
@@ -1362,7 +1689,7 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
     // Add moving average to appointments chart
     var series = apptsChart.series[0];
     var data = [];
-    var period = 2;
+    var period = 3;
     var sumForAverage = 0;
     var i;
     for(i=0; i<series.data.length; i++) {
@@ -1422,7 +1749,7 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
                     rotation: 0,
                     style: {
                         fontWeight: 'bold',
-                        color: 'red',
+                        color: 'red'
                     }
                 },
                 zIndex: 99
@@ -1535,12 +1862,33 @@ function writeMessage(type, msg, $output) {
                 class: "modal-output",
                 click: () => { $modalDialog.dialog('close'); }
             }];
+            break;
         case 'modal-close-window':
             var modalButtons = [{
                 text: "Close Window",
                 icon: "ui-icon-closethick",
                 class: "modal-output",
                 click: () => { window.close(); }
+            }];
+            break;
+        case 'modal-new-student':
+            var modalButtons = [{
+                text: "ADD NEW STUDENT",
+                icon: "ui-icon-plus",
+                class: "modal-output",
+                click: () => { 
+                    var firstName = $('#student_first_name').val() || false;
+                    var lastName = $('#student_last_name').val() || false;
+                    var phone = $('#student_phone').val() || false;
+                    var email = $('#student_email').val() || false;
+                    if (!firstName || !lastName || !phone || !email) {
+                        $('#modal_error').html('<h3 class="center"><strong>Please complete all fields!</strong></h3>');
+                    } else {
+                        $('#modal_error').html('');
+                        addNewStudent();
+                        $modalDialog.dialog('close');
+                    }
+                }
             }];
             break;
     }

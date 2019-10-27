@@ -5,6 +5,7 @@
 		<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 		<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.css">
 		<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
+		<link rel="stylesheet" type="text/css" href="https://sophiadance.squarespace.com/s/loadingSpinner.css"></link>
         <style type="text/css">		
 		.card {
 			background-color: #F2F2F2;
@@ -36,6 +37,28 @@
 		.certificate-expired {
 			color: red;
 			font-weight: bold;
+		}
+
+		.confirm-details {
+			border: 1px solid lightgray;
+			background-color: #fafafa;
+			padding: 5px 15px;
+		}
+
+		.confirm-final {
+			color: red;
+			font-size: 110%;
+		}
+
+		.confirm-title {
+			font-size: 150%;
+			letter-spacing: 6px;
+			color: maroon;
+			padding-bottom: 10px;
+		}
+
+		.dataTables_wrapper .dt-buttons {
+			padding-top: 10px;
 		}
 		
 		.ddy-card {
@@ -138,11 +161,26 @@
 			margin: 30px 0px;
 			overflow: hidden;
 		}
+		
+		.instructor-table-checkedin {			
+            color: green;
+            font-weight: bold;
+		}
+
+		.instructor-table-no-checkin {			
+			background-color: maroon !important;
+            color: white;
+            font-weight: bold;
+		}
 
 		.form-label {
 			font-weight: bold;
 		}
 
+		.margin10 {
+			margin: 10px;
+		}
+		
 		.margin-small {
 			margin-bottom: 15px;
 		} 
@@ -191,7 +229,8 @@
 		</style>
 	</head>
 <body>
-<!-- ADD TOOLTIPS -->
+
+<!-- TOP LEVEL CARDS -->
 <div id="top_level_options" class="top-cards">	
 	<a href="#">
 		<div id="buy_package_top" class="card">
@@ -236,19 +275,24 @@
 	</a>
 </div>
 
-<div id="loading"></div>
+<!-- LOADER DIV -->
+<!--div id="loading"></div-->
+<!--div id="loader-div" class="spinner hide"></div-->
+<div id="loader-div" class="lds-ring hide"><div></div><div></div><div></div><div></div></div>
 
 <div id="details" class="details hide">
 	<div id="details-top"></div>
 
+	<!-- SEARCH STUDENT -->
 	<div id="search_student_div" class="details-item hide">
 		<form id="search_student" action="" method="post">  
-			<label for="search_student" class="form-label">Student Name: </label>
+			<label for="search_student" class="form-label">Search Student Name: </label>
 			<input type="search" name="search_student_form" id="search_student_form" />
-			<input type="submit" name="search_submit" id="search_submit" value="Search" />			
-		</form>		
+			<input type="submit" name="search_submit" id="search_submit" value="Search" />
+		</form>
 	</div>
 
+	<!-- SEARCH STUDENT DROPDOWN -->
 	<div id="search_student_dropdown_div" class="details-item hide">
 		<label for="search_student_dropdown" class="form-label">Select Student: </label>
 		<select id="search_student_dropdown" name="search_student_dropdown" class="dropdown">
@@ -256,6 +300,7 @@
 		</select>
 	</div>
 
+	<!-- SELECT PACKAGE/CLASS -->
 	<div id="select_package_class_div" class="details-item hide">
 		<label for="select_package_class_dropdown" class="form-label">Select Package / Class: </label>
 		<select id="select_package_class_dropdown" class="dropdown">
@@ -263,14 +308,11 @@
 		</select> 
 	</div>
 
-	<div id="package_price_div" class="details-item hide">
-		<p>Select or Enter Updated Package Price Here</p>
-	</div>
-
+	<!-- PAYMENT METHOD -->
 	<div id="payment_method_div" class="details-item hide">
 		<label for="payment_method_dropdown" class="form-label">Select Payment Method: </label>
 		<select id="payment_method_dropdown" class="select_dropdown">
-			<option value="select">Select One</option>			
+			<option value="select">Select One</option>
 			<option value="none">NONE (No Charge)</option>
 			<option value="cc-online">Credit Card ONLINE (Acuity)</option>
 			<option value="cash">Cash</option>
@@ -279,11 +321,20 @@
 		</select>
 		
 		<input type="checkbox" name="create_invoice" id="create_invoice_checkbox" value="create_invoice" checked>
-		<label for="create_invoice_checkbox">Create Invoice in Xero</label>
+		<label for="create_invoice_checkbox">Create Invoice?</label>
 		
 		<input type="checkbox" name="apply_payment" id="apply_payment_checkbox" value="apply_payment" checked>
-		<label for="apply_payment_checkbox">Apply Payment to Invoice</label>
+		<label for="apply_payment_checkbox">Payment Received?</label>
 	</div>
+
+	<!-- UPDATE PRICE -->
+	<div id="updated_price_div" class="details-item hide">
+		<label for="updated_price"><strong>Enter discounted price (leave blank for none): </strong></label>
+		<span class="currency-input">$ <input type="number" min="1" max="9999" step="1" id="updated_price" name="updated_price"></span>
+	</div>
+
+	<!-- CONFIRMATION DIV -->
+	<div id="confirm_details_div" class="details-item confirm-details hide"></div>
 
     <!-- CHECK-IN TABLE -->
 	<div id="generate_checkin_table_div" class="details-item hide">
@@ -319,7 +370,7 @@
 	<input type="submit" id="buy_package_submit" class="submit-button hide" value="BUY PACKAGE" />
 	<input type="submit" id="buy_class_submit" class="submit-button hide" value="BUY CLASS" />
 	<input type="submit" id="buy_single_class_submit" class="submit-button hide" value="BUY SINGLE CLASS" />
-	<input type="submit" id="view_packages_submit" class="submit-button hide" value="VIEW PACKAGES" />	
+	<input type="submit" id="view_packages_submit" class="submit-button hide" value="VIEW PACKAGES" />
 	<button type="button" id="generate_checkin_table_submit" class="submit-button hide" disabled>GENERATE CHECK-IN TABLE</button>
 	<button type="button" id="get_instructor_report_submit" class="submit-button hide" disabled>GET INSTRUCTOR REPORT</button>
 	<input type="submit" id="studio_metrics_submit" class="submit-button hide" value="GET STUDIO METRICS" />
@@ -372,7 +423,7 @@
 $( () => {
 	// Setup script
 	const environment = 'PROD';
-	const version = '1.3.0';
+	const version = '1.3.7';
 	
 	// Arrays to cache Acuity API call responses (avoid making multiple calls)
 	var clients = [];
@@ -385,6 +436,9 @@ $( () => {
 	
 	// Declare var to hold array of div/button elements to clean up
 	var $revealedElements = [];
+
+	// Declare var to hold popup window
+	var win;
 	
 	// Set debug based on environment
     if (environment === 'UAT') {
@@ -561,7 +615,23 @@ $( () => {
 		}
 	});	
 	
-	// EVENT: SEARCH STUDENT SUBMIT
+    // EVENT: ADD NEW STUDENT SUBMIT
+	$('#add_new_student_submit').on('click', async (e) => {
+		e.preventDefault();
+		console.log(`Event captured: ${e.currentTarget.id}`);
+		console.log(e);
+        // Clear any error message		
+		writeMessage('error', "");		
+		
+		if (debug) {
+			writeMessage('debug', "<br><b>clicked ADD NEW STUDENT button...</b>");
+        }
+
+        // Gather student info and kick off process to create new student
+		gatherNewStudentInfo();        
+    });
+    
+    // EVENT: SEARCH STUDENT SUBMIT
 	$('#search_student').on('submit', async (e) => {
         e.preventDefault();		
 		if (debug) {
@@ -625,8 +695,8 @@ $( () => {
         // Re-enable submit button, clear student search dropdown
 		$('#buy_package_submit').prop('disabled', false).removeClass('disabled');
 		
-		// Clear dropdown at top level instead
-		// clearDropdown($('#search_student_dropdown'));
+		// Clean up here?
+		// cleanUp($revealedElements);
 	});
 
 	// EVENT: BUY CLASS SERIES SUBMIT
@@ -661,7 +731,9 @@ $( () => {
 		if (classType === "series") {
             // Book class series for selected student
             var buySeriesResult = await buySeries(products, clients);
-            console.log('buySeries result: ', buySeriesResult);
+			console.log('buySeries result: ', buySeriesResult);
+			// Clean up here if successful?
+			// cleanUp($revealedElements);
 		} else {
 			// FUTURE - reveal datepicker and buy single class
 			// var buyClassResult = await buyClass();
@@ -672,9 +744,6 @@ $( () => {
 			
 		// Re-enable submit button, clear student search dropdown
 		$('#buy_class_submit').prop('disabled', false).removeClass('disabled');		
-		
-		// Clear dropdown at top level instead
-		// clearDropdown($('#search_student_dropdown'));
 	});		
 
 	// EVENT: VIEW PACKAGES SUBMIT
@@ -804,14 +873,37 @@ $( () => {
 		
 		// Open new tab with direct link to product in Acuity
 		var productURL = selectedClass[0].schedulingUrl;
+
 		var win = window.open(productURL, '_blank');		
 	});
 
+	// EVENT: Search student dropdown change - update confirmation details
+	$('#search_student_dropdown').change( (e) => {
+		e.preventDefault();
+		console.log(`Event captured: ${e.currentTarget.id}`);
+		console.log(e);
+
+		// Populate confirmation details
+		var event = e.currentTarget.id;
+		confirmPaymentDetails(event, products, $revealedElements);
+	});
+
+	// EVENT: Updated price change - update confirmation details
+	$('#updated_price').change( (e) => {
+		e.preventDefault();
+		console.log(`Event captured: ${e.currentTarget.id}`);
+		console.log(e);
+
+		// Populate confirmation details
+		var event = e.currentTarget.id;
+		confirmPaymentDetails(event, products, $revealedElements);
+	});
+	
 	// EVENT: Select package dropdown change - reveal payment method button
 	$('#select_package_class_dropdown').change( (e) => {
 		e.preventDefault();
 		console.log(`Event captured: ${e.currentTarget.id}`);
-		console.log(e);		
+		console.log(e);
 
 		// Make payment method dropdown visible or single class submit button
 		var action = $('#search_student_div').data('action');
@@ -826,7 +918,10 @@ $( () => {
 				$revealedElements = revealElement($element, $revealedElements);
 				break;
 		}
-		
+
+		// Populate confirmation details
+		var event = e.currentTarget.id;
+		confirmPaymentDetails(event, products, $revealedElements);
 	});
 
 	// EVENT: Select payment method dropdown change - reveal submit button
@@ -861,8 +956,26 @@ $( () => {
 			console.log('Payment method dropdown val: ', $dropdown.val());
 		}
 
+		// If payment method is NONE, update discount price to 0
+		if ($dropdown.val() === 'none') {
+			$('#updated_price').val('0.00');
+		} else {
+			$('#updated_price').val('');
+		}
+
+		// Populate confirmation details
+		var event = e.currentTarget.id;
+		confirmPaymentDetails(event, products, $revealedElements);
+
 		// Once payment method is chosen make submit button visible
 		if ($dropdown.val() != 'select') {
+			if ($dropdown.val() != 'cc-online') {
+				// Reveal updated price form
+				$revealedElements = revealElement($('#updated_price_div'), $revealedElements);
+			} else {
+				$('#updated_price_div').hide();
+			}
+			// Reveal submit button
 			$element.prop('disabled', false).removeClass('disabled');
 			$revealedElements = revealElement($element, $revealedElements);
 		} else {
@@ -948,9 +1061,17 @@ $( () => {
 				} else {
 					winName = 'checkin-window';			
 				}
+
+				// Close open window if it exists
+				if (win) { 
+					console.log('Closing open window: ', win);
+					win.close();
+				}
+
 				// var win = window.open(winName, '_blank', 'fullscreen=yes,width=' + screen.availWidth + ',height=' + screen.availHeight);
-				var win = window.open(winName, '_blank', 'fullscreen=yes, width=828, height=1200');
 				// var w = window.open("popup-table-uat", "Dream Dance and Yoga Student Check-In", "menubar='no',toolbar='no',location='no',width=" + screen.availWidth + ",height=" + screen.availHeight);
+				win = window.open(winName, '_blank', 'fullscreen=yes, width=828, height=1200');
+
 				if (win) {
 					win.focus();					
 					// Pass local vars to child window
@@ -1067,6 +1188,9 @@ $( () => {
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
 <!-- DATATABLES -->
 <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.js"></script>
+<script type="text/javascript" charset="utf8" src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/buttons/1.5.6/js/dataTables.buttons.min.js"></script>
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/buttons/1.5.6/js/buttons.html5.min.js"></script>
 <!-- HIGHCHARTS -->
 <script src="https://code.highcharts.com/highcharts.js"></script>
 <!-- D3.JS -->

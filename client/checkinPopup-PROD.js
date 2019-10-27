@@ -2,9 +2,10 @@
 <html lang="en">
 	<head>        
       	<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-        <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.css"></link>        
+        <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.css"></link>
+        <link rel="stylesheet" type="text/css" href="https://sophiadance.squarespace.com/s/loadingSpinner.css"></link>        
   		
-        <style type="text/css">
+        <style type="text/css">        
         .center {
             text-align: center;
         }
@@ -24,8 +25,8 @@
         }
 
         .class-title h2 {
-            padding: 10px;
-            margin: 15px;
+            padding: 5px;
+            margin: 0px;
             text-align: center;
             border-radius: 5px;
             /* background-color: #acbad4; */
@@ -103,13 +104,17 @@
             background-color: white;
         }
 
+        #instructor_pin {
+            -webkit-text-security: disc;
+        }
+
         .languagewrapper {
             display: none;
         }
 
         .margin-small {
             margin: 20px;            
-        }
+        }        
 
         .modal-output {            
             font-family: futura-pt !important;
@@ -126,7 +131,7 @@
         }        
 
         .register-now {
-            padding: 10px;            
+            padding: 5px;            
             display: inline-block;            
             font-size: 125%;
             font-weight: bold;
@@ -143,6 +148,12 @@
             right: 5px;
             bottom: 5px;
             font-size: 14px;
+        }
+
+        .select-another-class-dropdown {
+            text-align: center;
+            width: 100%;
+            color: maroon;
         }
 
         .select-name-dropdown {
@@ -207,15 +218,16 @@
         
         .table-footer {
             display: flex;
+            flex-flow: wrap;
             border-radius: 5px;
             padding: 2px;
-            margin: 10px;            
+            margin: 5px;            
             background-color: #EEEEEE;
             color: black;
         }
 
         .teacher-checkin {
-            padding: 10px;
+            padding: 5px;
         }
 
         .top-of-table {            
@@ -242,6 +254,10 @@
             font-weight: bold;
         }
 
+        .width-100 {
+            width: 100%;
+        }
+
         .hide {
 			display: none;
         }
@@ -258,15 +274,14 @@
     <div id="popup_window_div" class="popup-window-top">
         <!-- Placeholder to hold teacher and class info -->
         <div id="class_title_div" class="class-title"></div>
-        <div id="class_info_div" class="class-details"></div>
-        
         <div id="top_of_table_div" class="top-of-table">
             <div class="center"><h3 class="inline"><strong>点击您的名字登录 | TAP YOUR NAME TO CHECK IN!</h3></strong></div>
         </div>
-        
+        <div id="class_info_div" class="class-details"></div>
         <div id="spacer_div" class="spacer"></div>
-
-        <div id="loading"></div>
+        
+        <!-- LOADING DIV -->
+        <div id="loader-div" class="lds-ring hide"><div></div><div></div><div></div><div></div></div>
 
         <!-- Placeholder HTML table for student check-in list - populated by DataTable() -->    
         <div id="checkin_table_div">
@@ -296,12 +311,20 @@
             </div>        
             <div id="register_now_div" class="register-now">
                 <input type="submit" id="register_now_submit" class="submit-button right" value="Register Now!" />
-            </div>        
-        </div>        
+            </div>
         
+            <!-- Dropdown to select another class -->            
+            <div id="select_another_class_dropdown_div" class="select-another-class-dropdown">
+                <label for="select_another_class_dropdown" class="form-label"><b>Select another class: </b></label>
+                <select id="select_another_class_dropdown" class="dropdown">
+                    <option value="select">Select One</option>
+                </select>
+            </div>
+        </div>
+
         <!-- Fullscreen and slots info -->
         <input type="submit" id="fullscreen_submit" class="submit-button inline" value="Fullscreen" />
-        <div id="slots_info_div" class="slot-details right"></div>
+        <div id="slots_info_div" class="slot-details right"></div>        
     </div>
     
     <!-- Debug and errors -->
@@ -363,11 +386,13 @@ $( async () => {
         var classDate = selectedAppointments[0].date;
         var classTime = selectedAppointments[0].time;
 
-        var classTitleHTML = `<h2>Welcome to Dream Dance and Yoga!</h2>`;
+        var classTitleHTML = `<h2><strong>Welcome to Dream Dance and Yoga!</strong></h2>`;
         $('#class_title_div').html(classTitleHTML);
         
-        var classInfoDetailsHTML = `<h3 class="inline"><strong>${className}</strong><br>${classDate} ${classTime}
-        <input type="submit" id="close_window_submit" class="select-another-class submit-button" value="Select another class" /></h3>`;
+        // OLD design with select another class button that closes window
+        // var classInfoDetailsHTML = `<h3 class="inline"><strong>${className}</strong><br>${classDate} ${classTime}
+        // <input type="submit" id="close_window_submit" class="select-another-class submit-button" value="Select another class" /></h3>`;
+        var classInfoDetailsHTML = `<h3 class="inline"><strong>${className}</strong><br>${classDate} ${classTime}</h3>`;        
         $('#class_info_div').html(classInfoDetailsHTML);
 
         // Store slots available info and populate slots_info HTML        
@@ -389,7 +414,8 @@ $( async () => {
     async function getInstructors() {
         // Make API call
         var funcType = 'clients_search';
-        var clientsResult = await initApiCall(funcType);
+        var activity = 'retrieveAllClients';
+        var clientsResult = await initApiCall(funcType, activity);
         console.log('clientsResult is:', clientsResult);
         
         // Filter clients ressult to store instructors only by looking for text in the clients notes field
@@ -411,6 +437,16 @@ $( async () => {
         populateDropdown($dropdown, instructors, func);
 
         return instructors;
+    }
+
+    // FUNCTION: populateClasses(upcoming_classes)
+    // 1) Receive list of upcoming classes for the selected day
+    // 2) Populate dropdown menu with list of upcoming classes
+    async function populateClasses(upcoming_classes) {
+    // Populate select another class dropdown menu with upcoming classes
+    var $dropdown = $('#select_another_class_dropdown');
+    var func = "classes";
+    populateDropdown($dropdown, upcoming_classes, func);
     }
 
     // FUNCTION: prepareApptData()
@@ -480,7 +516,7 @@ $( async () => {
     function buildDatatable(selectedAppointments) {
         // Build datatable
         try {
-            var checkin_table = $('#checkin_table').DataTable({
+            checkin_table = $('#checkin_table').DataTable({
                 "data": selectedAppointments,                
                 "pageLength": 25,            
                 "order": [[2, 'asc']],
@@ -526,13 +562,12 @@ $( async () => {
             console.log (e);
             var message = { title: 'ERROR', body: `Error building student check-in table, please check and try again` };
             writeMessage('modal', message);
-        }
-        return checkin_table;
+        }        
     }
     
     // FUNCTION: initRowStyles()
     // 1) Loop throw table rows and apply colors for specific conditions
-    function initRowStyles(checkin_table) {
+    function initRowStyles() {
         // Run once at initialization to apply selected color to row if student is already checked in
         checkin_table.rows().every(function() {
             var currentRow = this.data()
@@ -647,8 +682,8 @@ $( async () => {
                 // applyRowStyle($row, data, 'checkin');
 
                 // If successful alert student
-                var message = { title: `${firstName} ${lastName} Checked In!`, body: `Thanks for checking in, ${firstName}!<br>Enjoy your class :)` };
-                writeMessage('modal', message);
+                // var message = { title: `${firstName} ${lastName} Checked In!`, body: `Thanks for checking in, ${firstName}!<br>Enjoy your class :)` };
+                // writeMessage('modal', message);
 
                 return appointmentsResult;
             }
@@ -706,6 +741,7 @@ $( async () => {
                             if (appointmentTypeIDs.includes(appointmentTypeID)) {
                                 certificate = val.certificate;
                                 console.log(`VALID CERT FOUND: ${certificate}`);
+                                return false;
                             }
                         }
                     });                   
@@ -737,7 +773,8 @@ $( async () => {
         var firstName = selectedClient[0].firstName;
         var lastName = selectedClient[0].lastName;
         var email = selectedClient[0].email;
-        var calendarID = upcoming_classes[selected_class_index].calendarID;
+        // var calendarID = upcoming_classes[selected_class_index].calendarID;
+        var calendarID = selectedAppointments[0].calendarID;
         var params = {
             classId,
             datetime,
@@ -774,7 +811,7 @@ $( async () => {
             if (errorText.includes('invalid for appointment type')) {
                 var message = { title: 'ERROR', body: `No valid code for this student to book classes!  Please check with Dream Dance and Yoga staff.` };
             } else {
-                var message = { title: 'ERROR', body: `Error creating appointment!  Please tell Greg!` };
+                var message = { title: 'ERROR', body: `Error creating appointment!  Please tell Greg!<hr>${errorText}` };
             }
             writeMessage('modal', message);
             return false;
@@ -785,7 +822,7 @@ $( async () => {
     // FUNCTION: initializeAppointmentsTable()
     // 1) Run the required functions to gather and prepare data
     // 2) Build the datatable
-    async function initializeAppointmentsTable(firstLoad) {
+    async function initializeAppointmentsTable(firstLoad, selected_class_index) {
         // Retrieve all appointments for selected class
         
         selectedAppointments = await retrieveAppointments(upcoming_classes, classDate, selected_class_index);
@@ -793,22 +830,30 @@ $( async () => {
         
         if (!selectedAppointments) {
             var message = { title: 'No Appointments!', body: `No appointments scheduled for this class!` };
-            writeMessage('modal-close-window', message);            
+            writeMessage('modal', message);            
             return false;
         }
 
         // Capture list of instructors the first time the window is open
         instructors = await getInstructors();
 
+        // Populate dropdown list of other classes
+        populateClasses(upcoming_classes);
+
+        // Enable instructor check-in button
+        $('#teacher_checkin_submit').val('Instructor Check-in');
+        $('#teacher_checkin_dropdown').prop('disabled', false);
+        $('#teacher_checkin_dropdown').removeClass('disabled');
+
         // Update appointments array with data for table
         selectedAppointments = prepareApptData(selectedAppointments);
 
         // Build the table
         if (firstLoad) {
-            checkin_table = buildDatatable(selectedAppointments);
+            buildDatatable(selectedAppointments);
         } else {
             checkin_table.clear().draw();
-            checkin_table.rows.add(selectedAppointments)
+            checkin_table.rows.add(selectedAppointments);
             checkin_table.columns.adjust().draw();
         }
 
@@ -816,7 +861,7 @@ $( async () => {
         classFull = addClassInfo(upcoming_classes, selected_class_index, selectedAppointments);
 
         // Apply colors to the table rows as required
-        initRowStyles(checkin_table);
+        initRowStyles();
     }
 
     // MAIN //
@@ -834,7 +879,6 @@ $( async () => {
     var instructors = [];
     var checkin_table = {};
     var classFull = false;
-    var firstLoad = true;
 
     // Declare var to hold array of div/button elements to clean up
     var $revealedElements = [];
@@ -849,7 +893,7 @@ $( async () => {
     }    
 
     // Gather data and build the table
-    await initializeAppointmentsTable(firstLoad);    
+    await initializeAppointmentsTable(true, selected_class_index);    
 
     // EVENT: CHECK-IN TABLE ROW / CHECK-IN BUTTON click - event to be captured after dynamic table is generated    
     $('#checkin_table tbody').on('click', 'tr', async function(e) {
@@ -906,7 +950,7 @@ $( async () => {
             body: `<div id="instructor_pin_div" class="sqsp-font">                        
                         <form id="instructor_pin_form">
                             <label for="instrutor_pin" class="sqsp-font"><b>Enter PIN: </b></label>
-                            <input type="password" name="instructor_pin" id="instructor_pin" autocomplete="new-password" />
+                            <input type="text" name="instructor_pin" id="instructor_pin" value="" autocomplete="new-password" />
                             <input type="submit" name="instructor_pin_submit" id="instructor_pin_submit" class="sqsp-font" value="Submit" />
                         </form>
                     </div>
@@ -917,7 +961,7 @@ $( async () => {
         $('#instructor_pin_form').focus();
 
         // Retrieve actual PIN from server            
-        var pin64 = await callAPI('pin');            
+        var pin64 = await callAPI('pin');
         var pin = atob(pin64);
             
         // EVENT: INSTRUCTOR PIN SUBMIT
@@ -996,7 +1040,7 @@ $( async () => {
                         if (appointmentsResult) {
                             console.log('Reloading table...!');
                             // window.location.reload();
-                            initializeAppointmentsTable();
+                            initializeAppointmentsTable(false, selected_class_index);
                         }
                     }
                     catch (e) {
@@ -1024,10 +1068,10 @@ $( async () => {
                             $('#teacher_checkin_dropdown').prop('disabled', true);
                             $('#teacher_checkin_dropdown').addClass('disabled');
 
-                            // If successful reload window                            
+                            // If successful reload table                            
                             console.log('Reloading table...!');                
                             // window.location.reload();
-                            initializeAppointmentsTable();                            
+                            initializeAppointmentsTable(false, selected_class_index);                            
                         }
                     }
                     catch (e) {
@@ -1186,15 +1230,35 @@ $( async () => {
                     var addStudentResult = await addStudentToClass(selectedClient, certificate, checkInType);
                     console.log('addStudentResult:', addStudentResult);
 
-                    // If successful reload window
+                    // If successful close dialog and reload table
                     if (addStudentResult) {
-                        console.log('Reloading table...!');                
+                        console.log('Reloading table...!');       
+                        $modalDialog.dialog('close');         
                         // window.location.reload();
-                        initializeAppointmentsTable();
+                        initializeAppointmentsTable(false, selected_class_index);
                     }
                 }
             }
         });
+    });
+
+    // EVENT: Select another class dropdown change - reload window with selected class
+	$('#select_another_class_dropdown').change( (e) => {
+		e.preventDefault();
+		console.log(`Event captured: ${e.currentTarget.id}`);
+        console.log(e);
+
+        if (debug) {
+            writeMessage('debug', '<br><b>SELECT ANOTHER CLASS dropdown menu change...</b>');
+        }
+
+        var selected_class = $('#select_another_class_dropdown').prop('selectedIndex');
+        
+        // Update global selected_class_index var with new class index
+        selected_class_index = selected_class - 1;
+        
+        console.log('Reloading table with new class selection...!');
+        initializeAppointmentsTable(false, selected_class_index);
     });
 
     // EVENT: SELECT A DIFFERENT CLASS click
@@ -1228,7 +1292,7 @@ $( async () => {
 }
 </script>
 <!-- Acuity Client Functions -->
-<script src="https://sophiadance.squarespace.com/s/acuityApiClientFunctions-PROD.js"></script>
+<script src="https://sophiadance.squarespace.com/s/acuityApiClientFunctions-UAT.js"></script>
 <!-- JQUERY / JQUERY UI -->
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>

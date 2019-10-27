@@ -301,9 +301,9 @@ $( () => {
 
     async function callAPI(func, params) {
         var $loading = $('#loading');
-		// var apiHost = 'https://66.96.208.44:3443/api/acuity'; // GREG
-        // var apiHost = 'https://greg-monster.dreamdanceyoga.com:3443/api/acuity'; // GREG COMPUTER
-        var apiHost = 'https://api.dreamdanceyoga.com:3444/api/acuity'; // AWS UAT API
+		// var apiHost = 'https://66.96.208.44:3443/api/ddy'; // GREG
+        // var apiHost = 'https://greg-monster.dreamdanceyoga.com:3443/api/ddy'; // GREG COMPUTER
+        var apiHost = 'https://api.dreamdanceyoga.com:3444/api/ddy'; // AWS UAT API
         
         // Loop through params and build API call URL	
         var url = `${apiHost}/${func}`;
