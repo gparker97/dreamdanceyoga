@@ -25,8 +25,8 @@
         }
 
         .class-title h2 {
-            padding: 5px;
-            margin: 0px;
+            padding: 10px;
+            margin: 15px;
             text-align: center;
             border-radius: 5px;
             /* background-color: #acbad4; */
@@ -274,10 +274,12 @@
     <div id="popup_window_div" class="popup-window-top">
         <!-- Placeholder to hold teacher and class info -->
         <div id="class_title_div" class="class-title"></div>
+        <div id="class_info_div" class="class-details"></div>
+        
         <div id="top_of_table_div" class="top-of-table">
             <div class="center"><h3 class="inline"><strong>点击您的名字登录 | TAP YOUR NAME TO CHECK IN!</h3></strong></div>
         </div>
-        <div id="class_info_div" class="class-details"></div>
+        
         <div id="spacer_div" class="spacer"></div>
         
         <!-- LOADING DIV -->
@@ -1192,7 +1194,7 @@ $( async () => {
             }
 
             // Cache and disable submit button, clear error messages
-            writeMessage('error', "");            
+            writeMessage('error', "");
 
             // Store selected student name from dropdown
             var selectedClientVal = $('#search_student_dropdown').val();
@@ -1292,7 +1294,7 @@ $( async () => {
 }
 </script>
 <!-- Acuity Client Functions -->
-<script src="https://sophiadance.squarespace.com/s/acuityApiClientFunctions-UAT.js"></script>
+<script src="https://sophiadance.squarespace.com/s/acuityApiClientFunctions-PROD.js"></script>
 <!-- JQUERY / JQUERY UI -->
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>

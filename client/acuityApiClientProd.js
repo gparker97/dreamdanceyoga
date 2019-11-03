@@ -423,7 +423,7 @@
 $( () => {
 	// Setup script
 	const environment = 'PROD';
-	const version = '1.3.7';
+	const version = '1.3.8';
 	
 	// Arrays to cache Acuity API call responses (avoid making multiple calls)
 	var clients = [];
@@ -692,11 +692,11 @@ $( () => {
         var generateCertResult = await buyPackage(products, clients);
         console.log('Generate cert result: ', generateCertResult);
         
-        // Re-enable submit button, clear student search dropdown
-		$('#buy_package_submit').prop('disabled', false).removeClass('disabled');
-		
-		// Clean up here?
-		// cleanUp($revealedElements);
+        // If successful, don't re-enable submit button to avoid multiple purchases, and leave details on screen (don't clean up)
+		// $('#buy_package_submit').prop('disabled', false).removeClass('disabled');
+		if (generateCertResult) {
+			$('#buy_package_submit').val('DONE');
+		}
 	});
 
 	// EVENT: BUY CLASS SERIES SUBMIT
@@ -742,8 +742,11 @@ $( () => {
 			writeMessage('modal', message, $('#modal_output'));
 		}
 			
-		// Re-enable submit button, clear student search dropdown
-		$('#buy_class_submit').prop('disabled', false).removeClass('disabled');		
+		// If successful, don't re-enable submit button to avoid multiple purchases, and leave details on screen
+		// $('#buy_class_submit').prop('disabled', false).removeClass('disabled');
+		if (buySeriesResult) {
+			$('#buy_class_submit').val('DONE');
+		}
 	});		
 
 	// EVENT: VIEW PACKAGES SUBMIT
@@ -937,9 +940,11 @@ $( () => {
 		switch (action) {
 			case 'buy_class_top':
 				$element = $('#buy_class_submit');
+				buttonText = 'BUY CLASS SERIES';
 				break;
 			case 'buy_package_top':
 				$element = $('#buy_package_submit');
+				buttonText = 'BUY PACKAGE';
 				break;
 		}
 
@@ -976,7 +981,7 @@ $( () => {
 				$('#updated_price_div').hide();
 			}
 			// Reveal submit button
-			$element.prop('disabled', false).removeClass('disabled');
+			$element.prop('disabled', false).removeClass('disabled').val(buttonText);
 			$revealedElements = revealElement($element, $revealedElements);
 		} else {
 			$element.prop('disabled', true).addClass('disabled');

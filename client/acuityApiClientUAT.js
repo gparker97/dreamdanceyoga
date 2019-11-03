@@ -193,7 +193,14 @@
 		.my-link {
             color: blue !important;
             text-decoration: underline;
-		}		
+		}
+
+		.qrcode-container {
+			background-color: lightgray;
+			margin: 10px;
+			padding: 5px;
+			border: 1px solid #999999;
+		}
 
 		.spacer {
             padding: 5px;
@@ -318,6 +325,7 @@
 			<option value="cash">Cash</option>
 			<option value="bankXfer-DDY">Bank Transfer DDY</option>
 			<option value="bankXfer-Sophia">Bank Transfer Sophia POSB</option>
+			<option value="wechat-pay">WeChat Pay TEST (Do not use)</option>
 		</select>
 		
 		<input type="checkbox" name="create_invoice" id="create_invoice_checkbox" value="create_invoice" checked>
@@ -375,7 +383,11 @@
 	<button type="button" id="get_instructor_report_submit" class="submit-button hide" disabled>GET INSTRUCTOR REPORT</button>
 	<input type="submit" id="studio_metrics_submit" class="submit-button hide" value="GET STUDIO METRICS" />
 
-	<!-- INSTRUCTOR REPORT -->	
+	<!-- QR CODE CONTAINER -->
+	<div id="qrcode-title" class="qrcode-container hide"></div>
+	<div id="qrcode" class="qrcode-container hide"></div>
+	
+	<!-- INSTRUCTOR REPORT -->
 	<div id="instructor_report_container_div" class="instructor-container hide">
 		<br><hr><br>
 		<div id="instructor_report_display_div" class="instructor-info"></div>
@@ -423,7 +435,7 @@
 $( () => {
 	// Setup script
 	const environment = 'UAT';
-	const version = '1.3.7';
+	const version = '1.3.8';
 	
 	// Arrays to cache Acuity API call responses (avoid making multiple calls)
 	var clients = [];
@@ -689,14 +701,14 @@ $( () => {
 		}
 		
 		// Generate package code for selected student
-        var generateCertResult = await buyPackage(products, clients);
+        var generateCertResult = await buyPackage(products, clients, $revealedElements);
         console.log('Generate cert result: ', generateCertResult);
         
-        // Re-enable submit button, clear student search dropdown
-		$('#buy_package_submit').prop('disabled', false).removeClass('disabled');
-		
-		// Clean up here?
-		// cleanUp($revealedElements);
+        // If successful, don't re-enable submit button to avoid multiple purchases, and leave details on screen (don't clean up)
+		// $('#buy_package_submit').prop('disabled', false).removeClass('disabled');
+		if (generateCertResult) {
+			$('#buy_package_submit').val('DONE');
+		}
 	});
 
 	// EVENT: BUY CLASS SERIES SUBMIT
@@ -742,8 +754,11 @@ $( () => {
 			writeMessage('modal', message, $('#modal_output'));
 		}
 			
-		// Re-enable submit button, clear student search dropdown
-		$('#buy_class_submit').prop('disabled', false).removeClass('disabled');		
+		// If successful, don't re-enable submit button to avoid multiple purchases, and leave details on screen
+		// $('#buy_class_submit').prop('disabled', false).removeClass('disabled');
+		if (buySeriesResult) {
+			$('#buy_class_submit').val('DONE');
+		}
 	});		
 
 	// EVENT: VIEW PACKAGES SUBMIT
@@ -937,9 +952,11 @@ $( () => {
 		switch (action) {
 			case 'buy_class_top':
 				$element = $('#buy_class_submit');
+				buttonText = 'BUY CLASS SERIES';
 				break;
 			case 'buy_package_top':
 				$element = $('#buy_package_submit');
+				buttonText = 'BUY PACKAGE';
 				break;
 		}
 
@@ -976,7 +993,7 @@ $( () => {
 				$('#updated_price_div').hide();
 			}
 			// Reveal submit button
-			$element.prop('disabled', false).removeClass('disabled');
+			$element.prop('disabled', false).removeClass('disabled').val(buttonText);
 			$revealedElements = revealElement($element, $revealedElements);
 		} else {
 			$element.prop('disabled', true).addClass('disabled');
@@ -1186,6 +1203,8 @@ $( () => {
 <!-- JQUERY / JQUERY UI -->
 <!--script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script-->
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
+<!-- STRIPE -->
+<script src="https://js.stripe.com/v3/"></script>
 <!-- DATATABLES -->
 <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.js"></script>
 <script type="text/javascript" charset="utf8" src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
@@ -1195,6 +1214,8 @@ $( () => {
 <script src="https://code.highcharts.com/highcharts.js"></script>
 <!-- D3.JS -->
 <script src="https://d3js.org/d3.v5.min.js"></script>
+<!-- JQUERY QRCODE --></div>
+<script type="text/javascript" src="https://sophiadance.squarespace.com/s/jqueryqrcodemin.js"></script>
 <!-- BOOTSTRAP -->
 <!--script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script-->
 <!--script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script-->

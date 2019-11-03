@@ -13,8 +13,20 @@ const https = require('https');
 const path = require('path');
 const Joi = require('joi');
 
+// Read stripe keys
+let stripeKeys_raw = fs.readFileSync(path.join(__dirname, '..', 'stripe-keys.json'));
+let stripeKeys = JSON.parse(stripeKeys_raw);
+console.log(stripeKeys);
+let stripeSecretTest = stripeKeys.secret_test;
+let stripeSecretLive = stripeKeys.secret_live;
+
+// STRIPE TEST
+const stripeTest = require('stripe')(stripeSecretTest);
+// STRIPE LIVE
+const stripe = require('stripe')(stripeSecretLive);
+
 // Version
-const acuityRestControllerVersion = '1.2.1';
+const acuityRestControllerVersion = '1.3.1';
 
 // DEBUG mode
 const debug = true;
@@ -49,6 +61,11 @@ const supportedFunctions = [
     'forms'    
 ];
 
+// Grab user info from file
+let ddyUsers_raw = fs.readFileSync(path.join(__dirname, '..', 'api-users.json'));
+let ddyUsers = JSON.parse(ddyUsers_raw);
+console.log(ddyUsers);
+
 // Set up express for HTTPS
 app.use(express.json());
 app.use('/', express.static(path.join(__dirname, '..', directoryToServe)));
@@ -66,7 +83,7 @@ app.use((req, res, next) => {
     }
 });
 app.use(basicAuth({
-    users: { ddyadmin: 'Dr3amD4nc3Ap1!' },
+    users: ddyUsers,
     challenge: true,
     unauthorizedResponse: getUnauthorizedResponse
 }));
@@ -135,8 +152,8 @@ async function initAcuityAPIcall(req) {
         body[objectKey][0] = {};
         body[objectKey][0][innerObjectKey] = innerObjectVal;
         
-        console.log('NEW body after object insertion: ', body);        
-    }    
+        console.log('NEW body after object insertion: ', body);
+    }
 
     // Decode URL to store key params
     // If first query ID is "method" then set method (PUT/POST/DELETE) otherwise default to GET and remove query
@@ -146,30 +163,55 @@ async function initAcuityAPIcall(req) {
         delete body.method;
     }
     
-    // If buying a package, parse the URL to get required data
+    // When sending a POST or PUT (i.e. buying package or creating appointment), parse the URL to get required data
+    // Required data includes whether to send an email, create an invoice in Xero, and apply payment to invoice
     // Refactor this later to send properly formatted JSON via POST (let's be honest that's not gonna happen)
-    if (method === "POST" && func === "certificates") {        
-        const queryId2 = Object.keys(req.query)[1];
+    if (method === "POST" || method === "PUT") {
+        const queryId2 = Object.keys(req.query)[0];
         const queryParam2 = eval(`req.query.${queryId2}`);
-        const queryId3 = Object.keys(req.query)[2];
+        const queryId3 = Object.keys(req.query)[1];
         const queryParam3 = eval(`req.query.${queryId3}`);
-        const queryId4 = Object.keys(req.query)[3];
+        const queryId4 = Object.keys(req.query)[2];
         const queryParam4 = eval(`req.query.${queryId4}`);
+
+        if (func === 'certificates') {
+            if (queryId2 === 'paymentMethod') { 
+                var paymentMethod = queryParam2;
+                delete body.paymentMethod;
+            }
+
+            if (queryId3 === 'xeroCreateInvoice') { 
+                var xeroCreateInvoice = queryParam3;
+                delete body.xeroCreateInvoice;
+            }
+
+            if (queryId4 === 'xeroApplyPayment') {
+                var xeroApplyPayment = queryParam4;
+                delete body.xeroApplyPayment;
+            }
+        }
         
-        if (queryId2 === 'paymentMethod') { 
-            var paymentMethod = queryParam2;
-            delete body.paymentMethod;
+        if (queryId2 === 'noEmail') {
+            var noEmail = queryParam2;
+            delete body.noEmail;
         }
 
-        if (queryId3 === 'xeroCreateInvoice') { 
-            var xeroCreateInvoice = queryParam3;
-            delete body.xeroCreateInvoice;
+        if (debug) {
+            console.log('POST/PUT Query IDs:')
+            console.log(`queryId2: ${queryId2}`);
+            console.log(`queryParam2: ${queryParam2}`);
+            console.log(`queryId3: ${queryId3}`);
+            console.log(`queryParam3: ${queryParam3}`);
+            console.log(`queryId4: ${queryId4}`);
+            console.log(`queryParam4: ${queryParam4}`);
         }
+    }
 
-        if (queryId4 === 'xeroApplyPayment') { 
-            var xeroApplyPayment = queryParam4;
-            delete body.xeroApplyPayment;
-        }
+    if (debug) {
+        console.log(`paymentMethod: ${paymentMethod}`);
+        console.log(`xeroCreateInvoice: ${xeroCreateInvoice}`);
+        console.log(`xeroApplyPayment: ${xeroApplyPayment}`);
+        console.log(`noEmail: ${noEmail}`);
     }
 
     // Build Acuity API call URL with params from input URL
@@ -187,8 +229,8 @@ async function initAcuityAPIcall(req) {
                     if (debug) {
                         console.log(`queryId: ${queryId}`);
                         console.log(`queryParam: ${queryParam}`);
-                    }                    
-                    acuityURL +=`&${queryId}=${queryParam}`;                      
+                    }
+                    acuityURL+=`&${queryId}=${queryParam}`;                      
                     count++;
                 });
             }
@@ -198,16 +240,21 @@ async function initAcuityAPIcall(req) {
             break;
         case 'PUT':
         case 'DELETE':
-            var idToUpdate = body.id;
+            var idToUpdate = body.id;            
             if (!idToUpdate) {
                 acuityURL =`/${func}?admin=true`;
             } else {
-                acuityURL =`/${func}/${idToUpdate}?admin=true`;
+                acuityURL =`/${func}/${idToUpdate}?admin=true`;                
             }            
             delete body.id;
             break;
         default:
             return res.status(400).send(`ERROR: Method not supported: ${method}`);
+    }
+
+    // If noEmail parameter was sent, append to end of URL to suppress email to student
+    if (noEmail === 'true') {
+        acuityURL+=`&noEmail=true`
     }
 
     // Build JSON body from input URL for methods requiring body params
@@ -231,9 +278,9 @@ async function initAcuityAPIcall(req) {
         console.log('Req params below');
         console.log(req.params);
         console.log(`Query keys length: ${queryIds.length}`);        
-        console.log(`URL: ${req.url}`);        
-        console.log(`Acuity URL: ${acuityURL}`);
-        console.log('Acuity options below');
+        console.log(`URL from DDY MyStudio: ${req.url}`);
+        console.log(`Acuity compiled URL: ${acuityURL}`);
+        console.log('Acuity compiled options:');
         console.log(options);
     }
 
@@ -673,5 +720,87 @@ app.get('/api/ddy/:function', async (req, res) => {
                 console.log('acuityAPIcall: acuityResult is undefined')
                 return res.status(400).send('ERROR: acuityResult is undefined');
             }
+    }
+});
+
+// Stripe webhook handler
+app.post('/stripe/webhook', async (req, res) => {
+    try {
+        // Capture Stripe event high level details        
+        // var stripeEvent = JSON.parse(req.body);
+        var stripeEvent = req.body;
+        var stripeLiveMode = stripeEvent.data.object.livemode
+        var stripePaymentType = stripeEvent.data.object.type;
+        var stripePaymentId = stripeEvent.data.object.id;
+        console.log('STRIPE webhook event is:', stripeEvent);
+        console.log(`LIVEMODE: ${stripeLiveMode}`);
+
+        // If payment type is WeChat, initiate payment, otherwise ignore
+        if (stripePaymentType === 'wechat') {
+            // Capture payment details                        
+            var stripePaymentAmount = stripeEvent.data.object.amount;
+            var stripePaymentCurrency = stripeEvent.data.object.currency;
+
+            switch (stripeEvent.type) {
+                case 'source.chargeable':
+                    console.log('Making stripe payment...');
+                    if (stripeLiveMode) {
+                        stripe.charges.create({
+                            amount: stripePaymentAmount,
+                            currency: stripePaymentCurrency,
+                            source: stripePaymentId,
+                        }, (err, charge) => {
+                            // asynchronously called
+                            console.log('STRIPE: Stripe payment result:');
+                            console.log('Errors', err);
+                            console.log('Charge', charge);
+                            console.log(`STRIPE: Stripe payment ${stripePaymentId} complete`);
+                        });
+                    } else {
+                        // TEST MODE
+                        stripeTest.charges.create({
+                            amount: stripePaymentAmount,
+                            currency: stripePaymentCurrency,
+                            source: stripePaymentId,
+                        }, (err, charge) => {
+                            // asynchronously called
+                            console.log('STRIPE: Stripe TEST payment result:');
+                            console.log('Errors', err);
+                            console.log('Charge', charge);
+                            console.log(`STRIPE: Stripe TEST payment ${stripePaymentId} complete`);
+                        });
+                    }
+                    break;
+                case 'source.canceled':
+                    console.log(`STRIPE: Stripe payment ${stripePaymentId} canceled`);
+                    break;
+                case 'source.failed':
+                    console.log(`STRIPE: Stripe payment ${stripePaymentId} failed authorization`);
+                    break;
+                default:
+                    console.log(`STRIPE: Unexepected WeChat event type: ${stripeEvent.type}`);
+                    return res.status(400).end();
+            }            
+        }
+
+        // Handle charges webhooks
+        switch (stripeEvent.type) {
+            case 'charge.succeeded':
+                console.log(`STRIPE: Stripe payment ${stripePaymentId} CHARGE SUCCESSFUL`);
+                break;
+            case 'charge.failed':
+                console.log(`STRIPE: Stripe payment ${stripePaymentId} FAILED`);
+                break;
+            default:
+                console.log(`STRIPE: Unexepected event type - NOT charge success or fail: ${stripeEvent.type}`);
+                // return res.status(400).end();
+        }
+        
+        // Acknowledge receipt of event to sender
+        res.status(200).json({received: true});
+    }
+    catch (err) {
+        console.log('STRIPE webhook ERROR:', err.message);        
+        res.status(400).send(`Webhook Error: ${err.message}`);
     }
 });

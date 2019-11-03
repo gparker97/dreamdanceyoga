@@ -1,6 +1,6 @@
 // Setup script
 const environment = 'UAT';
-const version = '1.4.2';
+const version = '1.5.0';
 
 // Set API host
 // var apiHostUAT = 'https://greg-monster.dreamdanceyoga.com:3443/api/ddy'; // GREG computer
@@ -27,7 +27,7 @@ async function initApiCall(func, activity, params) {
     }	
 
     // Initialize parameters for API call
-    switch (func) {        
+    switch (func) {
         case 'clients_search':
             switch (activity) {
                 case 'retrieveAllClients':
@@ -154,6 +154,7 @@ async function initApiCall(func, activity, params) {
             }
             break;
         case 'appointments_post':
+            // BOOK A SINGLE APPOINTMENT
             switch (activity) {
                 case 'addToClass':
                     var studentInfo = params;
@@ -166,8 +167,10 @@ async function initApiCall(func, activity, params) {
                     var calendarID = studentInfo.calendarID;
                     var OBJECT = 'labels_id';
                     var labels_id = studentInfo.labelID;
+                    var noEmail = studentInfo.noEmail || false;
                     var params = {
                         method: "POST",
+                        noEmail,
                         datetime,
                         appointmentTypeID: classId,
                         firstName,
@@ -179,48 +182,9 @@ async function initApiCall(func, activity, params) {
                         labels_id
                     };
                     break;
-                default:
-                    return 'Activity not defined';
-            }
-            break;
-        case 'appointments_put':
-            switch (activity) {
-                case 'updateStudentNotes':
-                    var apptId = params.id;
-                    var checkInNote = params.checkInNote;
-                    if (debug) {
-                        console.log('Appt ID is: ', apptId);
-                        console.log('Check-in note is: ', checkInNote);
-                    }
-                    var params = {
-                        method: "PUT",
-                        id: apptId,
-                        notes: `${checkInNote}`
-                    };
-                    break;
-                case 'cancelAppointment':
-                    var apptId = params.apptId;
-                    var cancelNote = params.cancelNote;
-                    if (debug) {
-                        console.log('Appt ID is: ', apptId);                        
-                    }
-                    // Update func to send proper URL
-                    func = `appointments--${apptId}--cancel`;
-                    console.log('func is: ', func);
-                    var params = {
-                        method: "PUT",
-                        cancelNote
-                    };
-                    break;
-                default:
-                    return 'Activity not defined';
-            }
-            break;
-        case 'appointments_create':
-            switch (activity) {
-                case 'createAppt':
+                case 'addToClassSeries':
                     // BOOK A CLASS SERIES AND CREATE INVOICE
-                    // Create an appointment in Acuity for selected student                    
+                    // Create an appointment in an Acuity class series for selected student                    
                     var classTimes = params[0];
                     var clients = params[1];
                     // Set createInvoice to determine whether to create an invoice in Xero - only 1 invoice created for each class series
@@ -275,6 +239,42 @@ async function initApiCall(func, activity, params) {
                         phone: client_phone,
                         newPrice
                     };                    
+                    break;
+                default:
+                    return 'Activity not defined';
+            }
+            break;
+        case 'appointments_put':
+            switch (activity) {
+                case 'updateStudentNotes':
+                    var apptId = params.id;
+                    var checkInNote = params.checkInNote;
+                    var noEmail = params.noEmail || false;
+                    if (debug) {
+                        console.log('Appt ID is: ', apptId);
+                        console.log('Check-in note is: ', checkInNote);
+                    }
+                    var params = {
+                        method: "PUT",                        
+                        id: apptId,
+                        notes: `${checkInNote}`
+                    };
+                    break;
+                case 'cancelAppointment':
+                    var apptId = params.apptId;
+                    var cancelNote = params.cancelNote;
+                    var noEmail = params.noEmail || false;
+                    if (debug) {
+                        console.log('Appt ID is: ', apptId);                        
+                    }
+                    // Update func to send proper URL
+                    func = `appointments--${apptId}--cancel`;
+                    console.log('func is: ', func);
+                    var params = {
+                        method: "PUT",
+                        noEmail,
+                        cancelNote
+                    };
                     break;
                 default:
                     return 'Activity not defined';
@@ -807,6 +807,7 @@ async function addNewStudent() {
         // Store required parameters for appointment post API call                
         var calendarID = result[0].calendarID;
         var datetime = result[0].time;
+        var noEmail = true;
         var certificate = 'DDYINSTRUCTOR';
         var params = {
             classId,
@@ -815,7 +816,8 @@ async function addNewStudent() {
             lastName,
             email,
             certificate,
-            calendarID
+            calendarID,
+            noEmail
         };
 
         // Make API call to book temporary appointment
@@ -842,11 +844,12 @@ async function addNewStudent() {
             console.log(`Cancelling temp appointment id ${apptId}...`);
             
             var cancelNote = 'Temp appt cancel';            
-            var funcType = 'appointments_put';
+            var funcType = 'appointments_put';            
             var activity = 'cancelAppointment';
             var params = {
                 apptId,
-                cancelNote
+                cancelNote,
+                noEmail
             }                        
             
             var appointmentsResult = await initApiCall(funcType, activity, params);
@@ -912,11 +915,113 @@ function confirmPaymentDetails(event, products, $revealedElements) {
     }
 }
 
+// FUNCTION: weChatPay()
+// 1. Create a Stripe client and source charge via Stripe API
+// 2. If successful generate QR code for client to scan, otherwise handle error
+// 3. Wait for webhook indicating QR code has been scanned (payment authorized) and complete charge via DDY API call to Stripe API
+// 4. Return Stripe charge result to calling function
+async function weChatPay(selectedProduct, selectedClient, $revealedElements) {
+    // Create a Stripe client
+    if (environment === 'UAT') {
+        // Load TEST public key
+        var stripe = Stripe('pk_test_BLvdPHkTidmTseJ1AYyTJgJw');
+    } else {
+        // Load LIVE public key
+        var stripe = Stripe('pk_live_CMB25yauNZEeA66zhsGmCUE8');
+    }
+
+    // Create a Stripe source
+    stripe.createSource({
+        type: 'wechat',
+        amount: parseFloat(selectedProduct[0].price) * 100,
+        currency: 'sgd',
+        statement_descriptor: selectedProduct[0].name,
+        owner: {
+            name: `${selectedClient[0].firstName} ${selectedClient[0].lastName}`,
+            email: selectedClient[0].email
+        },
+    }).then(async function(result) {
+        // handle result.error or result.source
+        console.log('Stripe create payment result:');
+        console.log(result);
+        
+        // If successful then open wechat URL in new window
+        if (result) {
+            // var win = window.open(result.source.wechat.qr_code_url, '_blank');
+            // Store Stripe source vars
+            var weChatQRCodeURL = result.source.wechat.qr_code_url;
+            var sourceId = result.source.id;
+            var clientSecret = result.source.client_secret;            
+
+            // Poll source status here until it becomes chargeable
+            var MAX_POLL_COUNT = 120;
+            var pollCount = 0;
+
+            // Reveal QR CODE element
+            var $qrcodeElement = $('#qrcode');
+            var $qrcodeTitleElement = $('#qrcode-title');
+            $qrcodeTitleElement.html(`<h2>WECHAT PAY - SCAN HERE</h2><h3><strong>${MAX_POLL_COUNT}</strong> seconds...</h3>`);
+            $revealedElements = revealElement($qrcodeTitleElement, $revealedElements);
+            $revealedElements = revealElement($qrcodeElement, $revealedElements);
+            
+            // Clear QR Code element and generate QR Code for wechat payment
+            $qrcodeElement.html('');
+            $qrcodeElement.qrcode(weChatQRCodeURL);
+
+            var stripePollingResult = await stripePollForSourceStatus(stripe, MAX_POLL_COUNT, pollCount, sourceId, clientSecret, $qrcodeTitleElement);
+            console.log(`Stripe Polling COMPLETE - result is ${stripePollingResult}`);
+
+            // Once chargeable, send message to server to complete Stripe charge
+            // initApiCall - stripe charge?
+        }
+    });
+}
+
+// FUNCTION: stripePollForSourceStatus()
+// 1. Poll the Stripe API for the Stripe payment just made to get source status
+// 2. Once source status is chargeable, initiate Stripe charge via API or handle error
+function stripePollForSourceStatus(stripe, MAX_POLL_COUNT, pollCount, sourceId, clientSecret, $qrcodeTitleElement) {
+    console.log(`Polling Stripe for result of source charge, timeout ${MAX_POLL_COUNT} seconds...`);
+
+    // Make call to Stripe API to retrieve status of source transation just created
+    stripe.retrieveSource({id: sourceId, client_secret: clientSecret}).then(function(result) {
+        var source = result.source;
+        if (source.status === 'chargeable') {
+            // Make a request to server to charge the Source
+            console.log(`Stripe charge ${sourceId} is CHARGEABLE`);
+            console.log(`Source status is ${source.status}`);
+            $qrcodeTitleElement.html(`<h2>WECHAT PAY - SCAN HERE</h2><h3><strong>PAYMENT AUTHORIZED!</h3></strong>`);
+            
+            // Trigger buyPackage / buySeries as required with appropriate params
+
+
+            return source.status;
+        } else if (source.status === 'pending' && pollCount < MAX_POLL_COUNT) {
+            console.log(`Try ${pollCount}: Stripe charge ${sourceId} still pending...`);
+            console.log(`Source status is ${source.status}`);
+            // Update pollCount and qrcode HTML element timer
+            pollCount += 1;
+            newTimer = MAX_POLL_COUNT - pollCount;
+            $qrcodeTitleElement.html(`<h2>WECHAT PAY - SCAN HERE</h2><h3><strong>${newTimer}</strong> seconds...</h3>`);
+            // Try again in a second, if the Source is still `pending`            
+            setTimeout(function() {
+                stripePollForSourceStatus(stripe, MAX_POLL_COUNT, pollCount, sourceId, clientSecret, $qrcodeTitleElement);
+            }, 1000);
+            return source.status;
+        } else {
+            // Depending on the Source status, show customer the relevant message
+            console.log(`Source status is ${source.status}`);
+            $qrcodeTitleElement.html(`<h2>WECHAT PAY - SCAN HERE</h2><h3><strong>PAYMENT CANCELLED!</h3></strong>`);
+            return source.status;
+        }        
+    });    
+}
+
 // FUNCTION: buyPackage()
 // 1. Generate a package certificate and assign to user's email address
 // 2. Generate a Xero invoice for the package price (if requested)
 // 3. Apply full payment to Xero invoice based on payment method selected (if requested)
-async function buyPackage(products, clients) {
+async function buyPackage(products, clients, $revealedElements) {
     try {			
         // Find the array index of the selected product / package and extract expiry date to determine if package or subscription
         var selectedProductVal = $('#select_package_class_dropdown').val();
@@ -925,16 +1030,17 @@ async function buyPackage(products, clients) {
         });
         console.log('Selected Product: ', selectedProduct);
 
-        // If customer wants to pay with credit card online, re-direct to Acuity link
+        // Capture selected client from clients array
+        var selectedClientVal = $('#search_student_dropdown').val();
+        var selectedClient = $.grep(clients, (i) => {
+            return `${i.firstName} ${i.lastName}` === selectedClientVal;
+        });
+        console.log('selectedClient is: ', selectedClient);
+
+        // If customer wants to pay with credit card online or wechat, redirect as appropriate
         var paymentMethod = $('#payment_method_dropdown option:selected').val();
-        if (paymentMethod === 'cc-online') {
-            // Capture selected client from clients array
-            var selectedClientVal = $('#search_student_dropdown').val();
-            var selectedClient = $.grep(clients, (i) => {
-                return `${i.firstName} ${i.lastName}` === selectedClientVal;
-            });
-            console.log('selectedClient is: ', selectedClient);
-            
+        console.log(`paymentMethod: ${paymentMethod}`);
+        if (paymentMethod === 'cc-online') {            
             // Prepare Acuity direct purchase link URL
             var productID = selectedProduct[0].id;
             var productURL = `https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=${productID}&firstName=${selectedClient[0].firstName}&lastName=${selectedClient[0].lastName}&email=${selectedClient[0].email}&phone=${selectedClient[0].phone}`;
@@ -943,6 +1049,18 @@ async function buyPackage(products, clients) {
             
             // Open new tab with Acuity direct purchase link
             var win = window.open(productURL, '_blank');
+            return false;
+        } else if (paymentMethod === 'wechat-pay') {
+            // Do wechat stuff
+            console.log('Paying via WeChat Pay...');
+            // alert('Wechat payments not enabled yet!');
+            
+            // Initiate weChat Pay charge
+            var weChatPayResult = await weChatPay(selectedProduct, selectedClient, $revealedElements);
+            console.log(`weChatPayResult: ${weChatPayResult}`);
+
+            // Notify user here if successful
+
             return false;
         }
         
@@ -984,7 +1102,7 @@ async function buyPackage(products, clients) {
             title: 'PURCHASE SUCCESS',
             body: `<b>Email:</b> ${client_email}<br><b>Code:</b> ${result.certificate}<br><b>Payment Method:</b> ${pay_method}<hr><strong>Xero Results</strong><br>${xeroInvoiceStatusMessage}<br>${xeroPaymentStatusMessage}<hr><strong>Inform student to use email address to book classes</strong>`
         };
-        writeMessage('modal', message);			
+        writeMessage('modal', message);
         return result;
     }
     catch(e) {
@@ -1038,22 +1156,35 @@ async function buySeries(products, clients) {
             return i.name === selectedProductVal;
         });
 
-        // If customer wants to pay with credit card online, re-direct to Acuity link
-        var paymentMethod = $('#payment_method_dropdown option:selected').val();
-        if (paymentMethod === 'cc-online') {
-            // Capture selected client from clients array
-            var selectedClientVal = $('#search_student_dropdown').val();
-            var selectedClient = $.grep(clients, (i) => {
-                return `${i.firstName} ${i.lastName}` === selectedClientVal;
-            });
-            console.log('selectedClient is: ', selectedClient);
+        // Capture selected client from clients array
+        var selectedClientVal = $('#search_student_dropdown').val();
+        var selectedClient = $.grep(clients, (i) => {
+            return `${i.firstName} ${i.lastName}` === selectedClientVal;
+        });
+        console.log('selectedClient is: ', selectedClient);
 
+        // If customer wants to pay with credit card online or wechat, redirect as appropriate
+        var paymentMethod = $('#payment_method_dropdown option:selected').val();
+        console.log(`paymentMethod: ${paymentMethod}`);
+        if (paymentMethod === 'cc-online') {
             // Open new tab with direct link to product in Acuity
             var productURL = selectedProduct[0].schedulingUrl;            
             productURL += `&firstName=${selectedClient[0].firstName}&lastName=${selectedClient[0].lastName}&email=${selectedClient[0].email}&phone=${selectedClient[0].phone}`;
             // Replace any '+' symbols in URL with ASCII code
             productURL = productURL.replace(/\+/g, "%2B");
             var win = window.open(productURL, '_blank');
+            return false;
+        } else if (paymentMethod === 'wechat-pay') {
+            // Do wechat stuff
+            console.log('Paying via WeChat Pay...');
+            // alert('Wechat payments not enabled yet!');
+            
+            // Initiate weChat Pay charge
+            var weChatPayResult = await weChatPay(selectedProduct, selectedClient, $revealedElements);
+            console.log(`weChatPayResult: ${weChatPayResult}`);
+
+            // Notify user here if successful
+
             return false;
         }
         
@@ -1069,8 +1200,8 @@ async function buySeries(products, clients) {
         
         try {
             var bookClass = [];
-            var funcType = "appointments_create";
-            var activity = 'createAppt';            
+            var funcType = "appointments_post";
+            var activity = 'addToClassSeries';
             var params = [ classTimes, clients, false ];
             for (var i = 0; i < classTimes.length; i++) {                    
                 $('#buy_class_submit').data('classTime', classTimes[i].time);
