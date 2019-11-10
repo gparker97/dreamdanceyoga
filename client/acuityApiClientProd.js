@@ -193,7 +193,14 @@
 		.my-link {
             color: blue !important;
             text-decoration: underline;
-		}		
+		}
+
+		.qrcode-container {
+			background-color: lightgray;
+			margin: 10px;
+			padding: 5px;
+			border: 1px solid #999999;
+		}
 
 		.spacer {
             padding: 5px;
@@ -314,22 +321,32 @@
 		<select id="payment_method_dropdown" class="select_dropdown">
 			<option value="select">Select One</option>
 			<option value="none">NONE (No Charge)</option>
-			<option value="cc-online">Credit Card ONLINE (Acuity)</option>
+			<option value="cc-online">Credit/Debit Card</option>
 			<option value="cash">Cash</option>
 			<option value="bankXfer-DDY">Bank Transfer DDY</option>
 			<option value="bankXfer-Sophia">Bank Transfer Sophia POSB</option>
+			<option value="wechat-pay">WeChat Pay</option>
 		</select>
+		<!-- PAYMENT OPTIONS -->
+		<div id="payment_options_div" class="details-item hide">
+			<input type="checkbox" name="create_invoice" id="create_invoice_checkbox" value="create_invoice" checked>
+			<label for="create_invoice_checkbox">Create Invoice</label>
+			<br>
+			<input type="checkbox" name="apply_payment" id="apply_payment_checkbox" value="apply_payment" checked>
+			<label for="apply_payment_checkbox">FULL Payment Received (If DEPOSIT, uncheck this box)</label>		
+			
+			<!-- DEPOSIT -->
+			<div id="deposit_amount_div" class="details-item hide">
+				<label for="deposit_amount"><strong>DEPOSIT Amount Received: </strong></label>
+				<span class="currency-input">$ <input type="number" min="1" max="9999" step="1" id="deposit_amount" name="deposit_amount" value="0.00"></span>
+			</div>
 		
-		<input type="checkbox" name="create_invoice" id="create_invoice_checkbox" value="create_invoice" checked>
-		<label for="create_invoice_checkbox">Create Invoice?</label>
-		
-		<input type="checkbox" name="apply_payment" id="apply_payment_checkbox" value="apply_payment" checked>
-		<label for="apply_payment_checkbox">Payment Received?</label>
+		</div>
 	</div>
 
 	<!-- UPDATE PRICE -->
 	<div id="updated_price_div" class="details-item hide">
-		<label for="updated_price"><strong>Enter discounted price (leave blank for none): </strong></label>
+		<label for="updated_price"><strong>Updated / Discounted Price (Leave blank for original price): </strong></label>
 		<span class="currency-input">$ <input type="number" min="1" max="9999" step="1" id="updated_price" name="updated_price"></span>
 	</div>
 
@@ -373,9 +390,9 @@
 	<input type="submit" id="view_packages_submit" class="submit-button hide" value="VIEW PACKAGES" />
 	<button type="button" id="generate_checkin_table_submit" class="submit-button hide" disabled>GENERATE CHECK-IN TABLE</button>
 	<button type="button" id="get_instructor_report_submit" class="submit-button hide" disabled>GET INSTRUCTOR REPORT</button>
-	<input type="submit" id="studio_metrics_submit" class="submit-button hide" value="GET STUDIO METRICS" />
-
-	<!-- INSTRUCTOR REPORT -->	
+	<input type="submit" id="studio_metrics_submit" class="submit-button hide" value="GET STUDIO METRICS" />	
+	
+	<!-- INSTRUCTOR REPORT -->
 	<div id="instructor_report_container_div" class="instructor-container hide">
 		<br><hr><br>
 		<div id="instructor_report_display_div" class="instructor-info"></div>
@@ -423,7 +440,7 @@
 $( () => {
 	// Setup script
 	const environment = 'PROD';
-	const version = '1.3.8';
+	const version = '1.5.2';
 	
 	// Arrays to cache Acuity API call responses (avoid making multiple calls)
 	var clients = [];
@@ -439,6 +456,9 @@ $( () => {
 
 	// Declare var to hold popup window
 	var win;
+
+	// Var to hold submit button element
+	var $submitButtonElement;
 	
 	// Set debug based on environment
     if (environment === 'UAT') {
@@ -688,8 +708,9 @@ $( () => {
             writeMessage('debug', "<br><b>clicked BUY PACKAGE button...</b>");            
 		}
 		
-		// Generate package code for selected student
-        var generateCertResult = await buyPackage(products, clients);
+		// Initiate purchase with relevant details and call appropriate function
+		var generateCertResult = await initPurchase(action, products, clients);
+
         console.log('Generate cert result: ', generateCertResult);
         
         // If successful, don't re-enable submit button to avoid multiple purchases, and leave details on screen (don't clean up)
@@ -715,9 +736,6 @@ $( () => {
 		}
 		
 		// Check if class type = SERIES
-		// var selected_class = $('#select_package_class_dropdown').prop('selectedIndex');
-		// var classType = products[selected_class].type;
-		// NEW method
 		var selectedClassVal = $('#select_package_class_dropdown').val();
 		var selectedClass = $.grep(products, (i) => {
 			return i.name === selectedClassVal;
@@ -729,9 +747,11 @@ $( () => {
 			console.log(`classType is ${classType}`);
 		}		
 		if (classType === "series") {
-            // Book class series for selected student
-            var buySeriesResult = await buySeries(products, clients);
+			// Initiate purchase with relevant details and call appropriate function
+			var buySeriesResult = await initPurchase(action, products, clients);
+
 			console.log('buySeries result: ', buySeriesResult);
+			
 			// Clean up here if successful?
 			// cleanUp($revealedElements);
 		} else {
@@ -888,7 +908,7 @@ $( () => {
 
 		// Populate confirmation details
 		var event = e.currentTarget.id;
-		confirmPaymentDetails(event, products, $revealedElements);
+		confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement);
 	});
 
 	// EVENT: Updated price change - update confirmation details
@@ -899,7 +919,7 @@ $( () => {
 
 		// Populate confirmation details
 		var event = e.currentTarget.id;
-		confirmPaymentDetails(event, products, $revealedElements);
+		confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement);
 	});
 	
 	// EVENT: Select package dropdown change - reveal payment method button
@@ -924,68 +944,144 @@ $( () => {
 
 		// Populate confirmation details
 		var event = e.currentTarget.id;
-		confirmPaymentDetails(event, products, $revealedElements);
+		confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement);
 	});
 
-	// EVENT: Select payment method dropdown change - reveal submit button
+	// EVENT: Select payment method dropdown change - enable required options and reveal submit button
 	$('#payment_method_dropdown').change( (e) => {
 		e.preventDefault();
 		console.log(`Event captured: ${e.currentTarget.id}`);
 		console.log(e);
 		
-		// Retrieve requested action (buy class or package)
+		// Retrieve requested action (buy class or package) and store submit button element
 		var action = $('#search_student_div').data('action');
 		
 		var $dropdown = $('#payment_method_dropdown');
 		switch (action) {
 			case 'buy_class_top':
-				$element = $('#buy_class_submit');
-				buttonText = 'BUY CLASS SERIES';
+				$submitButtonElement = $('#buy_class_submit');
+				var buttonText = 'BUY CLASS SERIES';
 				break;
 			case 'buy_package_top':
-				$element = $('#buy_package_submit');
-				buttonText = 'BUY PACKAGE';
+				$submitButtonElement = $('#buy_package_submit');
+				var buttonText = 'BUY PACKAGE';
 				break;
 		}
 
-		// Disable Xero invoice creation if no payment method
-		if ($dropdown.val() === "none") {
-			$('#create_invoice_checkbox').prop('checked', false);
-			$('#apply_payment_checkbox').prop('checked', false);
-		} else {
-			$('#create_invoice_checkbox').prop('checked', true);
-			$('#apply_payment_checkbox').prop('checked', true);
-		}
+		// Reset and hide deposit amount div
+		var $depositAmountDivElement = $('#deposit_amount_div');
+		var $depositAmountElement = $('#deposit_amount');
+		$depositAmountElement.val('');
+		$depositAmountDivElement.hide();
 
+		// Store various elements to enable/disable
+		var $updatePriceElement = $('#updated_price_div');
+		var $updatePriceFormElement = $('#updated_price');
+		var $createInvoiceElement = $('#create_invoice_checkbox');
+		var $applyPaymentElement = $('#apply_payment_checkbox');
+		var $paymentOptionsElement = $('#payment_options_div');		
+
+		// Store selected payment method
+		var paymentMethod = $dropdown.val();
 		if (debug) {
-			console.log('Payment method dropdown val: ', $dropdown.val());
+			console.log('Payment method dropdown val: ', paymentMethod);
 		}
 
-		// If payment method is NONE, update discount price to 0
-		if ($dropdown.val() === 'none') {
-			$('#updated_price').val('0.00');
-		} else {
-			$('#updated_price').val('');
+		// Enable and disable various elements based on payment method selection
+		switch (paymentMethod) {
+			case 'select':
+				// Disable submit button if payment method not selected
+				$submitButtonElement.prop('disabled', true).addClass('disabled');
+				// Reset price to default and hide payment options
+				$paymentOptionsElement.hide();
+				$updatePriceElement.hide();
+				$updatePriceFormElement.val('');
+				// Hide and disable payment options
+				$createInvoiceElement.prop('checked', false).prop('disabled', true).addClass('disabled');
+				$applyPaymentElement.prop('checked', false).prop('disabled', true).addClass('disabled');
+				break;
+			case 'none':
+				// If payment method is not selected or NONE, disable Xero invoice creation and update price to zero
+				$createInvoiceElement.prop('checked', false).prop('disabled', true).addClass('disabled');
+				$applyPaymentElement.prop('checked', false).prop('disabled', true).addClass('disabled');
+				$updatePriceFormElement.val('0.00');
+				break;
+			case 'cc-online':
+				// Hide payment options as payment will be via Acuity
+				$paymentOptionsElement.hide();
+				$updatePriceElement.hide();
+				// Reset price to default
+				$updatePriceFormElement.val('');
+				// Update submit button text
+				buttonText = 'ENTER CARD DETAILS';
+				break;
+			case 'wechat-pay':
+				// Disable invoice creation checkbox as payment will be via Stripe and invoice created via Zapier
+				$createInvoiceElement.prop('checked', true).prop('disabled', true).addClass('disabled');
+				$applyPaymentElement.prop('checked', true).prop('disabled', true).addClass('disabled');
+				// Reveal update price and payment options checkboxes and reset price
+				$revealedElements = revealElement($paymentOptionsElement, $revealedElements);
+				$revealedElements = revealElement($updatePriceElement, $revealedElements);				
+				$updatePriceFormElement.val('');
+				// Update submit button text
+				buttonText = 'SCAN QR CODE';
+				break;
+			default:
+				// Reveal and enable payment options checkboxes				
+				$revealedElements = revealElement($paymentOptionsElement, $revealedElements);
+				$createInvoiceElement.prop('checked', true).prop('disabled', false).removeClass('disabled');
+				$applyPaymentElement.prop('checked', true).prop('disabled', false).removeClass('disabled');
+				$updatePriceFormElement.val('');
+				// Reveal update price form
+				$revealedElements = revealElement($updatePriceElement, $revealedElements);
+				break;
 		}
 
-		// Populate confirmation details
+		// Populate confirmation details box for user to see all purchase details before submitting
 		var event = e.currentTarget.id;
-		confirmPaymentDetails(event, products, $revealedElements);
+		confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement);
 
-		// Once payment method is chosen make submit button visible
-		if ($dropdown.val() != 'select') {
-			if ($dropdown.val() != 'cc-online') {
-				// Reveal updated price form
-				$revealedElements = revealElement($('#updated_price_div'), $revealedElements);
-			} else {
-				$('#updated_price_div').hide();
-			}
-			// Reveal submit button
-			$element.prop('disabled', false).removeClass('disabled').val(buttonText);
-			$revealedElements = revealElement($element, $revealedElements);
+		// Enable and reveal submit button unless payment method is 'Select One'
+		if (paymentMethod !== 'select') {
+			$submitButtonElement.prop('disabled', false).removeClass('disabled').val(buttonText);
+			$revealedElements = revealElement($submitButtonElement, $revealedElements);
+		}		
+	});
+
+	
+	// EVENT: Payment Received checkbox change - reveal or hide deposit input box
+	$('#apply_payment_checkbox').change( (e) => {
+		e.preventDefault();
+		console.log(`Event captured: ${e.currentTarget.id}`);
+		console.log(e);
+
+		// If checked, hide deposit input, otherwise reveal deposit input
+		var $applyPaymentElement = $('#apply_payment_checkbox');
+		var applyPaymentChecked = $applyPaymentElement.is(':checked');
+		var $depositAmountDivElement = $('#deposit_amount_div');
+		var $depositAmountElement = $('#deposit_amount');
+		if (applyPaymentChecked) {
+			// Clear deposit amount and hide deposit amount input
+			$depositAmountElement.val('');
+			$depositAmountDivElement.hide();
 		} else {
-			$element.prop('disabled', true).addClass('disabled');
+			// Reveal deposit amount input and add focus
+			$revealedElements = revealElement($depositAmountDivElement, $revealedElements);
+			$depositAmountElement.focus();
 		}
+
+		// Update payment confirmation box
+		confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement);
+	});
+
+	// EVENT: Deposit form change - update deposit amount in payment confirmation box
+	$('#deposit_amount').change( (e) => {
+		e.preventDefault();
+		console.log(`Event captured: ${e.currentTarget.id}`);
+		console.log(e);
+
+		// Update payment confirmation box
+		confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement);
 	});
 	
 	// EVENT: Generate check-in table dropdown change - reveal generate table button
@@ -1191,6 +1287,8 @@ $( () => {
 <!-- JQUERY / JQUERY UI -->
 <!--script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script-->
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
+<!-- STRIPE -->
+<script src="https://js.stripe.com/v3/"></script>
 <!-- DATATABLES -->
 <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.js"></script>
 <script type="text/javascript" charset="utf8" src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
@@ -1200,8 +1298,11 @@ $( () => {
 <script src="https://code.highcharts.com/highcharts.js"></script>
 <!-- D3.JS -->
 <script src="https://d3js.org/d3.v5.min.js"></script>
+<!-- JQUERY QRCODE --></div>
+<script type="text/javascript" src="https://sophiadance.squarespace.com/s/jqueryqrcodemin.js"></script>
 <!-- BOOTSTRAP -->
 <!--script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script-->
 <!--script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script-->
+
 <!-- END PROD -->
 </html>

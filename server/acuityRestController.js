@@ -11,14 +11,13 @@ const port = args[0] || 3443;
 const fs = require('fs');
 const https = require('https');
 const path = require('path');
-const Joi = require('joi');
 
 // Read stripe keys
-let stripeKeys_raw = fs.readFileSync(path.join(__dirname, '..', 'stripe-keys.json'));
-let stripeKeys = JSON.parse(stripeKeys_raw);
-console.log(stripeKeys);
-let stripeSecretTest = stripeKeys.secret_test;
-let stripeSecretLive = stripeKeys.secret_live;
+const stripeKeys = require('../stripe-keys.json');
+// let stripeKeys_raw = fs.readFileSync(path.join(__dirname, '..', 'stripe-keys.json'));
+// let stripeKeys = JSON.parse(stripeKeys_raw);
+const stripeSecretTest = stripeKeys.secret_test;
+const stripeSecretLive = stripeKeys.secret_live;
 
 // STRIPE TEST
 const stripeTest = require('stripe')(stripeSecretTest);
@@ -26,7 +25,7 @@ const stripeTest = require('stripe')(stripeSecretTest);
 const stripe = require('stripe')(stripeSecretLive);
 
 // Version
-const acuityRestControllerVersion = '1.3.1';
+const acuityRestControllerVersion = '1.4.1';
 
 // DEBUG mode
 const debug = true;
@@ -62,9 +61,9 @@ const supportedFunctions = [
 ];
 
 // Grab user info from file
-let ddyUsers_raw = fs.readFileSync(path.join(__dirname, '..', 'api-users.json'));
-let ddyUsers = JSON.parse(ddyUsers_raw);
-console.log(ddyUsers);
+// let ddyUsers_raw = fs.readFileSync(path.join(__dirname, '..', 'api-users.json'));
+// let ddyUsers = JSON.parse(ddyUsers_raw);
+const ddyUsers = require('../api-users.json');
 
 // Set up express for HTTPS
 app.use(express.json());
@@ -108,12 +107,6 @@ function getUnauthorizedResponse(req) {
     return req.auth ? ('Credentials ' + req.auth.user + ':' + req.auth.password + ' rejected') : 'No credentials provided';
 }
 
-// Sample JOI validation
-function validateCourse(course) {
-    const schema = { name: Joi.string().min(3).required() };
-    return Joi.validate(course, schema);
-}
-
 async function initAcuityAPIcall(req) {
     // Store query details
     const requestedFunction = req.params.function;
@@ -121,6 +114,8 @@ async function initAcuityAPIcall(req) {
     const queryIds = Object.keys(req.query);
     const queryId1 = Object.keys(req.query)[0];
     const queryParam1 = eval(`req.query.${queryId1}`);
+    const queryId2 = Object.keys(req.query)[1];
+    const queryParam2 = eval(`req.query.${queryId2}`);
 
     // Update func var with proper syntax to make API call    
     const func = requestedFunction.replace(/\-\-/g, "/");
@@ -155,62 +150,24 @@ async function initAcuityAPIcall(req) {
         console.log('NEW body after object insertion: ', body);
     }
 
-    // Decode URL to store key params
+    // Parse the incoming request params to get required data related to the Acuity and Xero API calls
+    // Required data includes whether to send an email, create an invoice in Xero, and apply payment to invoice
+    // Refactor this later to send properly formatted JSON via POST (let's be honest that's not gonna happen)
+    
     // If first query ID is "method" then set method (PUT/POST/DELETE) otherwise default to GET and remove query
     var method = 'GET';
     if (queryId1 === 'method') {
         method = queryParam1;
         delete body.method;
     }
-    
-    // When sending a POST or PUT (i.e. buying package or creating appointment), parse the URL to get required data
-    // Required data includes whether to send an email, create an invoice in Xero, and apply payment to invoice
-    // Refactor this later to send properly formatted JSON via POST (let's be honest that's not gonna happen)
-    if (method === "POST" || method === "PUT") {
-        const queryId2 = Object.keys(req.query)[0];
-        const queryParam2 = eval(`req.query.${queryId2}`);
-        const queryId3 = Object.keys(req.query)[1];
-        const queryParam3 = eval(`req.query.${queryId3}`);
-        const queryId4 = Object.keys(req.query)[2];
-        const queryParam4 = eval(`req.query.${queryId4}`);
 
-        if (func === 'certificates') {
-            if (queryId2 === 'paymentMethod') { 
-                var paymentMethod = queryParam2;
-                delete body.paymentMethod;
-            }
-
-            if (queryId3 === 'xeroCreateInvoice') { 
-                var xeroCreateInvoice = queryParam3;
-                delete body.xeroCreateInvoice;
-            }
-
-            if (queryId4 === 'xeroApplyPayment') {
-                var xeroApplyPayment = queryParam4;
-                delete body.xeroApplyPayment;
-            }
-        }
-        
-        if (queryId2 === 'noEmail') {
-            var noEmail = queryParam2;
-            delete body.noEmail;
-        }
-
-        if (debug) {
-            console.log('POST/PUT Query IDs:')
-            console.log(`queryId2: ${queryId2}`);
-            console.log(`queryParam2: ${queryParam2}`);
-            console.log(`queryId3: ${queryId3}`);
-            console.log(`queryParam3: ${queryParam3}`);
-            console.log(`queryId4: ${queryId4}`);
-            console.log(`queryParam4: ${queryParam4}`);
-        }
+    // Check if noEmail parameter was set to turn off email confirmations to client
+    if (queryId2 === 'noEmail') {
+        var noEmail = queryParam2;
+        delete body.noEmail;
     }
 
-    if (debug) {
-        console.log(`paymentMethod: ${paymentMethod}`);
-        console.log(`xeroCreateInvoice: ${xeroCreateInvoice}`);
-        console.log(`xeroApplyPayment: ${xeroApplyPayment}`);
+    if (debug) {        
         console.log(`noEmail: ${noEmail}`);
     }
 
@@ -268,10 +225,11 @@ async function initAcuityAPIcall(req) {
 
     if (debug) {
         console.log(`Function: ${func}`);
-        console.log(`Method: ${method}`);
-        console.log(`Payment Method: ${paymentMethod}`);
+        console.log(`Method: ${method}`);        
         console.log('Req query below');
         console.log(body);
+        console.log('ORIGINAL req query (req.query) below');
+        console.log(req.query);
         console.log(`QueryIds: ${queryIds}`);        
         console.log('Query keys below');
         console.log(Object.keys(req.query));
@@ -351,7 +309,7 @@ async function createXeroInvoice(params, reqFunc) {
 
         if (debug) {        
             console.log(`productId: ${productId}`);
-            console.log(`email: ${email}`);            
+            console.log(`email: ${email}`);
         }
 
         // Retrieve array indexes to find info for Xero call
@@ -483,12 +441,15 @@ async function createXeroInvoice(params, reqFunc) {
     }
 
     // Apply payment to Xero invoice if required
-    if (!params.xeroApplyPayment || params.xeroApplyPayment === 'false' ) {        
-        console.log('XERO: NOT applying payment to XERO invoice');            
-        xeroResult.xeroPaymentStatus = false;
-        xeroResult.xeroPaymentStatusMessage = "XERO: Payment NOT applied as per request";        
-        return xeroResult;        
-    } else {
+    console.log('Checking whether to apply a payment to Xero invoice...');
+    var applyPayment = false;    
+    if (params.xeroApplyPayment === 'true') {
+        applyPayment = true;
+    } else if (params.xeroApplyPayment === 'false' && params.depositAmount != 'false') {
+        applyPayment = true;
+    }
+
+    if (applyPayment) {
         console.log('XERO: Applying payment to Xero invoice...');
         try {
             var xeroPayment = await xeroApplyPayment(xeroResult, params);
@@ -512,31 +473,100 @@ async function createXeroInvoice(params, reqFunc) {
                 console.log(`XERO ERROR: Xero Payment error: ${xeroResult.xeroPaymentStatusString}`);
                 console.log(`XERO ERROR: Xero Payment error message: ${xeroResult.xeroPaymentErrorMessage}`);                
             } else if (xeroResult.xeroPaymentStatusString === "WARNING") {
-                // xeroResult.xeroPaymentErrorMessage = xeroPayment.Payments[0].Warnings[0].Message;
-                // console.log(`ERROR: Xero Payment error message: ${xeroResult.xeroPaymentErrorMessage}`);
-                console.log('XERO WARNING: THERE ARE WARNINGS - FIX THIS LATER');
-                xeroResult.xeroPaymentWarningMessage = 'SOMETHING';
+                xeroResult.xeroPaymentWarningMessage = xeroPayment.Payments[0].Warnings[0].Message;
+                console.log(`WARNING: Xero Payment warning message: ${xeroResult.xeroPaymentWarningMessage}`);
+                console.log('XERO WARNING: THERE ARE WARNINGS');
+                // xeroResult.xeroPaymentWarningMessage = 'SOME XERO WARNING';
             } else {
                 console.log(`XERO: Xero apply payment SUCCESSFUL`);
                 xeroResult.xeroPaymentErrorMessage = 'None';
             }
         } else {            
             // Payment was not applied - capture reason and append to response
-            console.log(xeroPayment.xeroPaymentStatusMessage);            
+            console.log(xeroPayment.xeroPaymentStatusMessage);
             xeroResult.xeroPaymentErrorMessage = xeroPayment.xeroPaymentStatusMessage;
         }
+    } else {
+        console.log('XERO: NOT applying payment to XERO invoice');
+        xeroResult.xeroPaymentStatus = false;
+        xeroResult.xeroPaymentStatusMessage = "XERO: Payment NOT applied as per request";
+        return xeroResult;
     }
+
+    /*
+        // Check deposit param to determine whether to apply a deposit amount to invoice        
+        if (params.depositAmount === 'false') {
+            console.log('XERO: NOT applying payment to XERO invoice');
+            xeroResult.xeroPaymentStatus = false;
+            xeroResult.xeroPaymentStatusMessage = "XERO: Payment NOT applied as per request";        
+            return xeroResult;
+        } else {
+            console.log('XERO: Applying payment to Xero invoice...');
+            try {
+                var xeroPayment = await xeroApplyPayment(xeroResult, params);
+                console.log('XERO: Apply payment result:');
+                console.log(JSON.stringify(xeroPayment, undefined, 2)); // JSON STRINGIFY TEST - CHECK LATER
+                // Store result of Xero apply payment status
+                xeroResult.xeroPaymentStatus = xeroPayment.xeroPaymentStatus;
+                xeroResult.xeroPaymentStatusMessage = xeroPayment.xeroPaymentStatusMessage;
+            } catch (e) {
+                console.log('XERO ERROR: Error in XERO apply payment API call');
+                xeroResult.xeroPaymentStatus = false;
+                xeroResult.xeroPaymentStatusMessage = "XERO: ERROR caught creating XERO payment";
+                return xeroResult;
+            }
+
+            // Capture Xero apply payment results and append to response
+            if (xeroResult.xeroPaymentStatus) {            
+                xeroResult.xeroPaymentStatusString = xeroPayment.Payments[0].StatusAttributeString;
+                if (xeroPayment.Status !== "OK" || xeroResult.xeroPaymentStatusString === "ERROR") {
+                    xeroResult.xeroPaymentErrorMessage = xeroPayment.Payments[0].ValidationErrors[0].Message;
+                    console.log(`XERO ERROR: Xero Payment error: ${xeroResult.xeroPaymentStatusString}`);
+                    console.log(`XERO ERROR: Xero Payment error message: ${xeroResult.xeroPaymentErrorMessage}`);                
+                } else if (xeroResult.xeroPaymentStatusString === "WARNING") {
+                    xeroResult.xeroPaymentWarningMessage = xeroPayment.Payments[0].Warnings[0].Message;
+                    console.log(`WARNING: Xero Payment warning message: ${xeroResult.xeroPaymentWarningMessage}`);
+                    console.log('XERO WARNING: THERE ARE WARNINGS');
+                    // xeroResult.xeroPaymentWarningMessage = 'SOME XERO WARNING';
+                } else {
+                    console.log(`XERO: Xero apply payment SUCCESSFUL`);
+                    xeroResult.xeroPaymentErrorMessage = 'None';
+                }
+            } else {            
+                // Payment was not applied - capture reason and append to response
+                console.log(xeroPayment.xeroPaymentStatusMessage);            
+                xeroResult.xeroPaymentErrorMessage = xeroPayment.xeroPaymentStatusMessage;
+            }
+        }
+    }
+    */
+
     return xeroResult;
 }
 
 async function xeroApplyPayment(xeroInvoice, requestParams) {
     // Apply payment to Xero Invoice - capture required params
     var invoiceID = xeroInvoice.Invoices[0].InvoiceID;
-    var invoiceNumber = xeroInvoice.Invoices[0].InvoiceNumber;
-    var productPrice = xeroInvoice.Invoices[0].AmountDue;
+    var invoiceNumber = xeroInvoice.Invoices[0].InvoiceNumber;    
     var todaysDate = new Date();
     var dateOptions = {day: '2-digit', month: '2-digit', year: 'numeric'};
     todaysDate = todaysDate.toLocaleDateString(undefined, dateOptions);
+
+    // Apply deposit only if it exists, otherwise apply full payment
+    if (debug) {
+        console.log('Xero Apply Payment - request params below:');
+        console.log(requestParams);
+    }
+    
+    var depositAmount = requestParams.depositAmount;
+    if (depositAmount === 'false') {        
+        var paymentAmount = xeroInvoice.Invoices[0].AmountDue;
+        console.log(`Applying full payment to invoice: ${paymentAmount}`);
+    } else {        
+        var paymentAmount = depositAmount;
+        var applyDeposit = true;
+        console.log(`Applying deposit to invoice: ${paymentAmount}`);
+    }
     
     // Translate payment method to XERO account ID to apply payment
     // Accounts:
@@ -571,7 +601,7 @@ async function xeroApplyPayment(xeroInvoice, requestParams) {
         Account: { "AccountID": eval(`'${accountID}'`) },
         InvoiceNumber: eval(`'${invoiceNumber}'`),
         Date: eval(`'${todaysDate}'`),
-        Amount: eval(`'${productPrice}'`),
+        Amount: eval(`'${paymentAmount}'`),
         Reference: eval(`'${ref}'`)
     };
 
@@ -616,10 +646,10 @@ function parseXeroApiCall(xeroInvoice, acuityResult) {
         if (acuityResult.xeroPaymentStatus) {
             acuityResult.xeroPaymentStatusString = xeroInvoice.xeroPaymentStatusString;
             // Check for errors in applying payment
-            if (!acuityResult.xeroPaymentStatus || acuityResult.xeroPaymentStatusString !== "OK") {
+            if (!acuityResult.xeroPaymentStatus) {
                 acuityResult.xeroPaymentErrorMessage = xeroInvoice.xeroPaymentErrorMessage;
                 console.log(`ERROR: Error in applying payment to Xero invoice.  Status: ${acuityResult.xeroPaymentStatus} / ${acuityResult.xeroPaymentErrorMessage}`);
-            } else {                                        
+            } else {
                 acuityResult.xeroPaymentErrorMessage = 'None';
             }
         } else {
@@ -787,6 +817,8 @@ app.post('/stripe/webhook', async (req, res) => {
         switch (stripeEvent.type) {
             case 'charge.succeeded':
                 console.log(`STRIPE: Stripe payment ${stripePaymentId} CHARGE SUCCESSFUL`);
+                // Do something here?  Maintain data in stripe object to kick off purchase?
+                // Only need to generate cert and/or book classes, invoice not required
                 break;
             case 'charge.failed':
                 console.log(`STRIPE: Stripe payment ${stripePaymentId} FAILED`);

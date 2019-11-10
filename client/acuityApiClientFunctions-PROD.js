@@ -1,6 +1,6 @@
 // Setup script
 const environment = 'PROD';
-const version = '1.5.0';
+const version = '1.6.3';
 
 // Set API host
 // var apiHostUAT = 'https://greg-monster.dreamdanceyoga.com:3443/api/ddy'; // GREG computer
@@ -95,13 +95,30 @@ async function initApiCall(func, activity, params) {
                     break;
                 case 'classSeries':
                     // Buy a series - find all classes for the selected class series
+                    // 
+                    // UPDATE HERE - pass selectedClass object DIRECTLY - no need to loop through array again
+                    // 
                     var products = params;
+                    // var selectedClass = params; NEW
                     var selectedClassVal = $('#select_package_class_dropdown').val();
                     var selectedClass = $.grep(products, (i) => {
                         return i.name === selectedClassVal;
                     });				
                     var classId = selectedClass[0].id;
                     var params = {		
+                        appointmentTypeID: classId,
+                        includeUnavailable: true
+                    };
+                    break;
+                case 'classSeriesNEW':
+                    // Buy a series - find all classes for the selected class series
+                    // 
+                    // UPDATE HERE - pass selectedClass object DIRECTLY - no need to loop through array again
+                    // 
+                    var selectedClass = params;                    
+                    var classId = selectedClass[0].id;
+
+                    var params = {
                         appointmentTypeID: classId,
                         includeUnavailable: true
                     };
@@ -184,33 +201,42 @@ async function initApiCall(func, activity, params) {
                     break;
                 case 'addToClassSeries':
                     // BOOK A CLASS SERIES AND CREATE INVOICE
-                    // Create an appointment in an Acuity class series for selected student                    
+                    // Create an appointment in an Acuity class series for selected student
                     var classTimes = params[0];
-                    var clients = params[1];
+                    var selectedClient = params[1];
+                    
+                    // Set client information
+                    var client_firstName = selectedClient[0].firstName;
+                    var client_lastName = selectedClient[0].lastName;
+                    var client_email = selectedClient[0].email;
+                    var client_phone = selectedClient[0].phone;
+
                     // Set createInvoice to determine whether to create an invoice in Xero - only 1 invoice created for each class series
                     var createInvoice = params[2];
                     console.log('classTimes is: ', classTimes);
 
-                    var selectedClientVal = $('#search_student_dropdown').val();
-                    var selected_client = $.grep(clients, (i) => {
-                        return `${i.firstName} ${i.lastName}` === selectedClientVal;
-                    });
                     var classTime = $('#buy_class_submit').data('classTime');
                     var classId = classTimes[0].appointmentTypeID;
                     var calendarId = classTimes[0].calendarID;
+                    var paymentMethod = $('#payment_method_dropdown option:selected').val();
                     if (debug) {
                         console.log(`classId is ${classId}`);
                         console.log(`calendarID is ${calendarId}`);
                     }
-                    var client_firstName = selected_client[0].firstName;
-                    var client_lastName = selected_client[0].lastName;
-                    var client_email = selected_client[0].email;
-                    var client_phone = selected_client[0].phone;
-                    var paymentMethod = $('#payment_method_dropdown option:selected').val();                    
                     
                     // Get updated package price if specified
                     var newPrice = $('#updated_price').val() || false;
+                    if (newPrice) {
+                        newPrice = parseFloat(newPrice).toFixed(2);
+                    }
                     console.log('UPDATED PRICE: ', newPrice);
+
+                    // Get deposit amount if specified
+                    var depositAmount = $('#deposit_amount').val() || false;
+                    if (depositAmount) {
+                        depositAmount = parseFloat(depositAmount).toFixed(2);
+                    }
+                    console.log('DEPOSIT AMOUNT: ', depositAmount);
 
                     // Check Xero invoice checkboxes to determine whether to create invoice / apply payment
                     // Check checkboxes on last run of class series booking
@@ -225,6 +251,7 @@ async function initApiCall(func, activity, params) {
                         console.log(`createInvoiceChecked is ${createInvoiceChecked}`);
                         console.log(`applyPaymentChecked is ${applyPaymentChecked}`);
                     }
+                    
                     var params = {
                         method: "POST",
                         paymentMethod: paymentMethod,
@@ -237,7 +264,8 @@ async function initApiCall(func, activity, params) {
                         lastName: client_lastName,
                         email: client_email,
                         phone: client_phone,
-                        newPrice
+                        newPrice,
+                        depositAmount
                     };                    
                     break;
                 default:
@@ -322,33 +350,40 @@ async function initApiCall(func, activity, params) {
             break;
         case 'certificates_create':
             switch (activity) {
-                case 'createCertificate':                    
-                    var products = params[0];
-                    var clients = params[1];
-                    var selectedProductVal = $('#select_package_class_dropdown').val();
-                    var selectedProduct = $.grep(products, (i) => {
-                        return i.name === selectedProductVal;
-                    });				
+                case 'createCertificate':
+                    var selectedProduct = params[0];
+                    var selectedClient = params[1];
                     var productId = selectedProduct[0].id;
-                    // var selected_client = $('#search_student_dropdown').prop('selectedIndex');
-                    var selectedClientVal = $('#search_student_dropdown').val();
-                    var selected_client = $.grep(clients, (i) => {
-                        return `${i.firstName} ${i.lastName}` === selectedClientVal;
-                    });
+                    var clientEmail = selectedClient[0].email;
+                    var createInvoice = true;
+                    var paymentMethod = $('#payment_method_dropdown option:selected').val();
+
+                    // Don't create invoice if payment is via wechat, since wechat is Stripe and will create Invoice via Zapier
+                    if (paymentMethod === 'wechat-pay') {
+                        createInvoice = false;
+                    }
+
                     if (debug) {
-                        console.log(`selectedproductVal is ${selectedProductVal}`);								
                         console.log(`selectedProduct is ${selectedProduct}`);
                         console.log(selectedProduct);				
                         console.log(`productId is ${productId}`);
                         console.log('selected client is:');
-                        console.log(selected_client);
-                    }
-                    // var client_email = clients[selected_client].email;
-                    var client_email = selected_client[0].email;
+                        console.log(selectedClient);
+                        console.log('selected client email is:');
+                        console.log(clientEmail);
+                        console.log(`Payment method: ${paymentMethod}`);
+                    }                    
 
                     // Get updated package price if specified
                     var newPrice = $('#updated_price').val() || false;
                     console.log('UPDATED PRICE: ', newPrice);
+
+                    // Get deposit amount if specified
+                    var depositAmount = $('#deposit_amount').val() || false;
+                    if (depositAmount) {
+                        depositAmount = parseFloat(depositAmount).toFixed(2);
+                    }
+                    console.log('DEPOSIT AMOUNT: ', depositAmount);
                     
                     // Check Xero invoice checkboxes to determine whether to create invoice / apply payment
                     var createInvoiceChecked = $('#create_invoice_checkbox').is(':checked');
@@ -357,16 +392,27 @@ async function initApiCall(func, activity, params) {
                         console.log(`createInvoiceChecked is ${createInvoiceChecked}`);
                         console.log(`applyPaymentChecked is ${applyPaymentChecked}`);
                     }
-                    // Additional params for XERO
-                    var paymentMethod = $('#payment_method_dropdown option:selected').val();
+
+                    // Check Xero invoice checkboxes to determine whether to create invoice / apply payment
+                    // Check checkboxes on last run of class series booking
+                    if (createInvoice) {
+                        var createInvoiceChecked = $('#create_invoice_checkbox').is(':checked');
+                        var applyPaymentChecked = $('#apply_payment_checkbox').is(':checked');
+                    } else {
+                        var createInvoiceChecked = false
+                        var applyPaymentChecked = false
+                    }
+
+                    // Additional params for XERO                    
                     var params = {
                         method: "POST",
                         paymentMethod: paymentMethod,
                         xeroCreateInvoice: createInvoiceChecked,
                         xeroApplyPayment: applyPaymentChecked,
                         productID: productId,
-                        email: client_email,
-                        newPrice
+                        email: clientEmail,
+                        newPrice,
+                        depositAmount
                     };
                     break;
                 default:
@@ -877,7 +923,7 @@ async function addNewStudent() {
         console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
         console.error(e);
         var message = { title: 'ERROR', body: "<strong>Error occured creating new student, please check and try again</strong>" };
-        writeMessage('modal', message);        
+        writeMessage('modal', message);
         return false;
     }		
 }
@@ -885,13 +931,14 @@ async function addNewStudent() {
 // FUNCTION: confirmPaymentDetails()
 // 1. Gather all details for upcoming payment
 // 2. Present details to user for confirmation
-function confirmPaymentDetails(event, products, $revealedElements) {
+function confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement) {
     // Populate confirmation details
     var $confirmElement = $('#confirm_details_div');
     var studentName = $('#search_student_dropdown option:selected').text();
     var productName = $('#select_package_class_dropdown option:selected').text();
     var paymentMethod = $('#payment_method_dropdown option:selected').text();
-    var updatedPrice = $('#updated_price').val() || false;    
+    var updatedPrice = $('#updated_price').val() || false;
+    var depositAmount = $('#deposit_amount').val() || 'FULLY PAID';
     
     // Find the array index of the selected product / package and extract price
     var selectedProductVal = $('#select_package_class_dropdown').val();
@@ -901,18 +948,39 @@ function confirmPaymentDetails(event, products, $revealedElements) {
     var price = updatedPrice || selectedProduct[0].price;
     price = parseFloat(price).toFixed(2);
 
+    if (depositAmount !== 'FULLY PAID') {
+        depositAmount = parseFloat(depositAmount).toFixed(2);
+
+        // Check if deposit amount is more than the total price
+        if (parseFloat(depositAmount) >= parseFloat(price)) {
+            var message = { title: 'ERROR', body: "<strong>Deposit is more than the total price. Please reduce deposit amount.</strong>" };
+            writeMessage('modal', message);
+            
+            // Disable submit button
+            $submitButtonElement.prop('disabled', true).addClass('disabled');
+            return;
+        } else {
+            // Set deposit amount for display
+            depositAmount = `$${depositAmount}`;
+        }
+    }
+
     var confirmDetails = `<div class="center confirm-title"><strong>CONFIRM DETAILS</strong></div>
                             <strong>Student Name:</strong> ${studentName}<br>
                             <strong>Package / Class:</strong> ${productName}<br>
                             <strong>Payment Method:</strong> ${paymentMethod}<br>
-                            <strong>Price:</strong> $${price}<br><br>
+                            <strong>Price:</strong> $${price}<br>
+                            <strong>Deposit:</strong> ${depositAmount}<br><br>
                             <div class="confirm-final"><strong>SINGAPORE #1 CONFIRM?</strong></div>`;
     $confirmElement.html(confirmDetails);
     
     // If payment method dropdown was changed, reveal confirm container
     if (event === 'payment_method_dropdown') {        
-        $revealedElements = revealElement($confirmElement, $revealedElements);
+        $revealedElements = revealElement($confirmElement, $revealedElements);        
     }
+
+    // Enable submit button
+    $submitButtonElement.prop('disabled', false).removeClass('disabled');
 }
 
 // FUNCTION: weChatPay()
@@ -920,7 +988,7 @@ function confirmPaymentDetails(event, products, $revealedElements) {
 // 2. If successful generate QR code for client to scan, otherwise handle error
 // 3. Wait for webhook indicating QR code has been scanned (payment authorized) and complete charge via DDY API call to Stripe API
 // 4. Return Stripe charge result to calling function
-async function weChatPay(selectedProduct, selectedClient, $revealedElements) {
+function weChatPay(action, selectedProduct, selectedClient, newPrice) {
     // Create a Stripe client
     if (environment === 'UAT') {
         // Load TEST public key
@@ -930,100 +998,217 @@ async function weChatPay(selectedProduct, selectedClient, $revealedElements) {
         var stripe = Stripe('pk_live_CMB25yauNZEeA66zhsGmCUE8');
     }
 
-    // Create a Stripe source
+    // Set price
+    var stripePrice = newPrice || selectedProduct[0].price;
+    var stripePriceFloat = parseFloat(stripePrice) * 100;
+    console.log('Stripe price is: ', stripePriceFloat);
+
+    // Create a Stripe payment source for WeChat pay
     stripe.createSource({
         type: 'wechat',
-        amount: parseFloat(selectedProduct[0].price) * 100,
+        amount: stripePriceFloat,
         currency: 'sgd',
         statement_descriptor: selectedProduct[0].name,
         owner: {
             name: `${selectedClient[0].firstName} ${selectedClient[0].lastName}`,
             email: selectedClient[0].email
         },
-    }).then(async function(result) {
+    }).then((result) => {
         // handle result.error or result.source
         console.log('Stripe create payment result:');
         console.log(result);
         
-        // If successful then open wechat URL in new window
-        if (result) {
-            // var win = window.open(result.source.wechat.qr_code_url, '_blank');
+        // If successful then open wechat QR code in modal
+        if (result) {            
             // Store Stripe source vars
             var weChatQRCodeURL = result.source.wechat.qr_code_url;
             var sourceId = result.source.id;
-            var clientSecret = result.source.client_secret;            
+            var clientSecret = result.source.client_secret;
+            var stripeAmount = (parseFloat(result.source.amount) / 100).toFixed(2);
+            var stripeCurrency = (result.source.currency).toUpperCase();
+            var stripePrice = `${stripeCurrency} $${stripeAmount}`;
 
             // Poll source status here until it becomes chargeable
-            var MAX_POLL_COUNT = 120;
+            var MAX_POLL_COUNT = 300;
             var pollCount = 0;
 
-            // Reveal QR CODE element
-            var $qrcodeElement = $('#qrcode');
-            var $qrcodeTitleElement = $('#qrcode-title');
-            $qrcodeTitleElement.html(`<h2>WECHAT PAY - SCAN HERE</h2><h3><strong>${MAX_POLL_COUNT}</strong> seconds...</h3>`);
-            $revealedElements = revealElement($qrcodeTitleElement, $revealedElements);
-            $revealedElements = revealElement($qrcodeElement, $revealedElements);
+            // Bring up modal with details of purchase and WeChat QR Code            
+            var message = { 
+                title: `WECHAT PAY - PLEASE SCAN QR CODE`,
+                body: `<div id="qrcode-modal-title" class="qrcode-container center"><h3>WeChat Pay Amount: <strong>${stripePrice}</h3>Make payment within ${MAX_POLL_COUNT} seconds!</strong></div>
+                        <div id="qrcode-modal-output" class="center"></div>
+                        <div id="qrcode-modal-timer" class="qrcode-container center"><h3><strong>${MAX_POLL_COUNT}</strong> seconds...</h3></div>`,
+                qrCodeURL: weChatQRCodeURL
+            };
+            writeMessage('modal-qrcode', message);
+
+            // Capture QR Code timer element to update timer
+            var $qrcodeModalTimerElement = $('#qrcode-modal-timer');
+
+            // Gather parameters for Stripe poll
+            var stripePollParams = {
+                action,
+                stripe,
+                stripePrice,
+                MAX_POLL_COUNT,
+                pollCount,
+                sourceId,
+                clientSecret,
+                $qrcodeModalTimerElement,
+                selectedProduct,
+                selectedClient
+            }
             
-            // Clear QR Code element and generate QR Code for wechat payment
-            $qrcodeElement.html('');
-            $qrcodeElement.qrcode(weChatQRCodeURL);
-
-            var stripePollingResult = await stripePollForSourceStatus(stripe, MAX_POLL_COUNT, pollCount, sourceId, clientSecret, $qrcodeTitleElement);
-            console.log(`Stripe Polling COMPLETE - result is ${stripePollingResult}`);
-
-            // Once chargeable, send message to server to complete Stripe charge
-            // initApiCall - stripe charge?
+            // Call polling function to check Stripe source until payment is made
+            stripePollForSourceStatus(stripePollParams);
         }
     });
+    // console.log(`Stripe POLLING COMPLETE - sourceResult is: ${sourceResult}`);
 }
 
 // FUNCTION: stripePollForSourceStatus()
 // 1. Poll the Stripe API for the Stripe payment just made to get source status
 // 2. Once source status is chargeable, initiate Stripe charge via API or handle error
-function stripePollForSourceStatus(stripe, MAX_POLL_COUNT, pollCount, sourceId, clientSecret, $qrcodeTitleElement) {
+// function stripePollForSourceStatus(action, stripe, stripePrice, MAX_POLL_COUNT, pollCount, sourceId, clientSecret, $qrcodeTitleElement) {
+function stripePollForSourceStatus(stripePollParams) {
+    // Retrieve required poll vars
+    var stripe = stripePollParams.stripe;
+    var sourceId = stripePollParams.sourceId;
+    var clientSecret = stripePollParams.clientSecret;
+    var stripePrice = stripePollParams.stripePrice;
+    var MAX_POLL_COUNT = stripePollParams.MAX_POLL_COUNT;
+    var pollCount = stripePollParams.pollCount;
+    var $qrcodeModalTimerElement = stripePollParams.$qrcodeModalTimerElement;
+
     console.log(`Polling Stripe for result of source charge, timeout ${MAX_POLL_COUNT} seconds...`);
 
     // Make call to Stripe API to retrieve status of source transation just created
-    stripe.retrieveSource({id: sourceId, client_secret: clientSecret}).then(function(result) {
-        var source = result.source;
-        if (source.status === 'chargeable') {
-            // Make a request to server to charge the Source
-            console.log(`Stripe charge ${sourceId} is CHARGEABLE`);
-            console.log(`Source status is ${source.status}`);
-            $qrcodeTitleElement.html(`<h2>WECHAT PAY - SCAN HERE</h2><h3><strong>PAYMENT AUTHORIZED!</h3></strong>`);
-            
-            // Trigger buyPackage / buySeries as required with appropriate params
+    try {
+        stripe.retrieveSource({id: sourceId, client_secret: clientSecret}).then(async (result) => {
+            var source = result.source;
+            var sourceStatus = source.status;
 
+            // Charge customer or keep polling based on status of the Stripe source object
+            switch (sourceStatus) {
+                case 'chargeable':
+                case 'consumed':
+                    // Charge has been authorized, proceed with purchase
+                    // Assumes the server receives the charges webhook and processes the charge
+                    console.log(`Stripe charge ${sourceId} is CHARGEABLE`);
+                    console.log(`Source status is ${source.status}`);
 
-            return source.status;
-        } else if (source.status === 'pending' && pollCount < MAX_POLL_COUNT) {
-            console.log(`Try ${pollCount}: Stripe charge ${sourceId} still pending...`);
-            console.log(`Source status is ${source.status}`);
-            // Update pollCount and qrcode HTML element timer
-            pollCount += 1;
-            newTimer = MAX_POLL_COUNT - pollCount;
-            $qrcodeTitleElement.html(`<h2>WECHAT PAY - SCAN HERE</h2><h3><strong>${newTimer}</strong> seconds...</h3>`);
-            // Try again in a second, if the Source is still `pending`            
-            setTimeout(function() {
-                stripePollForSourceStatus(stripe, MAX_POLL_COUNT, pollCount, sourceId, clientSecret, $qrcodeTitleElement);
-            }, 1000);
-            return source.status;
-        } else {
-            // Depending on the Source status, show customer the relevant message
-            console.log(`Source status is ${source.status}`);
-            $qrcodeTitleElement.html(`<h2>WECHAT PAY - SCAN HERE</h2><h3><strong>PAYMENT CANCELLED!</h3></strong>`);
-            return source.status;
-        }        
-    });    
+                    // Update timer element with result
+                    $qrcodeModalTimerElement.html(`<h3><strong>PAYMENT AUTHORIZED!</strong><br>`);
+                    
+                    // Trigger buyPackage / buySeries as required with appropriate params
+                    // Determine if package or class series purchase and invoke appropriate function, return result
+                    var action = stripePollParams.action;
+                    var selectedProduct = stripePollParams.selectedProduct;
+                    var selectedClient = stripePollParams.selectedClient;
+                    console.log(`READY TO MAKE PURCHASE!  ACTION IS: ${action}`);
+                    console.log(`Selected product:`, selectedProduct);                
+                    console.log(`Selected client:`, selectedClient);
+
+                    switch (action) {        
+                        case 'buy_class_top':
+                            var buySeriesResult = await buySeries(selectedProduct, selectedClient);
+                            console.log(`BUY CLASS SERIES RESULT:`, buySeriesResult);                        
+                            break;
+                        case 'buy_package_top':
+                            var buyPackageResult = await buyPackage(selectedProduct, selectedClient);
+                            console.log(`BUY PACKAGE RESULT:`, buyPackageResult);
+                            return buyPackageResult;
+                            break;
+                    }
+
+                    return source.status;                    
+                    break;
+                case 'pending':
+                    if (pollCount < MAX_POLL_COUNT) {
+                        console.log(`Try ${pollCount}: Stripe charge ${sourceId} still pending...`);
+                        console.log(`Source status is ${source.status}`);
+                        
+                        // Update pollCount and qrcode HTML element timer
+                        pollCount += 1;
+                        newTimer = MAX_POLL_COUNT - pollCount;
+                        
+                        $qrcodeModalTimerElement.html(`<h3><strong>${newTimer}</strong> seconds...</strong></h3>`);
+                                    
+                        // Gather params and try again in a second, if the Source is still `pending`
+                        stripePollParams = {
+                            action: stripePollParams.action,
+                            stripe,
+                            stripePrice,
+                            MAX_POLL_COUNT,
+                            pollCount,
+                            sourceId,
+                            clientSecret,
+                            $qrcodeModalTimerElement,
+                            selectedProduct: stripePollParams.selectedProduct,
+                            selectedClient: stripePollParams.selectedClient
+                        }
+
+                        // If status is still pending, poll again after timeout of 1 second
+                        setTimeout(() => { stripePollForSourceStatus(stripePollParams); }, 1000);
+
+                        return source.status;
+                    } else {
+                        // Timer has run out - inform customer payment has timed out
+                        // Note WeChat payment can technically still be made within an hour if QR code is saved,
+                        // but package purchase will not progress if user navigates way from page
+                        console.log(`WeChat Pay timeout!  Source status is ${source.status}`);
+
+                        // Update timer element with result
+                        $qrcodeModalTimerElement.html(`<h3><strong>PAYMENT TIMED OUT!<br>
+                                                        Source status: ${source.status}<br>
+                                                        Please confirm payment was made!</strong></h3></h3>`);
+
+                        // MANUALLY CANCEL SOURCE HERE VIA STRIPE.JS IF POSSIBLE
+                        // Which I don't think it is...
+                        
+                        return source.status;
+                    }
+                    break;
+                case 'failed':
+                    // If the payment isn't authorized, show customer the relevant message
+                    console.log(`Source status is ${source.status}`);
+
+                    // Update timer element with result
+                    $qrcodeModalTimerElement.html(`<h3><strong>PAYMENT CANCELLED!<br>
+                                                    Source status: ${source.status}</strong>`);
+
+                    return source.status;
+                    break;
+                default:
+                    // Unknown source status - inform customer payment has failed
+                    console.log(`Source status is ${source.status}`);
+
+                    // Update timer element with result
+                    $qrcodeModalTimerElement.html(`<strong>UNKNOWN ERROR!<br>
+                                                    Source status: ${source.status}<br>
+                                                    Please confirm payment was made!</strong>`);                    
+
+                    return source.status;
+                    break;
+            }
+        });
+    }
+    catch(e) {
+        console.error(`ERROR: Error detected in Stripe retrieveSource call`);
+        console.error(e);
+        var message = { title: 'ERROR', body: `An error occured with Stripe API call: ${e.message}<br>Please check and try again` };
+        writeMessage('modal', message);
+        return false;
+    }
 }
 
-// FUNCTION: buyPackage()
-// 1. Generate a package certificate and assign to user's email address
-// 2. Generate a Xero invoice for the package price (if requested)
-// 3. Apply full payment to Xero invoice based on payment method selected (if requested)
-async function buyPackage(products, clients, $revealedElements) {
+// FUNCTION: initPurchase()
+// 1. Get details of purchase to determine whether package or class series
+// 2. Extract payment method and redirect as required
+// 3. Call appropriate function to continue purchase (package or class series)
+async function initPurchase(action, products, clients) {
     try {			
-        // Find the array index of the selected product / package and extract expiry date to determine if package or subscription
+        // Find the array index of the selected product / package or class series
         var selectedProductVal = $('#select_package_class_dropdown').val();
         var selectedProduct = $.grep(products, (i) => {
             return i.name === selectedProductVal;
@@ -1037,36 +1222,80 @@ async function buyPackage(products, clients, $revealedElements) {
         });
         console.log('selectedClient is: ', selectedClient);
 
-        // If customer wants to pay with credit card online or wechat, redirect as appropriate
+        // Get updated package price if specified
+        var newPrice = $('#updated_price').val() || false;
+
+        // Capture payment method from dropdown menu
         var paymentMethod = $('#payment_method_dropdown option:selected').val();
         console.log(`paymentMethod: ${paymentMethod}`);
-        if (paymentMethod === 'cc-online') {            
-            // Prepare Acuity direct purchase link URL
-            var productID = selectedProduct[0].id;
-            var productURL = `https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=${productID}&firstName=${selectedClient[0].firstName}&lastName=${selectedClient[0].lastName}&email=${selectedClient[0].email}&phone=${selectedClient[0].phone}`;
-            // Replace any '+' symbols in URL with ASCII code
-            productURL = productURL.replace(/\+/g, "%2B");
-            
-            // Open new tab with Acuity direct purchase link
-            var win = window.open(productURL, '_blank');
-            return false;
-        } else if (paymentMethod === 'wechat-pay') {
-            // Do wechat stuff
-            console.log('Paying via WeChat Pay...');
-            // alert('Wechat payments not enabled yet!');
-            
-            // Initiate weChat Pay charge
-            var weChatPayResult = await weChatPay(selectedProduct, selectedClient, $revealedElements);
-            console.log(`weChatPayResult: ${weChatPayResult}`);
-
-            // Notify user here if successful
-
-            return false;
-        }
         
+        // If customer wants to pay with credit card online or wechat, redirect as appropriate        
+        switch (paymentMethod) {
+            case 'cc-online':
+                // Prepare Acuity direct purchase link URL
+                var productID = selectedProduct[0].id;
+                var productURL = `https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=${productID}&firstName=${selectedClient[0].firstName}&lastName=${selectedClient[0].lastName}&email=${selectedClient[0].email}&phone=${selectedClient[0].phone}`;
+                // Replace any '+' symbols in URL with ASCII code
+                productURL = productURL.replace(/\+/g, "%2B");
+                
+                // Open new tab with Acuity direct purchase link
+                var win = window.open(productURL, '_blank');
+                return false;
+                break;
+            case 'wechat-pay':
+                // Do wechat stuff
+                console.log('Paying via WeChat Pay...');
+                
+                // If package purchase then check if subscription - otherwise initiate weChat Pay charge
+                if (action === 'buy_package_top') {
+                    var productExpiry = selectedProduct[0].expires;
+                    if (productExpiry == null) {
+                        var message = { title: 'ERROR', body: '<strong>Memberships / subscriptions can only be bought via CREDIT or DEBIT CARD.</strong><br>Please select <strong>"Credit/Debit Card"</strong> payment method and use a valid card.' };
+                        writeMessage('modal', message);
+                        return false;
+                    }
+                }
+
+                var weChatPayResult = await weChatPay(action, selectedProduct, selectedClient, newPrice);
+                console.log(`weChatPayResult: ${weChatPayResult}`);
+
+                // Return false back to calling function as WeChat payment needs to be authorized before package purchase will continue
+                return false;
+                break;
+        }
+    }
+    catch(e) {
+        console.error(`ERROR: Error detected in initPurchase: ${e.message}`);
+        console.error(e);
+        var message = { title: 'ERROR', body: `An error occured with initPurchase, please check and try again` };
+        writeMessage('modal', message);
+        return false;
+    }
+
+    // Determine if package or class series purchase and invoke appropriate function, return result
+    switch (action) {        
+        case 'buy_class_top':
+            var buySeriesResult = await buySeries(selectedProduct, selectedClient);
+            return buySeriesResult;
+            break;
+        case 'buy_package_top':
+            var buyPackageResult = await buyPackage(selectedProduct, selectedClient);
+            return buyPackageResult;
+            break;
+    }
+}
+
+// FUNCTION: buyPackage(selectedProduct, selectedClient) NEW ****
+// 1. Generate a package certificate and assign to user's email address
+// 2. Generate a Xero invoice for the package price (if requested)
+// 3. Apply full payment to Xero invoice based on payment method selected (if requested)
+async function buyPackage(selectedProduct, selectedClient) {
+    try {
+        console.log('BUY PACKAGE NEW - Selected Product is:', selectedProduct);
+        // Check if product is a package or a subscription, if subscription then payment method must be CC
         var productExpiry = selectedProduct[0].expires;
         if (productExpiry == null) {
-            var message = { title: 'ERROR', body: '<strong>Subscriptions can only be bought via Credit Card ONLINE.</strong><br><br>Please choose the Credit Card ONLINE option and use a valid credit card.' };
+            var message = { title: 'ERROR', body: '<strong>Memberships / subscriptions can only be bought via CREDIT or DEBIT CARD.</strong><br>Please select <strong>"Credit/Debit Card"</strong> payment method and use a valid card.' };
             writeMessage('modal', message);
             return false;
         }
@@ -1074,7 +1303,7 @@ async function buyPackage(products, clients, $revealedElements) {
         // If package then buy package
         var funcType = 'certificates_create';
         var activity = 'createCertificate';
-        var params = [ products, clients ];
+        var params = [ selectedProduct, selectedClient ];        
         var result = await initApiCall(funcType, activity, params);
         console.log('buyPackage result:');
         console.log(result);
@@ -1090,17 +1319,11 @@ async function buyPackage(products, clients, $revealedElements) {
             writeMessage('debug', `<br>Xero Invoice Status String: ${xeroInvoiceStatusString}`);
             writeMessage('debug', `<br>Xero Payment Status: ${xeroPaymentResult}`);
         }
-        var pay_method = $('#payment_method_dropdown').find(':selected').text();
-        // var selected_client = $('#search_student_dropdown').prop('selectedIndex');
-        // var client_email = clients[selected_client].email;
-        var selectedClientVal = $('#search_student_dropdown').val();
-        var selected_client = $.grep(clients, (i) => {
-                return `${i.firstName} ${i.lastName}` === selectedClientVal;
-        });
-        var client_email = selected_client[0].email;
+        var paymentMethod = $('#payment_method_dropdown').find(':selected').text();
+        var clientEmail = selectedClient[0].email;
         var message = { 
             title: 'PURCHASE SUCCESS',
-            body: `<b>Email:</b> ${client_email}<br><b>Code:</b> ${result.certificate}<br><b>Payment Method:</b> ${pay_method}<hr><strong>Xero Results</strong><br>${xeroInvoiceStatusMessage}<br>${xeroPaymentStatusMessage}<hr><strong>Inform student to use email address to book classes</strong>`
+            body: `<b>Email:</b> ${clientEmail}<br><b>Code:</b> ${result.certificate}<br><b>Payment Method:</b> ${paymentMethod}<hr><strong>Xero Results</strong><br>${xeroInvoiceStatusMessage}<br>${xeroPaymentStatusMessage}<hr><strong>Inform student to use email address to book classes</strong>`
         };
         writeMessage('modal', message);
         return result;
@@ -1144,54 +1367,17 @@ async function buyClass() {
     // Move xero invoice create code block to a separate function and invoke
 }
 
-// FUNCTION: buySeries(products, clients)
+// FUNCTION: buySeries(selectedProduct, selectedClient) NEW ****
 // 1. Register for all classes in a class series
 // 2. Generate a *single* invoice in Xero for all classes in the series for the class series price
 // 3. Apply full payment to the Xero invoice based on the payment method selected
-async function buySeries(products, clients) {
+async function buySeries(selectedClass, selectedClient) {
     try {
-        // Find the array index of the selected product / package to get more info about selected product
-        var selectedProductVal = $('#select_package_class_dropdown').val();
-        var selectedProduct = $.grep(products, (i) => {
-            return i.name === selectedProductVal;
-        });
-
-        // Capture selected client from clients array
-        var selectedClientVal = $('#search_student_dropdown').val();
-        var selectedClient = $.grep(clients, (i) => {
-            return `${i.firstName} ${i.lastName}` === selectedClientVal;
-        });
-        console.log('selectedClient is: ', selectedClient);
-
-        // If customer wants to pay with credit card online or wechat, redirect as appropriate
-        var paymentMethod = $('#payment_method_dropdown option:selected').val();
-        console.log(`paymentMethod: ${paymentMethod}`);
-        if (paymentMethod === 'cc-online') {
-            // Open new tab with direct link to product in Acuity
-            var productURL = selectedProduct[0].schedulingUrl;            
-            productURL += `&firstName=${selectedClient[0].firstName}&lastName=${selectedClient[0].lastName}&email=${selectedClient[0].email}&phone=${selectedClient[0].phone}`;
-            // Replace any '+' symbols in URL with ASCII code
-            productURL = productURL.replace(/\+/g, "%2B");
-            var win = window.open(productURL, '_blank');
-            return false;
-        } else if (paymentMethod === 'wechat-pay') {
-            // Do wechat stuff
-            console.log('Paying via WeChat Pay...');
-            // alert('Wechat payments not enabled yet!');
-            
-            // Initiate weChat Pay charge
-            var weChatPayResult = await weChatPay(selectedProduct, selectedClient, $revealedElements);
-            console.log(`weChatPayResult: ${weChatPayResult}`);
-
-            // Notify user here if successful
-
-            return false;
-        }
-        
         // Get all class times, once we have them loop through each and book
         var funcType = "availability--classes_get";
         var activity = 'classSeries';
-        var params = products;
+        var params = selectedClass;
+        // GO CHANGE classSeries ACTIVITY to pass selectedProduct!!!!
         var classTimes = await initApiCall(funcType, activity, params);
         
         // (FUTURE) Display confirmation dialog and progress if confirmed
@@ -1202,12 +1388,15 @@ async function buySeries(products, clients) {
             var bookClass = [];
             var funcType = "appointments_post";
             var activity = 'addToClassSeries';
-            var params = [ classTimes, clients, false ];
-            for (var i = 0; i < classTimes.length; i++) {                    
+            var params = [ classTimes, selectedClient, false ];
+            var paymentMethod = $('#payment_method_dropdown option:selected').val();
+
+            for (var i = 0; i < classTimes.length; i++) {
                 $('#buy_class_submit').data('classTime', classTimes[i].time);
                 
                 // If reached last class in series, set createInvoice to true
-                if (i === classTimes.length-1) { params[2] = true; }
+                // Since WeChat payments are via Stripe, invoices are already created automatically via Zapier                
+                if (i === classTimes.length-1 && paymentMethod !== 'wechat-pay') { params[2] = true; }
                 
                 bookClass[i] = await initApiCall(funcType, activity, params);
                 console.log(`Booked class ${i}:`);
@@ -1226,12 +1415,12 @@ async function buySeries(products, clients) {
                 writeMessage('debug', `<br>Xero Invoice Status String: ${xeroInvoiceStatusString}`);
                 writeMessage('debug', `<br>Xero Payment Status: ${xeroPaymentResult}`);
             }
-            var pay_method = $('#payment_method_dropdown').find(':selected').text();
+            var paymentMethod = $('#payment_method_dropdown').find(':selected').text();
             
             // Write message that class series is booked
             var message = {
                 title: 'BOOKING SUCCESS',
-                body: `<strong>Series Name:</strong> ${bookClass[0].type}<br><strong>First Class:</strong> ${bookClass[0].datetime}<br><strong># of Classes:</strong> ${bookClass.length}<br><strong>Payment Method:</strong> ${pay_method}<hr><strong>Xero Results</strong><br>${xeroInvoiceStatusMessage}<br>${xeroPaymentStatusMessage}`
+                body: `<strong>Series Name:</strong> ${bookClass[0].type}<br><strong>First Class:</strong> ${bookClass[0].datetime}<br><strong># of Classes:</strong> ${bookClass.length}<br><strong>Payment Method:</strong> ${paymentMethod}<hr><strong>Xero Results</strong><br>${xeroInvoiceStatusMessage}<br>${xeroPaymentStatusMessage}`
             };				
             writeMessage('modal', message);
             return bookClass;
@@ -1978,7 +2167,7 @@ function writeMessage(type, msg, $output) {
         case 'debug':
             var $output = $('#debug_output');
             break;
-        case 'modal':            
+        case 'modal':        
             var modalButtons = [{
                 text: "OK",
                 icon: "ui-icon-check",
@@ -1986,7 +2175,8 @@ function writeMessage(type, msg, $output) {
                 click: () => { $modalDialog.dialog('close'); }
             }];                    
             break;
-        case 'modal-cancel':            
+        case 'modal-cancel':
+        case 'modal-qrcode':
             var modalButtons = [{
                 text: "Cancel",
                 icon: "ui-icon-closethick",
@@ -2043,10 +2233,20 @@ function writeMessage(type, msg, $output) {
             width: msg.width || 'auto',
             height: msg.height || 'auto',            
             buttons: modalButtons
-        }            
+        }
+        // Populate modal
         var $output = $('#modal_output');
         $output.html(msg.body);
         var $modalDialog = $output.dialog(modalOptions);
+        
+        if (type === 'modal-qrcode') {
+            // Print QR Code in modal            
+            var $qrcodeOutput = $('#qrcode-modal-output');
+            var qrCodeURL = msg.qrCodeURL;
+            // debug
+            console.log('PRINTING QRCODE IN MODAL: ', qrCodeURL);
+            $qrcodeOutput.qrcode(qrCodeURL);
+        }
     } else {
         var message = "";
         if (msg !== "") {
@@ -2056,8 +2256,7 @@ function writeMessage(type, msg, $output) {
         }
         $output.html(message);
     }
-
-    return $modalDialog;
+    return;
 }
 
 // FUNCTION: populateDDYInfo()
