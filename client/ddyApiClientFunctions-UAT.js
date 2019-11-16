@@ -1,6 +1,6 @@
 // Setup script
 const environment = 'UAT';
-const version = '1.6.3';
+const version = '1.6.5';
 
 // Set API host
 // var apiHostUAT = 'https://greg-monster.dreamdanceyoga.com:3443/api/ddy'; // GREG computer
@@ -591,7 +591,7 @@ async function retrieveProductsClasses(action, $revealedElements) {
         // If successful populate dropdown menu based on selected action
         switch (action) {
             case 'buy_single_class_top':
-                // Filter classes result for single class types only
+                // Filter classes result for single class types
                 var singleClasses = $(result).filter((i) => {
                     return (result[i].type === 'class' || result[i].type === 'service');
                 });
@@ -608,16 +608,17 @@ async function retrieveProductsClasses(action, $revealedElements) {
                 return singleClasses;
                 break;
             case 'buy_class_top':                
-                // FUTURE - filter out class series more than a month old?
-                // Filter classes result for SERIES class types only
-                var classSeries = $(result).filter((i) => {
-                    return (result[i].type === 'series');
+                // Filter classes result for SERIES class types and for series associated with a calender ID ONLY
+                // This should be a way to return only ACTIVE class series, and discard anything inactive or from the past
+                // Have not validated this logic with Acuity
+                var classSeriesActive = $(result).filter((i) => {
+                    return (result[i].type === 'series' && result[i].calendarIDs.length > 0);
                 });
-                console.log('classSeries is:', classSeries);
+                console.log('classSeriesActive is:', classSeriesActive);
 
                 var $dropdown = $('#select_package_class_dropdown');
                 var func = "products";
-                populateDropdown($dropdown, classSeries, func);
+                populateDropdown($dropdown, classSeriesActive, func);
                 break;              
             case 'buy_package_top':
                 var $dropdown = $('#select_package_class_dropdown');
@@ -1035,7 +1036,7 @@ function weChatPay(action, selectedProduct, selectedClient, newPrice) {
             // Bring up modal with details of purchase and WeChat QR Code            
             var message = { 
                 title: `WECHAT PAY - PLEASE SCAN QR CODE`,
-                body: `<div id="qrcode-modal-title" class="qrcode-container center"><h3>WeChat Pay Amount: <strong>${stripePrice}</h3>Make payment within ${MAX_POLL_COUNT} seconds!</strong></div>
+                body: `<div id="qrcode-modal-title" class="qrcode-container center"><h3>WeChat Pay Amount: <strong>${stripePrice}</h3>DO NOT REFRESH THIS PAGE UNTIL PAYMENT IS MADE!<br>Please make payment within ${MAX_POLL_COUNT} seconds</strong></div>
                         <div id="qrcode-modal-output" class="center"></div>
                         <div id="qrcode-modal-timer" class="qrcode-container center"><h3><strong>${MAX_POLL_COUNT}</strong> seconds...</h3></div>`,
                 qrCodeURL: weChatQRCodeURL
@@ -1233,8 +1234,17 @@ async function initPurchase(action, products, clients) {
         switch (paymentMethod) {
             case 'cc-online':
                 // Prepare Acuity direct purchase link URL
-                var productID = selectedProduct[0].id;
-                var productURL = `https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=${productID}&firstName=${selectedClient[0].firstName}&lastName=${selectedClient[0].lastName}&email=${selectedClient[0].email}&phone=${selectedClient[0].phone}`;
+                switch (action) {
+                    case 'buy_class_top':
+                        var productURL = selectedProduct[0].schedulingUrl;            
+                        productURL += `&firstName=${selectedClient[0].firstName}&lastName=${selectedClient[0].lastName}&email=${selectedClient[0].email}&phone=${selectedClient[0].phone}`;
+                        break;
+                    case 'buy_package_top':
+                        var productID = selectedProduct[0].id;
+                        var productURL = `https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=${productID}&firstName=${selectedClient[0].firstName}&lastName=${selectedClient[0].lastName}&email=${selectedClient[0].email}&phone=${selectedClient[0].phone}`;    
+                        break;
+                }
+                
                 // Replace any '+' symbols in URL with ASCII code
                 productURL = productURL.replace(/\+/g, "%2B");
                 
