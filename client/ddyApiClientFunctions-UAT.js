@@ -471,7 +471,7 @@ async function callAPI(func, params) {
     // var $loading = $('#loading');
     var $loading = $('#loader-div');
     
-    // AJAX GET call to acuityRestController
+    // AJAX GET call to ddyRestController
     // Refactor later to send POST with JSON body - no longer sustainable as GET with long query string
     try {	
         let result = await $.ajax({

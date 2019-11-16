@@ -25,7 +25,7 @@ const stripeTest = require('stripe')(stripeSecretTest);
 const stripe = require('stripe')(stripeSecretLive);
 
 // Version
-const acuityRestControllerVersion = '1.4.1';
+const ddyRestControllerVersion = '1.4.2';
 
 // DEBUG mode
 const debug = true;
@@ -666,7 +666,7 @@ app.get('/api/ddy/:function', async (req, res) => {
     var options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour12: true, hour: 'numeric', minute: 'numeric' };
     var datePretty = new Date().toLocaleString('en-US', options);
     
-    console.log(`==== ${datePretty}: DDY REST CONTROLLER v${acuityRestControllerVersion} ====`);
+    console.log(`==== ${datePretty}: DDY REST CONTROLLER v${ddyRestControllerVersion} ====`);
     console.log(`== API call from ${req.headers.host} @ ${req.headers.origin} at ${req.ip} ==`);
 
     // Store the requested function and return if function not in supportedFunctions array
@@ -678,7 +678,7 @@ app.get('/api/ddy/:function', async (req, res) => {
     switch (reqFunc) {
         case 'version':
             // If VERSION request then return version
-            return res.status(200).send(acuityRestControllerVersion);            
+            return res.status(200).send(ddyRestControllerVersion);
         case 'pin':
             // If PIN request then return instructor PIN
             const instructorPin = '2468';
