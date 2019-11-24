@@ -241,7 +241,7 @@
 <div id="top_level_options" class="top-cards">	
 	<a href="#">
 		<div id="buy_package_top" class="card">
-			<h3><strong><i class="fas fa-gift fa-3x margin-small"></i><br>BUY PACKAGE / SUBSCRIPTION</strong></h3>
+			<h3><strong><i class="fas fa-gift fa-3x margin-small"></i><br>BUY PACKAGE / MEMBERSHIP</strong></h3>
 		</div>
 	</a>
 	
@@ -440,7 +440,7 @@
 $( () => {
 	// Setup script
 	const environment = 'UAT';
-	const version = '1.5.3';
+	const version = '1.5.4';
 	
 	// Arrays to cache Acuity API call responses (avoid making multiple calls)
 	var clients = [];
@@ -457,8 +457,9 @@ $( () => {
 	// Declare var to hold popup window
 	var win;
 
-	// Var to hold submit button element
+	// Var to hold submit button element and text
 	var $submitButtonElement;
+	var submitButtonText;
 	
 	// Set debug based on environment
     if (environment === 'UAT') {
@@ -655,13 +656,13 @@ $( () => {
 	$('#search_student').on('submit', async (e) => {
         e.preventDefault();		
 		if (debug) {
-            writeMessage('debug', `<br>Submit invoked on search_student`);
+			writeMessage('debug', `<br>Submit invoked on search_student`);			
 		}
 
-        // Cache and disable submit button, clear error messages
+        // Cache and disable search submit button, clear error messages
 		writeMessage('error', "");
-		$submitButton = $('#search_submit');
-		$submitButton.prop('disabled', true).addClass('disabled');
+		var $searchSubmitButton = $('#search_submit');
+		$searchSubmitButton.prop('disabled', true).addClass('disabled');
 		
 		// Retrieve student data
 		try {
@@ -686,11 +687,14 @@ $( () => {
 		catch (e) {
 			var message = { title: 'ERROR', body: "Error retrieving students, please try again." };
 			writeMessage('modal', message);
-		}		
+		}
 
-        // Clear search query, re-enable submit button
+        // Clear search query, re-enable search submit button
         $('#search_student_form').val('');
-		$submitButton.prop('disabled', false).removeClass('disabled');
+		$searchSubmitButton.prop('disabled', false).removeClass('disabled');
+
+		// Re-enable final submit button and update text (in case it's visible)
+		$submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);
 	});
 
 	// EVENT: BUY PACKAGE SUBMIT
@@ -715,8 +719,8 @@ $( () => {
         
         // If successful, don't re-enable submit button to avoid multiple purchases, and leave details on screen (don't clean up)
 		// $('#buy_package_submit').prop('disabled', false).removeClass('disabled');
-		if (generateCertResult) {
-			$('#buy_package_submit').val('DONE');
+		if (generateCertResult) {			
+			$submitButtonElement.val('DONE');
 		}
 	});
 
@@ -764,8 +768,8 @@ $( () => {
 			
 		// If successful, don't re-enable submit button to avoid multiple purchases, and leave details on screen
 		// $('#buy_class_submit').prop('disabled', false).removeClass('disabled');
-		if (buySeriesResult) {
-			$('#buy_class_submit').val('DONE');
+		if (buySeriesResult) {			
+			$submitButtonElement.val('DONE');
 		}
 	});		
 
@@ -909,6 +913,9 @@ $( () => {
 		// Populate confirmation details
 		var event = e.currentTarget.id;
 		confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement);
+
+		// Re-enable final submit button and update text (in case it's visible)
+		$submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);
 	});
 
 	// EVENT: Updated price change - update confirmation details
@@ -944,7 +951,12 @@ $( () => {
 
 		// Populate confirmation details
 		var event = e.currentTarget.id;
-		confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement);
+		var paymentDetailsOK = confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement);
+
+		// If all payment details are OK, enable (or re-enable) submit button and update text
+		if (paymentDetailsOK) {			
+			$submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);
+		}
 	});
 
 	// EVENT: Select payment method dropdown change - enable required options and reveal submit button
@@ -960,11 +972,11 @@ $( () => {
 		switch (action) {
 			case 'buy_class_top':
 				$submitButtonElement = $('#buy_class_submit');
-				var buttonText = 'BUY CLASS SERIES';
+				submitButtonText = 'BUY CLASS SERIES';
 				break;
 			case 'buy_package_top':
 				$submitButtonElement = $('#buy_package_submit');
-				var buttonText = 'BUY PACKAGE';
+				submitButtonText = 'BUY PACKAGE';
 				break;
 		}
 
@@ -1013,7 +1025,7 @@ $( () => {
 				// Reset price to default
 				$updatePriceFormElement.val('');
 				// Update submit button text
-				buttonText = 'ENTER CARD DETAILS';
+				submitButtonText = 'ENTER CARD DETAILS';
 				break;
 			case 'wechat-pay':
 				// Disable invoice creation checkbox as payment will be via Stripe and invoice created via Zapier
@@ -1024,7 +1036,7 @@ $( () => {
 				$revealedElements = revealElement($updatePriceElement, $revealedElements);				
 				$updatePriceFormElement.val('');
 				// Update submit button text
-				buttonText = 'SCAN QR CODE';
+				submitButtonText = 'SCAN QR CODE';
 				break;
 			default:
 				// Reveal and enable payment options checkboxes				
@@ -1039,13 +1051,15 @@ $( () => {
 
 		// Populate confirmation details box for user to see all purchase details before submitting
 		var event = e.currentTarget.id;
-		confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement);
+		var paymentDetailsOK = confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement);
 
 		// Enable and reveal submit button unless payment method is 'Select One'
 		if (paymentMethod !== 'select') {
-			$submitButtonElement.prop('disabled', false).removeClass('disabled').val(buttonText);
-			$revealedElements = revealElement($submitButtonElement, $revealedElements);
-		}		
+			if (paymentDetailsOK) {
+				$submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);
+				$revealedElements = revealElement($submitButtonElement, $revealedElements);
+			}
+		}
 	});
 
 	
@@ -1071,7 +1085,12 @@ $( () => {
 		}
 
 		// Update payment confirmation box
-		confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement);
+		var paymentDetailsOK = confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement);
+
+		// If all payment details are OK, enable (or re-enable) submit button and update text
+		if (paymentDetailsOK) {
+			$submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);
+		}
 	});
 
 	// EVENT: Deposit form change - update deposit amount in payment confirmation box
@@ -1081,7 +1100,12 @@ $( () => {
 		console.log(e);
 
 		// Update payment confirmation box
-		confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement);
+		var paymentDetailsOK = confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement);
+
+		// If all payment details are OK, enable (or re-enable) submit button and update text
+		if (paymentDetailsOK) {
+			$submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);
+		}
 	});
 	
 	// EVENT: Generate check-in table dropdown change - reveal generate table button

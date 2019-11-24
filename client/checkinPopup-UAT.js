@@ -413,12 +413,18 @@ $( async () => {
     // 3) Populate the instructor dropdown with a list of instructors
     async function getInstructors() {
         // Make API call
+        // Initiate performance timer
+        let clientsApiCallt0 = performance.now();
         var funcType = 'clients_search';
         var activity = 'retrieveAllClients';
         var clientsResult = await initApiCall(funcType, activity);
+        let clientsApiCallt1 = performance.now();
         console.log('clientsResult is:', clientsResult);
+        console.log('Client API call took: ', (clientsApiCallt1 - clientsApiCallt0), ' milliseconds');
         
-        // Filter clients ressult to store instructors only by looking for text in the clients notes field
+        // Filter clients result to store instructors only by looking for text in the clients notes field
+        // Initiate performance timer
+        let instructorArrayCheckt0 = performance.now();
         var instructorNote = 'DDY Instructor';
         var instructorNoteUAT = 'DDY TEST Instructor';
         
@@ -429,7 +435,9 @@ $( async () => {
                 return clientsResult[i].notes.includes(instructorNote);
             }
         });
+        let instructorArrayCheckt1 = performance.now();
         console.log('Instructors is:', instructors);
+        console.log('Instructor array iteration took: ', (instructorArrayCheckt1 - instructorArrayCheckt0), ' milliseconds');
         
         // Populate instructor dropdown menu
         var $dropdown = $('#teacher_checkin_dropdown');
@@ -835,7 +843,11 @@ $( async () => {
         }
 
         // Capture list of instructors the first time the window is open
-        instructors = await getInstructors();
+        if (instructors.length === 0) {
+            instructors = await getInstructors();
+        } else {
+            console.log('INIT APPTS TABLE: Instructors array already populated, skipping instructor capture.');
+        }
 
         // Populate dropdown list of other classes
         populateClasses(upcoming_classes);
@@ -879,6 +891,7 @@ $( async () => {
     var instructors = [];
     var checkin_table = {};
     var classFull = false;
+    var pin64 = null;
 
     // Declare var to hold array of div/button elements to clean up
     var $revealedElements = [];
@@ -960,16 +973,23 @@ $( async () => {
         writeMessage('modal-cancel', message);
         $('#instructor_pin_form').focus();
 
-        // Retrieve actual PIN from server            
-        var pin64 = await callAPI('pin');
+        // If PIN not retrieved yet, retrieve from server
+        if (pin64 === null) {
+            // PIN has not been retrieved yet - retrieve from server
+            pin64 = await callAPI('pin');
+        } else {
+            console.log('TEACHER CHECK-IN: PIN already retrieved.');
+        }
+
+        // Set pin
         var pin = atob(pin64);
-            
+
         // EVENT: INSTRUCTOR PIN SUBMIT
         $('#instructor_pin_form').on('submit', async (e) => {
             e.preventDefault();
 
             if (debug) {
-                writeMessage('debug', `<br>Submit invoked on instructor_pin`);                
+                writeMessage('debug', `<br>Submit invoked on instructor_pin`);
             }
 
             // Cache and disable submit button, clear error messages
@@ -1134,11 +1154,11 @@ $( async () => {
                         </div>
                     </div>`
         };    
-        var $modalDialog = await writeMessage('modal-cancel', message);
+        var $modalDialog = await writeMessage('modal-cancel', message);        
         
         // AUTOCOMPLETE TEST
         var studentNames = ['Greg Parker', 'Sophia Meng', 'Larry Parker', 'Grace Meng', 'Zhifen Liang'];
-        if ($modalDialog) {
+        if ($modalDialog) {            
             $('#search_student_form').autocomplete({
                 source: studentNames
             });
@@ -1187,8 +1207,7 @@ $( async () => {
             e.preventDefault();		
             if (debug) {
                 writeMessage('debug', `<br>Submit invoked on search_student`);
-                console.log('modalDialog is');
-                console.log($modalDialog);
+                console.log('modalDialog is: ', $modalDialog);
             }
 
             // Cache and disable submit button, clear error messages
@@ -1224,7 +1243,7 @@ $( async () => {
                 if (!certificate || certificate === '') {
                     var message = { title: 'No Certificate!', body: "Sorry, we couldn't find a valid certificate code! Please check with Dream Dance and Yoga staff to register for this class." };
                     writeMessage('modal', message);
-                } else {            
+                } else {
                     // Set check-in type and add student to class
                     var checkInType = 'student';
                     var addStudentResult = await addStudentToClass(selectedClient, certificate, checkInType);
@@ -1233,7 +1252,7 @@ $( async () => {
                     // If successful close dialog and reload table
                     if (addStudentResult) {
                         console.log('Reloading table...!');       
-                        $modalDialog.dialog('close');         
+                        $modalDialog.dialog('close');
                         // window.location.reload();
                         initializeAppointmentsTable(false, selected_class_index);
                     }
@@ -1292,7 +1311,7 @@ $( async () => {
 }
 </script>
 <!-- Acuity Client Functions -->
-<script src="https://sophiadance.squarespace.com/s/acuityApiClientFunctions-UAT.js"></script>
+<script src="https://sophiadance.squarespace.com/s/ddyApiClientFunctions-UAT.js"></script>
 <!-- JQUERY / JQUERY UI -->
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>

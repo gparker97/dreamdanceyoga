@@ -1,6 +1,6 @@
 // Setup script
 const environment = 'PROD';
-const version = '1.6.5';
+const version = '1.6.6';
 
 // Set API host
 // var apiHostUAT = 'https://greg-monster.dreamdanceyoga.com:3443/api/ddy'; // GREG computer
@@ -471,7 +471,7 @@ async function callAPI(func, params) {
     // var $loading = $('#loading');
     var $loading = $('#loader-div');
     
-    // AJAX GET call to acuityRestController
+    // AJAX GET call to ddyRestController
     // Refactor later to send POST with JSON body - no longer sustainable as GET with long query string
     try {	
         let result = await $.ajax({
@@ -591,7 +591,7 @@ async function retrieveProductsClasses(action, $revealedElements) {
         // If successful populate dropdown menu based on selected action
         switch (action) {
             case 'buy_single_class_top':
-                // Filter classes result for single class types and class series associated with a calendar ID ONLY
+                // Filter classes result for single class types
                 var singleClasses = $(result).filter((i) => {
                     return (result[i].type === 'class' || result[i].type === 'service');
                 });
@@ -959,7 +959,7 @@ function confirmPaymentDetails(event, products, $revealedElements, $submitButton
             
             // Disable submit button
             $submitButtonElement.prop('disabled', true).addClass('disabled');
-            return;
+            return false;
         } else {
             // Set deposit amount for display
             depositAmount = `$${depositAmount}`;
@@ -980,8 +980,7 @@ function confirmPaymentDetails(event, products, $revealedElements, $submitButton
         $revealedElements = revealElement($confirmElement, $revealedElements);        
     }
 
-    // Enable submit button
-    $submitButtonElement.prop('disabled', false).removeClass('disabled');
+    return true;
 }
 
 // FUNCTION: weChatPay()
@@ -1330,10 +1329,11 @@ async function buyPackage(selectedProduct, selectedClient) {
             writeMessage('debug', `<br>Xero Payment Status: ${xeroPaymentResult}`);
         }
         var paymentMethod = $('#payment_method_dropdown').find(':selected').text();
+        var clientName = `${selectedClient[0].firstName} ${selectedClient[0].lastName}`;
         var clientEmail = selectedClient[0].email;
         var message = { 
             title: 'PURCHASE SUCCESS',
-            body: `<b>Email:</b> ${clientEmail}<br><b>Code:</b> ${result.certificate}<br><b>Payment Method:</b> ${paymentMethod}<hr><strong>Xero Results</strong><br>${xeroInvoiceStatusMessage}<br>${xeroPaymentStatusMessage}<hr><strong>Inform student to use email address to book classes</strong>`
+            body: `<b>Student Name:</b> ${clientName}<br><b>Email:</b> ${clientEmail}<br><b>Code:</b> ${result.certificate}<br><b>Payment Method:</b> ${paymentMethod}<hr><strong>Xero Results</strong><br>${xeroInvoiceStatusMessage}<br>${xeroPaymentStatusMessage}<hr><strong>Inform student to use email address to book classes</strong>`
         };
         writeMessage('modal', message);
         return result;
@@ -1426,11 +1426,18 @@ async function buySeries(selectedClass, selectedClient) {
                 writeMessage('debug', `<br>Xero Payment Status: ${xeroPaymentResult}`);
             }
             var paymentMethod = $('#payment_method_dropdown').find(':selected').text();
+
+            // Store client name
+            var clientName = `${selectedClient[0].firstName} ${selectedClient[0].lastName}`;
+            
+            // Store first class date and time
+            var options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour12: true, hour: 'numeric', minute: 'numeric' };
+            var firstClassDatePretty = new Date(bookClass[0].datetime).toLocaleString('en-US', options);
             
             // Write message that class series is booked
             var message = {
                 title: 'BOOKING SUCCESS',
-                body: `<strong>Series Name:</strong> ${bookClass[0].type}<br><strong>First Class:</strong> ${bookClass[0].datetime}<br><strong># of Classes:</strong> ${bookClass.length}<br><strong>Payment Method:</strong> ${paymentMethod}<hr><strong>Xero Results</strong><br>${xeroInvoiceStatusMessage}<br>${xeroPaymentStatusMessage}`
+                body: `<strong>Student Name:</strong> ${clientName}<br><strong>Class:</strong> ${bookClass[0].type}<br><strong>First Class:</strong> ${firstClassDatePretty}<br><strong># of Classes:</strong> ${bookClass.length}<br><strong>Payment Method:</strong> ${paymentMethod}<hr><strong>Xero Results</strong><br>${xeroInvoiceStatusMessage}<br>${xeroPaymentStatusMessage}`
             };				
             writeMessage('modal', message);
             return bookClass;
@@ -2266,7 +2273,7 @@ function writeMessage(type, msg, $output) {
         }
         $output.html(message);
     }
-    return;
+    return $modalDialog;
 }
 
 // FUNCTION: populateDDYInfo()

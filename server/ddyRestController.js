@@ -45,7 +45,7 @@ var acuityCertificate = [];
 var acuityAppointment = [];
 var acuityAppointmentTypes = [];
 
-// List of supported Acuity API call functions, anything else will return 400
+// List of supported DDY API call functions, anything else will return 400
 const supportedFunctions = [
     'version',
     'pin',
