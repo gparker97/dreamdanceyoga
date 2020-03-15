@@ -350,6 +350,14 @@
 		<span class="currency-input">$ <input type="number" min="1" max="9999" step="1" id="updated_price" name="updated_price"></span>
 	</div>
 
+	<!-- DDY EMPLOYEE COMMISSION -->
+	<div id="employee_commission_div" class="details-item hide">
+		<label for="employee_commission_dropdown" class="form-label">Sold by: </label>
+		<select id="employee_commission_dropdown" class="select_dropdown">
+			<option value="select">Select One</option>
+		</select>
+	</div>
+
 	<!-- CONFIRMATION DIV -->
 	<div id="confirm_details_div" class="details-item confirm-details hide"></div>
 
@@ -442,7 +450,7 @@
 $( () => {
 	// Setup script
 	const environment = 'PROD';
-	const version = '1.5.6';
+	const version = '1.6.0';
 	
 	// Arrays to cache Acuity API call responses (avoid making multiple calls)
 	var clients = [];
@@ -919,17 +927,6 @@ $( () => {
 		// Re-enable final submit button and update text (in case it's visible)
 		$submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);
 	});
-
-	// EVENT: Updated price change - update confirmation details
-	$('#updated_price').change( (e) => {
-		e.preventDefault();
-		console.log(`Event captured: ${e.currentTarget.id}`);
-		console.log(e);
-
-		// Populate confirmation details
-		var event = e.currentTarget.id;
-		confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement);
-	});
 	
 	// EVENT: Select package dropdown change - reveal payment method button
 	$('#select_package_class_dropdown').change( (e) => {
@@ -962,7 +959,7 @@ $( () => {
 	});
 
 	// EVENT: Select payment method dropdown change - enable required options and reveal submit button
-	$('#payment_method_dropdown').change( (e) => {
+	$('#payment_method_dropdown').change(async (e) => {
 		e.preventDefault();
 		console.log(`Event captured: ${e.currentTarget.id}`);
 		console.log(e);
@@ -1001,6 +998,10 @@ $( () => {
 			console.log('Payment method dropdown val: ', paymentMethod);
 		}
 
+		// If payment method is anything besides "Select One" or "None", reveal employee commission dropdown		
+		$commissionElement = $('#employee_commission_div');
+		$commissionDropdown = $('#employee_commission_dropdown');
+
 		// Enable and disable various elements based on payment method selection
 		switch (paymentMethod) {
 			case 'select':
@@ -1010,15 +1011,20 @@ $( () => {
 				$paymentOptionsElement.hide();
 				$updatePriceElement.hide();
 				$updatePriceFormElement.val('');
-				// Hide and disable payment options
+				// Hide and disable payment options and commission element
 				$createInvoiceElement.prop('checked', false).prop('disabled', true).addClass('disabled');
-				$applyPaymentElement.prop('checked', false).prop('disabled', true).addClass('disabled');
+				$applyPaymentElement.prop('checked', false).prop('disabled', true).addClass('disabled');				
+				$commissionDropdown.val('select');
+				$commissionElement.hide();
 				break;
 			case 'none':
 				// If payment method is not selected or NONE, disable Xero invoice creation and update price to zero
 				$createInvoiceElement.prop('checked', false).prop('disabled', true).addClass('disabled');
 				$applyPaymentElement.prop('checked', false).prop('disabled', true).addClass('disabled');
 				$updatePriceFormElement.val('0.00');
+				// Reset and hide commission element
+				$commissionDropdown.val('select');
+				$commissionElement.hide();
 				break;
 			case 'cc-online':
 				// Hide payment options as payment will be via Acuity
@@ -1028,6 +1034,8 @@ $( () => {
 				$updatePriceFormElement.val('');
 				// Update submit button text
 				submitButtonText = 'ENTER CARD DETAILS';
+				// Reveal commission element
+				$revealedElements = revealElement($commissionElement, $revealedElements);
 				break;
 			case 'wechat-pay':
 				// Disable invoice creation checkbox as payment will be via Stripe and invoice created via Zapier
@@ -1039,6 +1047,8 @@ $( () => {
 				$updatePriceFormElement.val('');
 				// Update submit button text
 				submitButtonText = 'SCAN QR CODE';
+				// Reveal commission element
+				$revealedElements = revealElement($commissionElement, $revealedElements);
 				break;
 			default:
 				// Reveal and enable payment options checkboxes				
@@ -1046,9 +1056,27 @@ $( () => {
 				$createInvoiceElement.prop('checked', true).prop('disabled', false).removeClass('disabled');
 				$applyPaymentElement.prop('checked', true).prop('disabled', false).removeClass('disabled');
 				$updatePriceFormElement.val('');
-				// Reveal update price form
+				// Reveal update price form and commission element
 				$revealedElements = revealElement($updatePriceElement, $revealedElements);
+				$revealedElements = revealElement($commissionElement, $revealedElements);
 				break;
+		}
+
+		// When appropriate make API call and populate employee commission dropdown if not populated already
+		if (paymentMethod != 'select' && paymentMethod != 'none') {
+			if (typeof ddyInstructors === 'undefined') {
+				ddyInstructors = await getDdyInstructors();
+				console.log('DDY Instructors list: ', ddyInstructors);
+				
+				// Populate employee commission dropdown with list of DDY instructors
+				var func = "clients";
+				populateDropdown($commissionDropdown, ddyInstructors, func);
+				
+				// Prepend "Select One" to top of dropdown
+				$commissionDropdown.prepend("<option value='select' selected='selected'>Select One</option>");
+			} else {
+				console.log('PAYMENT METHOD CHANGE EVENT: DDY instructors array already populated, skipping API call.');
+			}
 		}
 
 		// Populate confirmation details box for user to see all purchase details before submitting
@@ -1095,13 +1123,14 @@ $( () => {
 		}
 	});
 
-	// EVENT: Deposit form change - update deposit amount in payment confirmation box
-	$('#deposit_amount').change( (e) => {
+	// EVENT: Dropdown or form change with NO additional dependencies - update relevant details in payment confirmation box
+	$('#deposit_amount, #employee_commission_dropdown, #updated_price').change( (e) => {
 		e.preventDefault();
 		console.log(`Event captured: ${e.currentTarget.id}`);
 		console.log(e);
 
-		// Update payment confirmation box
+		// Populate event and update payment confirmation box
+		var event = e.currentTarget.id;
 		var paymentDetailsOK = confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement);
 
 		// If all payment details are OK, enable (or re-enable) submit button and update text

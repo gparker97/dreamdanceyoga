@@ -408,6 +408,7 @@ $( async () => {
     }
 
     // FUNCTION: getInstructors()
+    // ***** NOTE: REMOVE THIS AND USE MAIN FUNCTION getDdyInstructors()!!
     // 1) Capture Acuity clients list
     // 2) Iterate through list and search for text to specify the client is an instructor
     // 3) Populate the instructor dropdown with a list of instructors
@@ -634,7 +635,7 @@ $( async () => {
         }        
 
         // Store timestamp and check-in string for log message in Acuity notes field
-        var timestamp = new Date().toLocaleString();        
+        var timestamp = new Date().toLocaleString();
         
         if (checkedIn) {
             // Cancel check in - remove text from Acuity notes field and update table            
@@ -846,7 +847,9 @@ $( async () => {
 
         // Capture list of instructors the first time the window is open
         if (instructors.length === 0) {
+            // NOTE: REPLACE THE BELOW WITH getDdyInstructors()!!
             instructors = await getInstructors();
+            // Will need to populate dropdown here with new function from main
         } else {
             console.log('INIT APPTS TABLE: Instructors array already populated, skipping instructor capture.');
         }

@@ -522,54 +522,6 @@ async function createXeroInvoice(params, reqFunc) {
         return xeroResult;
     }
 
-    /*
-        // Check deposit param to determine whether to apply a deposit amount to invoice        
-        if (params.depositAmount === 'false') {
-            console.log('XERO: NOT applying payment to XERO invoice');
-            xeroResult.xeroPaymentStatus = false;
-            xeroResult.xeroPaymentStatusMessage = "XERO: Payment NOT applied as per request";        
-            return xeroResult;
-        } else {
-            console.log('XERO: Applying payment to Xero invoice...');
-            try {
-                var xeroPayment = await xeroApplyPayment(xeroResult, params);
-                console.log('XERO: Apply payment result:');
-                console.log(JSON.stringify(xeroPayment, undefined, 2)); // JSON STRINGIFY TEST - CHECK LATER
-                // Store result of Xero apply payment status
-                xeroResult.xeroPaymentStatus = xeroPayment.xeroPaymentStatus;
-                xeroResult.xeroPaymentStatusMessage = xeroPayment.xeroPaymentStatusMessage;
-            } catch (e) {
-                console.log('XERO ERROR: Error in XERO apply payment API call');
-                xeroResult.xeroPaymentStatus = false;
-                xeroResult.xeroPaymentStatusMessage = "XERO: ERROR caught creating XERO payment";
-                return xeroResult;
-            }
-
-            // Capture Xero apply payment results and append to response
-            if (xeroResult.xeroPaymentStatus) {            
-                xeroResult.xeroPaymentStatusString = xeroPayment.Payments[0].StatusAttributeString;
-                if (xeroPayment.Status !== "OK" || xeroResult.xeroPaymentStatusString === "ERROR") {
-                    xeroResult.xeroPaymentErrorMessage = xeroPayment.Payments[0].ValidationErrors[0].Message;
-                    console.log(`XERO ERROR: Xero Payment error: ${xeroResult.xeroPaymentStatusString}`);
-                    console.log(`XERO ERROR: Xero Payment error message: ${xeroResult.xeroPaymentErrorMessage}`);                
-                } else if (xeroResult.xeroPaymentStatusString === "WARNING") {
-                    xeroResult.xeroPaymentWarningMessage = xeroPayment.Payments[0].Warnings[0].Message;
-                    console.log(`WARNING: Xero Payment warning message: ${xeroResult.xeroPaymentWarningMessage}`);
-                    console.log('XERO WARNING: THERE ARE WARNINGS');
-                    // xeroResult.xeroPaymentWarningMessage = 'SOME XERO WARNING';
-                } else {
-                    console.log(`XERO: Xero apply payment SUCCESSFUL`);
-                    xeroResult.xeroPaymentErrorMessage = 'None';
-                }
-            } else {            
-                // Payment was not applied - capture reason and append to response
-                console.log(xeroPayment.xeroPaymentStatusMessage);            
-                xeroResult.xeroPaymentErrorMessage = xeroPayment.xeroPaymentStatusMessage;
-            }
-        }
-    }
-    */
-
     return xeroResult;
 }
 

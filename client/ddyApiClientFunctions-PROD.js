@@ -1,6 +1,6 @@
 // Setup script
 const environment = 'PROD';
-const version = '1.6.9';
+const version = '1.7.2';
 
 // Set API host
 // var apiHostUAT = 'https://greg-monster.dreamdanceyoga.com:3443/api/ddy'; // GREG computer
@@ -33,6 +33,9 @@ async function initApiCall(func, activity, params) {
                 case 'retrieveAllClients':
                     var searchTerm = '';
                     break;
+                case 'retrieveClientInfo':
+                    var searchTerm = params.searchTerm;                    
+                    break;
                 default:            
                     var searchTerm = $('#search_student_form').val();
                     if (!searchTerm) { searchTerm = ''; }                    
@@ -64,6 +67,25 @@ async function initApiCall(func, activity, params) {
                     return 'Activity not defined';
             }
             break;
+        case 'clients_update':
+        switch (activity) {
+            case 'addClientNotes':
+                var firstName = params.firstName;
+                var lastName = params.lastName;
+                var phone = params.phone;
+                var notes = params.notes;
+                var params = {
+                    method: 'PUT',
+                    firstName,
+                    lastName,
+                    phone,
+                    notes
+                };
+                break;
+            default:
+                return 'Activity not defined';
+        }
+        break;
         case 'products_get':
             var params = {};
             break;
@@ -941,6 +963,11 @@ function confirmPaymentDetails(event, products, $revealedElements, $submitButton
     var paymentMethod = $('#payment_method_dropdown option:selected').text();
     var updatedPrice = $('#updated_price').val() || false;
     var depositAmount = $('#deposit_amount').val() || 'FULLY PAID';
+    var amountDue = 0;
+    var soldBy = $('#employee_commission_dropdown option:selected').text();
+
+    // Set sold by value to none if no person is selected
+    if (soldBy === 'Select One') { soldBy = 'None'; }
     
     // Find the array index of the selected product / package and extract price
     var selectedProductVal = $('#select_package_class_dropdown').val();
@@ -962,8 +989,11 @@ function confirmPaymentDetails(event, products, $revealedElements, $submitButton
             $submitButtonElement.prop('disabled', true).addClass('disabled');
             return false;
         } else {
+            // Calculate amount due
+            amountDue = price - depositAmount;
+            amountDue = parseFloat(amountDue).toFixed(2);
             // Set deposit amount for display
-            depositAmount = `$${depositAmount}`;
+            depositAmount = `$${depositAmount}`;            
         }
     }
 
@@ -972,7 +1002,9 @@ function confirmPaymentDetails(event, products, $revealedElements, $submitButton
                             <strong>Package / Class:</strong> ${productName}<br>
                             <strong>Payment Method:</strong> ${paymentMethod}<br>
                             <strong>Price:</strong> $${price}<br>
-                            <strong>Deposit:</strong> ${depositAmount}<br><br>
+                            <strong>Deposit:</strong> ${depositAmount}<br>
+                            <font color="red"><strong>Amount Due:</strong> $${amountDue}</font><br>
+                            <strong>Sold By:</strong> ${soldBy}<br><br>
                             <div class="confirm-final"><strong>SINGAPORE #1 CONFIRM?</strong></div>`;
     $confirmElement.html(confirmDetails);
     
@@ -1285,14 +1317,62 @@ async function initPurchase(action, products, clients) {
     // Determine if package or class series purchase and invoke appropriate function, return result
     switch (action) {        
         case 'buy_class_top':
-            var buySeriesResult = await buySeries(selectedProduct, selectedClient);
-            return buySeriesResult;
+            var purchaseResult = await buySeries(selectedProduct, selectedClient);            
             break;
         case 'buy_package_top':
-            var buyPackageResult = await buyPackage(selectedProduct, selectedClient);
-            return buyPackageResult;
+            var purchaseResult = await buyPackage(selectedProduct, selectedClient);            
             break;
     }
+
+    if (purchaseResult) {
+        // Non credit card / wechat pay purchase - update student notes with DDY employee commission details in Acuity
+        // If purchase made via Acuity / Stripe - to be done only upon successful purchase via webhook / zapier
+        // Capture relevant details
+        var studentName = $('#search_student_dropdown option:selected').text();
+        var productName = $('#select_package_class_dropdown option:selected').text();
+        var paymentMethod = $('#payment_method_dropdown option:selected').text();
+        var updatedPrice = $('#updated_price').val() || false;    
+        var soldBy = $('#employee_commission_dropdown option:selected').text();
+
+        // Retrieve student info and notes from Acuity
+        var params = { 
+            searchTerm: studentName
+        }
+        var funcType = 'clients_search';
+        var activity = 'retrieveClientInfo';
+        var clientSearchResult = await initApiCall(funcType, activity, params);
+        console.log('clientSearchResult is:', clientSearchResult);
+
+        // Capture student notes
+        var firstName = clientSearchResult[0].firstName;
+        var lastName = clientSearchResult[0].lastName;
+        var phone = clientSearchResult[0].phone;
+        var studentNotes = clientSearchResult[0].notes;        
+        
+        // Convert line breaks to ASCII code
+        studentNotes = studentNotes.replace(/(?:\r\n|\r|\n)/g, "%0A");
+        console.log(`Notes with converted LB for ${firstName} ${lastName}: `, studentNotes);
+
+        // Build student commission note
+        var timestamp = new Date().toLocaleString();
+        var commissionNote = `%0A${timestamp}: ${productName} sold by ${soldBy} for $${updatedPrice}`;
+        studentNotes += commissionNote;
+        console.log(`FULL commission note with history: ${studentNotes}`);
+        
+        // Update student notes with commission detail    
+        var params = { 
+            firstName,
+            lastName,
+            phone,
+            notes: studentNotes
+        }
+        var funcType = 'clients_update';
+        var activity = 'addClientNotes';
+        var clientUpdateResult = await initApiCall(funcType, activity, params);
+        console.log('clientUpdateResult for commission update is:', clientUpdateResult);
+    }
+
+    return purchaseResult;
 }
 
 // FUNCTION: buyPackage(selectedProduct, selectedClient) NEW ****
@@ -1538,12 +1618,25 @@ async function retrieveAppointments(upcoming_classes, classDate, selected_class_
 }
 
 // FUNCTION: generateInstructorReport()
-// 1. Retrieve list of appointments for the selected month
-// 2. Iterate through list an filter for instructor appointments only
-// 3. Add instructor appointments to an object with relevant stats
-// 4. Display instructor report for user
-// 5. Provide option to generate a pay run in Xero
+// 1. Retrieve all clients and parse notes field to generate commission report
+// 2. Retrieve list of appointments for the selected month
+// 3. Iterate through list an filter for instructor appointments only
+// 4. Add instructor appointments to an object with relevant stats
+// 5. Display instructor report for user
+// 6. Provide option to generate a pay run in Xero
 async function generateInstructorReport(reportMonth, $revealedElements) {
+    // Retrieve all clients from Acuity
+
+
+    // Read NOTES field and search for line to indicate commissions (sold by) in selected month
+
+
+    // Parse NOTES field and capture appropriate details in array
+
+
+    // Prepare commission details for printing
+
+    
     // Get first and last day of report month
     var minDate = new Date(reportMonth.getFullYear(), reportMonth.getMonth(), 1);
     var maxDate = new Date(reportMonth.getFullYear(), reportMonth.getMonth() + 1, 0);
@@ -1644,7 +1737,7 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
             }
         });
 
-        // Create instructor data object and push to array - NOT NEEDED?
+        // Create instructor data object and push to array
         var data = {
             name,
             class: engClassType,
@@ -1678,10 +1771,17 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
             }
             msg += `${className1} x ${count}<br>`;
         });
+
+        // Add commissions to totals
+
         
         // Display totals
         msg += `TOTAL BELLY: ${bellyCount}<br>`;
         msg += `TOTAL YOGA: ${yogaCount}<br>`;
+        
+        msg += `COMMISSIONS:<br>`;
+        // Output commissions here        
+
         msg += `<font color="red">LATE: ${lateCount}</font><br>`;
         
         // Reset counters
@@ -2371,6 +2471,41 @@ async function populateDDYInfo() {
         var $element = $('#studio_metrics_data_div');
         $element.html(`Error caught populating DDY information.`);        
     }
+}
+
+// FUNCTION: getDdyInstructors()
+// 1) Retrieve Acuity clients list
+// 2) Iterate through list and search for text to specify the client is an instructor, populate instructors array
+// 3) Return list of DDY instructors in an array to calling function
+async function getDdyInstructors() {
+    // Make API call
+    // Initiate performance timer
+    let clientsApiCallt0 = performance.now();
+    var funcType = 'clients_search';
+    var activity = 'retrieveAllClients';
+    var clientsResult = await initApiCall(funcType, activity);
+    let clientsApiCallt1 = performance.now();
+    console.log('clientsResult is:', clientsResult);
+    console.log('Client API call took: ', (clientsApiCallt1 - clientsApiCallt0), ' milliseconds');
+    
+    // Filter clients result to store instructors only by looking for text in the clients notes field
+    // Initiate performance timer
+    let instructorArrayCheckt0 = performance.now();
+    var instructorNote = 'DDY Instructor';
+    var instructorNoteUAT = 'DDY TEST Instructor';
+    
+    var instructors = $(clientsResult).filter((i) => {
+        if (environment === 'UAT') {
+            return (clientsResult[i].notes.includes(instructorNote) || clientsResult[i].notes.includes(instructorNoteUAT));
+        } else {
+            return clientsResult[i].notes.includes(instructorNote);
+        }
+    });
+    let instructorArrayCheckt1 = performance.now();
+    console.log('Instructors is:', instructors);
+    console.log('Instructor array iteration took: ', (instructorArrayCheckt1 - instructorArrayCheckt0), ' milliseconds');
+
+    return instructors;
 }
 
 async function populateEnvironment() {

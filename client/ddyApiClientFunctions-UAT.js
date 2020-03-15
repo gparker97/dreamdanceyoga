@@ -1,6 +1,6 @@
 // Setup script
 const environment = 'UAT';
-const version = '1.7.1';
+const version = '1.7.2';
 
 // Set API host
 // var apiHostUAT = 'https://greg-monster.dreamdanceyoga.com:3443/api/ddy'; // GREG computer
