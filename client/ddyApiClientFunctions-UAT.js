@@ -1,6 +1,6 @@
 // Setup script
 const environment = 'UAT';
-const version = '1.6.6';
+const version = '1.7.1';
 
 // Set API host
 // var apiHostUAT = 'https://greg-monster.dreamdanceyoga.com:3443/api/ddy'; // GREG computer
@@ -33,6 +33,9 @@ async function initApiCall(func, activity, params) {
                 case 'retrieveAllClients':
                     var searchTerm = '';
                     break;
+                case 'retrieveClientInfo':
+                    var searchTerm = params.searchTerm;                    
+                    break;
                 default:            
                     var searchTerm = $('#search_student_form').val();
                     if (!searchTerm) { searchTerm = ''; }                    
@@ -64,6 +67,25 @@ async function initApiCall(func, activity, params) {
                     return 'Activity not defined';
             }
             break;
+        case 'clients_update':
+        switch (activity) {
+            case 'addClientNotes':
+                var firstName = params.firstName;
+                var lastName = params.lastName;
+                var phone = params.phone;
+                var notes = params.notes;
+                var params = {
+                    method: 'PUT',
+                    firstName,
+                    lastName,
+                    phone,
+                    notes
+                };
+                break;
+            default:
+                return 'Activity not defined';
+        }
+        break;
         case 'products_get':
             var params = {};
             break;
@@ -90,7 +112,8 @@ async function initApiCall(func, activity, params) {
                     var params = {		
                         minDate,
                         maxDate,
-                        includeUnavailable: true
+                        includeUnavailable: true,
+                        includePrivate: true
                     };                    
                     break;
                 case 'classSeries':
@@ -940,6 +963,11 @@ function confirmPaymentDetails(event, products, $revealedElements, $submitButton
     var paymentMethod = $('#payment_method_dropdown option:selected').text();
     var updatedPrice = $('#updated_price').val() || false;
     var depositAmount = $('#deposit_amount').val() || 'FULLY PAID';
+    var amountDue = 0;
+    var soldBy = $('#employee_commission_dropdown option:selected').text();
+
+    // Set sold by value to none if no person is selected
+    if (soldBy === 'Select One') { soldBy = 'None'; }
     
     // Find the array index of the selected product / package and extract price
     var selectedProductVal = $('#select_package_class_dropdown').val();
@@ -961,8 +989,11 @@ function confirmPaymentDetails(event, products, $revealedElements, $submitButton
             $submitButtonElement.prop('disabled', true).addClass('disabled');
             return false;
         } else {
+            // Calculate amount due
+            amountDue = price - depositAmount;
+            amountDue = parseFloat(amountDue).toFixed(2);
             // Set deposit amount for display
-            depositAmount = `$${depositAmount}`;
+            depositAmount = `$${depositAmount}`;            
         }
     }
 
@@ -971,7 +1002,9 @@ function confirmPaymentDetails(event, products, $revealedElements, $submitButton
                             <strong>Package / Class:</strong> ${productName}<br>
                             <strong>Payment Method:</strong> ${paymentMethod}<br>
                             <strong>Price:</strong> $${price}<br>
-                            <strong>Deposit:</strong> ${depositAmount}<br><br>
+                            <strong>Deposit:</strong> ${depositAmount}<br>
+                            <font color="red"><strong>Amount Due:</strong> $${amountDue}</font><br>
+                            <strong>Sold By:</strong> ${soldBy}<br><br>
                             <div class="confirm-final"><strong>SINGAPORE #1 CONFIRM?</strong></div>`;
     $confirmElement.html(confirmDetails);
     
@@ -1284,14 +1317,62 @@ async function initPurchase(action, products, clients) {
     // Determine if package or class series purchase and invoke appropriate function, return result
     switch (action) {        
         case 'buy_class_top':
-            var buySeriesResult = await buySeries(selectedProduct, selectedClient);
-            return buySeriesResult;
+            var purchaseResult = await buySeries(selectedProduct, selectedClient);            
             break;
         case 'buy_package_top':
-            var buyPackageResult = await buyPackage(selectedProduct, selectedClient);
-            return buyPackageResult;
+            var purchaseResult = await buyPackage(selectedProduct, selectedClient);            
             break;
     }
+
+    if (purchaseResult) {
+        // Non credit card / wechat pay purchase - update student notes with DDY employee commission details in Acuity
+        // If purchase made via Acuity / Stripe - to be done only upon successful purchase via webhook / zapier
+        // Capture relevant details
+        var studentName = $('#search_student_dropdown option:selected').text();
+        var productName = $('#select_package_class_dropdown option:selected').text();
+        var paymentMethod = $('#payment_method_dropdown option:selected').text();
+        var updatedPrice = $('#updated_price').val() || false;    
+        var soldBy = $('#employee_commission_dropdown option:selected').text();
+
+        // Retrieve student info and notes from Acuity
+        var params = { 
+            searchTerm: studentName
+        }
+        var funcType = 'clients_search';
+        var activity = 'retrieveClientInfo';
+        var clientSearchResult = await initApiCall(funcType, activity, params);
+        console.log('clientSearchResult is:', clientSearchResult);
+
+        // Capture student notes
+        var firstName = clientSearchResult[0].firstName;
+        var lastName = clientSearchResult[0].lastName;
+        var phone = clientSearchResult[0].phone;
+        var studentNotes = clientSearchResult[0].notes;        
+        
+        // Convert line breaks to ASCII code
+        studentNotes = studentNotes.replace(/(?:\r\n|\r|\n)/g, "%0A");
+        console.log(`Notes with converted LB for ${firstName} ${lastName}: `, studentNotes);
+
+        // Build student commission note
+        var timestamp = new Date().toLocaleString();
+        var commissionNote = `%0A${timestamp}: ${productName} sold by ${soldBy} for $${updatedPrice}`;
+        studentNotes += commissionNote;
+        console.log(`FULL commission note with history: ${studentNotes}`);
+        
+        // Update student notes with commission detail    
+        var params = { 
+            firstName,
+            lastName,
+            phone,
+            notes: studentNotes
+        }
+        var funcType = 'clients_update';
+        var activity = 'addClientNotes';
+        var clientUpdateResult = await initApiCall(funcType, activity, params);
+        console.log('clientUpdateResult for commission update is:', clientUpdateResult);
+    }
+
+    return purchaseResult;
 }
 
 // FUNCTION: buyPackage(selectedProduct, selectedClient) NEW ****
@@ -1537,12 +1618,25 @@ async function retrieveAppointments(upcoming_classes, classDate, selected_class_
 }
 
 // FUNCTION: generateInstructorReport()
-// 1. Retrieve list of appointments for the selected month
-// 2. Iterate through list an filter for instructor appointments only
-// 3. Add instructor appointments to an object with relevant stats
-// 4. Display instructor report for user
-// 5. Provide option to generate a pay run in Xero
+// 1. Retrieve all clients and parse notes field to generate commission report
+// 2. Retrieve list of appointments for the selected month
+// 3. Iterate through list an filter for instructor appointments only
+// 4. Add instructor appointments to an object with relevant stats
+// 5. Display instructor report for user
+// 6. Provide option to generate a pay run in Xero
 async function generateInstructorReport(reportMonth, $revealedElements) {
+    // Retrieve all clients from Acuity
+
+
+    // Read NOTES field and search for line to indicate commissions (sold by) in selected month
+
+
+    // Parse NOTES field and capture appropriate details in array
+
+
+    // Prepare commission details for printing
+
+    
     // Get first and last day of report month
     var minDate = new Date(reportMonth.getFullYear(), reportMonth.getMonth(), 1);
     var maxDate = new Date(reportMonth.getFullYear(), reportMonth.getMonth() + 1, 0);
@@ -1566,53 +1660,6 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
     var instructorData = [];
     var instructorCounts = {};
     var instructorCheckinNote = 'INSTRUCTOR CHECK-IN';
-    
-    /*
-    // Only loop through appointments where there is a check-in already
-    $.each(appointmentsResult, (i, val) => {
-        var notes = val.notes;        
-        if (notes.includes(instructorCheckinNote)) {
-            // Gather required data to store
-            var name = `${val.firstName} ${val.lastName}`;            
-            var classType = val.type;
-            var engClassType = $.trim(classType.split('|')[1]) || classType;
-            var date = val.datetime;
-            // Format date to look nice here
-            // var datePretty = xxxxx
-            
-            // Create instructor data object and push to array
-            // var data = {
-                // name,
-                // class: engClassType,
-                // date
-            // }
-            // instructorData.push(data);
-
-            if (!instructorCounts.hasOwnProperty(name)) {
-                instructorCounts[name] = {};
-                instructorCounts[name][engClassType] = 1;                
-            } else {
-                if (!instructorCounts[name].hasOwnProperty(engClassType)) {
-                    instructorCounts[name][engClassType] = 1;
-                } else {
-                    instructorCounts[name][engClassType]++;
-                }
-            }
-        } else {
-            // Populate name with blank as no instructor has checked in yet
-            var name = 'NO CHECK IN';            
-        }
-        // Create instructor data object and push to array
-        var data = {
-            name,
-            class: engClassType,
-            date
-        }
-        instructorData.push(data);
-    });
-    console.log('Instructor data: ', instructorData);
-    console.log('Instructor counts: ', instructorCounts);
-    */
 
     // Iterate through ALL appointments and prepare for display in table
     $.each(apptsByType, (i, className) => {
@@ -1620,32 +1667,53 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
         var classType = className.values[0].type;
         var engClassType = $.trim(classType.split('|')[1]) || classType;
         var date = className.values[0].datetime;
+        var classDate = new Date(date);
         
         // Format class date for display
-        // var dateString = date.split('T')[0];
-        // var timeString = date.split('T')[1].split('+')[0];
-        // var datePretty = `${dateString} ${timeString}`
         var options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour12: true, hour: 'numeric', minute: 'numeric' };
-        var datePretty = new Date(date).toLocaleString('en-US', options);
+        var datePretty = classDate.toLocaleString('en-US', options);
 
-        // Push class names and times
+        // Push data to array, class names and times and placeholder for check-in time
         className['class'] = engClassType;
+        className['instructor'] = 'NO CHECK IN';
         className['date'] = datePretty;
+        className['checkInTime'] = '';
+        className['lateCheckIn'] = false;
 
         $.each(className.values, (i2, apptDetails) => {
+            // Check notes field in Acuity to determine if instructor has checked in or not
             var notes = apptDetails.notes;
             if (notes.includes(instructorCheckinNote)) {
                 // Gather required data to store
-                var name = `${apptDetails.firstName} ${apptDetails.lastName}`;               
+                var name = `${apptDetails.firstName} ${apptDetails.lastName}`;
+                var checkInTime = notes.split(/: /)[0];                
+                var checkInTimeDate = new Date(checkInTime);
+
+                // Format check-in time for display
+                var options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour12: true, hour: 'numeric', minute: 'numeric' };
+                var checkInTimeDatePretty = checkInTimeDate.toLocaleString('en-US', options);
+                
+                // On-time check-in is considered to be XX min before the class starts, so set expected check-in time
+                const MIN_EARLY = 14;
+                const MS_PER_MIN = 60000;
+                var classCheckInTime = new Date(classDate - (MIN_EARLY * MS_PER_MIN));
+
+                // Compare check-in time to class time to determine if check-in was on time or late
+                var lateCheckIn = false;
+                if (checkInTimeDate >= classCheckInTime) {
+                    lateCheckIn = true;
+                }
 
                 // Push data to object
                 className['hasInstructor'] = true;
                 className['instructor'] = name;
+                className['checkInTime'] = checkInTimeDatePretty;
+                className['lateCheckIn'] = lateCheckIn;
     
-                // Initialize and increment class counter object for instructors
+                // Initialize and increment class counter object and late check-ins for instructors
                 if (!instructorCounts.hasOwnProperty(name)) {
                     instructorCounts[name] = {};
-                    instructorCounts[name][engClassType] = 1;                
+                    instructorCounts[name][engClassType] = 1;
                 } else {
                     if (!instructorCounts[name].hasOwnProperty(engClassType)) {
                         instructorCounts[name][engClassType] = 1;
@@ -1653,15 +1721,21 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
                         instructorCounts[name][engClassType]++;
                     }
                 }
+
+                // Check for late check-ins
+                if (!instructorCounts[name].hasOwnProperty('LATE')) {
+                    if (className['lateCheckIn'] === true) {
+                        instructorCounts[name]['LATE'] = 1;
+                    } else {
+                        instructorCounts[name]['LATE'] = 0;
+                    }
+                } else {
+                    if (className['lateCheckIn'] === true) {
+                        instructorCounts[name]['LATE']++;
+                    }
+                }
             }
         });
-
-        if (className['hasInstructor'] === false) {
-            // Populate name with blank as no instructor has checked in yet
-            var name = 'NO CHECK IN';
-            // Push data to object                    
-            className['instructor'] = name;
-        }
 
         // Create instructor data object and push to array
         var data = {
@@ -1678,31 +1752,61 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
     // Iterate through object and output report
     var selectedMonthVal = $('#instructor_report_datepicker').val();
     var msg = `<h3 class="center"><b>INSTRUCTOR REPORT for ${selectedMonthVal}</h3></b><hr>`;
-    
+
+    // Iterate through instructorCounts array and prepare message to display instructor report summary on screen
+    var lateCount = 0;
+    var bellyCount = 0;
+    var yogaCount = 0;
     $.each(instructorCounts, (name, className) => {
-        console.log(`${name} | ${className}`);
-        msg += `<b>${name}: </b>`;
+        msg += `<b>${name}</b><br>`;
         $.each(className, (className1, count) => {
-            console.log(`${className1} | ${count}`);
-            msg += `${className1} x ${count} `;
+            if (className1 === 'LATE') {
+                lateCount = count;
+                return true;
+            }
+            if (className1.includes('Belly')) {
+                bellyCount = bellyCount + count;
+            } else if (className1.includes('Yoga')) {
+                yogaCount = yogaCount + count;
+            }
+            msg += `${className1} x ${count}<br>`;
         });
-        msg += '<br>';
+
+        // Add commissions to totals
+
+        
+        // Display totals
+        msg += `TOTAL BELLY: ${bellyCount}<br>`;
+        msg += `TOTAL YOGA: ${yogaCount}<br>`;
+        
+        msg += `COMMISSIONS:<br>`;
+        // Output commissions here        
+
+        msg += `<font color="red">LATE: ${lateCount}</font><br>`;
+        
+        // Reset counters
+        bellyCount = 0;
+        yogaCount = 0;
     });
+
     msg += '<hr>';
     console.log(msg);
     
     // Build details table
     var instructorReportDetailsTable = $('#instructor_report_details_table').DataTable({
-        // "data": instructorData,
         "data": apptsByType,
         "pageLength": 50,            
-        "order": [[2, 'asc']],
+        "order": [[4, 'asc']],
         "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
         dom: 'lfrtipB',
         buttons: [{ extend: 'excel', text: '<strong>Export to Excel</strong>'}],
         destroy: true,
         columnDefs: [
-            { "type": "date", "targets": 2 },
+            { targets: 4, type: "date"},
+            { targets: 2, visible: false },            
+            { targets: 0, width: "5%" },
+            
+            // Apply new class to Name column if no check-in
             { targets: 0,
                 createdCell: function(td, cellData, rowData, col) {
                     switch (cellData) {
@@ -1714,10 +1818,23 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
                             break;
                     }
                 }
+            },
+            
+            // Apply new class to check-in column if LATE check-in
+            { targets: 1,
+                createdCell: function(td, cellData, rowData, col) {
+                    if (rowData['lateCheckIn']) {
+                        $(td).addClass('instructor-table-no-checkin');
+                    } else {
+                        $(td).addClass('instructor-table-checkedin');
+                    }
+                }
             }
         ],
         "columns": [
             { "data": "instructor"},
+            { "data": "checkInTime"},
+            { "data": "lateCheckIn"},
             { "data": "class"},
             { "data": "date"}
         ]
@@ -2354,6 +2471,41 @@ async function populateDDYInfo() {
         var $element = $('#studio_metrics_data_div');
         $element.html(`Error caught populating DDY information.`);        
     }
+}
+
+// FUNCTION: getDdyInstructors()
+// 1) Retrieve Acuity clients list
+// 2) Iterate through list and search for text to specify the client is an instructor, populate instructors array
+// 3) Return list of DDY instructors in an array to calling function
+async function getDdyInstructors() {
+    // Make API call
+    // Initiate performance timer
+    let clientsApiCallt0 = performance.now();
+    var funcType = 'clients_search';
+    var activity = 'retrieveAllClients';
+    var clientsResult = await initApiCall(funcType, activity);
+    let clientsApiCallt1 = performance.now();
+    console.log('clientsResult is:', clientsResult);
+    console.log('Client API call took: ', (clientsApiCallt1 - clientsApiCallt0), ' milliseconds');
+    
+    // Filter clients result to store instructors only by looking for text in the clients notes field
+    // Initiate performance timer
+    let instructorArrayCheckt0 = performance.now();
+    var instructorNote = 'DDY Instructor';
+    var instructorNoteUAT = 'DDY TEST Instructor';
+    
+    var instructors = $(clientsResult).filter((i) => {
+        if (environment === 'UAT') {
+            return (clientsResult[i].notes.includes(instructorNote) || clientsResult[i].notes.includes(instructorNoteUAT));
+        } else {
+            return clientsResult[i].notes.includes(instructorNote);
+        }
+    });
+    let instructorArrayCheckt1 = performance.now();
+    console.log('Instructors is:', instructors);
+    console.log('Instructor array iteration took: ', (instructorArrayCheckt1 - instructorArrayCheckt0), ' milliseconds');
+
+    return instructors;
 }
 
 async function populateEnvironment() {

@@ -14,8 +14,6 @@ const path = require('path');
 
 // Read stripe keys
 const stripeKeys = require('../stripe-keys.json');
-// let stripeKeys_raw = fs.readFileSync(path.join(__dirname, '..', 'stripe-keys.json'));
-// let stripeKeys = JSON.parse(stripeKeys_raw);
 const stripeSecretTest = stripeKeys.secret_test;
 const stripeSecretLive = stripeKeys.secret_live;
 
@@ -25,7 +23,7 @@ const stripeTest = require('stripe')(stripeSecretTest);
 const stripe = require('stripe')(stripeSecretLive);
 
 // Version
-const ddyRestControllerVersion = '1.4.2';
+const ddyRestControllerVersion = '1.4.7';
 
 // DEBUG mode
 const debug = true;
@@ -61,8 +59,6 @@ const supportedFunctions = [
 ];
 
 // Grab user info from file
-// let ddyUsers_raw = fs.readFileSync(path.join(__dirname, '..', 'api-users.json'));
-// let ddyUsers = JSON.parse(ddyUsers_raw);
 const ddyUsers = require('../api-users.json');
 
 // Set up express for HTTPS
@@ -81,6 +77,7 @@ app.use((req, res, next) => {
         next();
     }
 });
+
 app.use(basicAuth({
     users: ddyUsers,
     challenge: true,
@@ -96,9 +93,17 @@ const httpsOptions = {
     ]
 };
 
+// Start DDY webserver
 https.createServer(httpsOptions, app).listen(port, function () {
     console.log(`Serving the ${directoryToServe}/ dir at https://localhost:${port}`)
 });
+
+// Start acuity webhook webserver URL
+/*
+https.createServer(httpsOptions, acuityApp).listen(acuityPort, function () {
+    console.log(`Serving the ${directoryToServe}/ dir at https://localhost:${acuityPort}`)
+});
+*/
 
 // Basic auth unauthorized response
 function getUnauthorizedResponse(req) {
@@ -167,6 +172,9 @@ async function initAcuityAPIcall(req) {
         delete body.noEmail;
     }
 
+    // something like this?
+    // else if (queryId2 === 'putParam1') { var putParam1 = queryParam2 }
+
     if (debug) {        
         console.log(`noEmail: ${noEmail}`);
     }
@@ -199,7 +207,25 @@ async function initAcuityAPIcall(req) {
         case 'DELETE':
             var idToUpdate = body.id;            
             if (!idToUpdate) {
-                acuityURL =`/${func}?admin=true`;
+                // In some cases PUT requires query parameters as well as JSON body - i.e. clients update PUT
+                // Set query parameters and JSON body with same data for update (duplicate will be ignored)
+                // acuityURL =`/${func}?admin=true`;
+                if (queryIds.length > 0) {
+                    var count=0;                
+                    queryIds.forEach(i => {
+                        if (debug) {
+                            console.log(`building URL at query id ${i}`)
+                        }
+                        var queryId = Object.keys(req.query)[count];
+                        var queryParam = eval(`req.query.${queryId}`);
+                        if (debug) {
+                            console.log(`queryId: ${queryId}`);
+                            console.log(`queryParam: ${queryParam}`);
+                        }
+                        acuityURL+=`&${queryId}=${queryParam}`;                      
+                        count++;
+                    });
+                }
             } else {
                 acuityURL =`/${func}/${idToUpdate}?admin=true`;                
             }            
@@ -213,6 +239,9 @@ async function initAcuityAPIcall(req) {
     if (noEmail === 'true') {
         acuityURL+=`&noEmail=true`
     }
+
+    // Replace any '+' symbols in URL with ASCII code
+    acuityURL = acuityURL.replace(/\+/g, "%2B");
 
     // Build JSON body from input URL for methods requiring body params
     var options = {};
@@ -659,7 +688,7 @@ function parseXeroApiCall(xeroInvoice, acuityResult) {
     return acuityResult;
 }
 
-// ACUITY REST CONTROLLER and API CALL
+// DDY REST CONTROLLER / REPEATER API
 // Refactor later as POST to accept JSON body
 app.get('/api/ddy/:function', async (req, res) => {
     // Get timestamp
@@ -756,8 +785,7 @@ app.get('/api/ddy/:function', async (req, res) => {
 // Stripe webhook handler
 app.post('/stripe/webhook', async (req, res) => {
     try {
-        // Capture Stripe event high level details        
-        // var stripeEvent = JSON.parse(req.body);
+        // Capture Stripe event high level details
         var stripeEvent = req.body;
         var stripeLiveMode = stripeEvent.data.object.livemode
         var stripePaymentType = stripeEvent.data.object.type;
@@ -836,3 +864,21 @@ app.post('/stripe/webhook', async (req, res) => {
         res.status(400).send(`Webhook Error: ${err.message}`);
     }
 });
+
+// const acuityApp = express();
+// const acuityPort = 443;
+
+/*
+// Acuity webhook handler
+acuityApp.post('/acuity/webhook', async (req, res) => {
+    try {
+        // Capture Acuity event high level details
+        var acuityEvent = req.body;        
+        console.log('ACUITY webhook event is:', acuityEvent);
+    }
+    catch (err) {
+        console.log('ACUITY webhook ERROR:', err.message);        
+        res.status(400).send(`Acuity Webhook Error: ${err.message}`);
+    }
+});
+*/

@@ -6,16 +6,16 @@
 		<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.css">
 		<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
 		<link rel="stylesheet" type="text/css" href="https://sophiadance.squarespace.com/s/loadingSpinner.css"></link>
-        <style type="text/css">		
+        <style type="text/css">
 		.card {
 			background-color: #F2F2F2;
 			box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
 			transition: 0.3s;
             border-radius 5px;
             padding: 30px 25px;
-			margin: 10px;			
-			text-align: center;			
-			display: inline-block;			
+			margin: 10px;
+			text-align: center;
+			display: inline-block;
 		}
 		
 		.card h3 {
@@ -403,6 +403,8 @@
 				<thead>
 					<tr>
 						<th>Name</th>
+						<th>Check-in Time</th>
+						<th>Late Check-in</th>
 						<th>Class</th>
 						<th>Date</th>
 					</tr>
@@ -440,7 +442,7 @@
 $( () => {
 	// Setup script
 	const environment = 'PROD';
-	const version = '1.5.4';
+	const version = '1.5.6';
 	
 	// Arrays to cache Acuity API call responses (avoid making multiple calls)
 	var clients = [];
@@ -517,7 +519,7 @@ $( () => {
 				products = await retrieveProductsClasses(action, $revealedElements);
 				break;
 			case 'buy_package_top':
-				$detailsTop.html('<h2>BUY A PACKAGE / SUBSCRIPTION</h2><hr/>');
+				$detailsTop.html('<h2>BUY A PACKAGE / MEMBERSHIP</h2><hr/>');
 				$('#search_student_div').data('action', e.currentTarget.id);
 				products = await retrieveProductsClasses(action, $revealedElements);
 				break;
@@ -1059,7 +1061,7 @@ $( () => {
 				$submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);
 				$revealedElements = revealElement($submitButtonElement, $revealedElements);
 			}
-		}		
+		}
 	});
 
 	

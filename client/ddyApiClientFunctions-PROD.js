@@ -1,6 +1,6 @@
 // Setup script
 const environment = 'PROD';
-const version = '1.6.6';
+const version = '1.6.9';
 
 // Set API host
 // var apiHostUAT = 'https://greg-monster.dreamdanceyoga.com:3443/api/ddy'; // GREG computer
@@ -90,7 +90,8 @@ async function initApiCall(func, activity, params) {
                     var params = {		
                         minDate,
                         maxDate,
-                        includeUnavailable: true
+                        includeUnavailable: true,
+                        includePrivate: true
                     };                    
                     break;
                 case 'classSeries':
@@ -1566,53 +1567,6 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
     var instructorData = [];
     var instructorCounts = {};
     var instructorCheckinNote = 'INSTRUCTOR CHECK-IN';
-    
-    /*
-    // Only loop through appointments where there is a check-in already
-    $.each(appointmentsResult, (i, val) => {
-        var notes = val.notes;        
-        if (notes.includes(instructorCheckinNote)) {
-            // Gather required data to store
-            var name = `${val.firstName} ${val.lastName}`;            
-            var classType = val.type;
-            var engClassType = $.trim(classType.split('|')[1]) || classType;
-            var date = val.datetime;
-            // Format date to look nice here
-            // var datePretty = xxxxx
-            
-            // Create instructor data object and push to array
-            // var data = {
-                // name,
-                // class: engClassType,
-                // date
-            // }
-            // instructorData.push(data);
-
-            if (!instructorCounts.hasOwnProperty(name)) {
-                instructorCounts[name] = {};
-                instructorCounts[name][engClassType] = 1;                
-            } else {
-                if (!instructorCounts[name].hasOwnProperty(engClassType)) {
-                    instructorCounts[name][engClassType] = 1;
-                } else {
-                    instructorCounts[name][engClassType]++;
-                }
-            }
-        } else {
-            // Populate name with blank as no instructor has checked in yet
-            var name = 'NO CHECK IN';            
-        }
-        // Create instructor data object and push to array
-        var data = {
-            name,
-            class: engClassType,
-            date
-        }
-        instructorData.push(data);
-    });
-    console.log('Instructor data: ', instructorData);
-    console.log('Instructor counts: ', instructorCounts);
-    */
 
     // Iterate through ALL appointments and prepare for display in table
     $.each(apptsByType, (i, className) => {
@@ -1620,32 +1574,53 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
         var classType = className.values[0].type;
         var engClassType = $.trim(classType.split('|')[1]) || classType;
         var date = className.values[0].datetime;
+        var classDate = new Date(date);
         
         // Format class date for display
-        // var dateString = date.split('T')[0];
-        // var timeString = date.split('T')[1].split('+')[0];
-        // var datePretty = `${dateString} ${timeString}`
         var options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour12: true, hour: 'numeric', minute: 'numeric' };
-        var datePretty = new Date(date).toLocaleString('en-US', options);
+        var datePretty = classDate.toLocaleString('en-US', options);
 
-        // Push class names and times
+        // Push data to array, class names and times and placeholder for check-in time
         className['class'] = engClassType;
+        className['instructor'] = 'NO CHECK IN';
         className['date'] = datePretty;
+        className['checkInTime'] = '';
+        className['lateCheckIn'] = false;
 
         $.each(className.values, (i2, apptDetails) => {
+            // Check notes field in Acuity to determine if instructor has checked in or not
             var notes = apptDetails.notes;
             if (notes.includes(instructorCheckinNote)) {
                 // Gather required data to store
-                var name = `${apptDetails.firstName} ${apptDetails.lastName}`;               
+                var name = `${apptDetails.firstName} ${apptDetails.lastName}`;
+                var checkInTime = notes.split(/: /)[0];                
+                var checkInTimeDate = new Date(checkInTime);
+
+                // Format check-in time for display
+                var options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour12: true, hour: 'numeric', minute: 'numeric' };
+                var checkInTimeDatePretty = checkInTimeDate.toLocaleString('en-US', options);
+                
+                // On-time check-in is considered to be XX min before the class starts, so set expected check-in time
+                const MIN_EARLY = 14;
+                const MS_PER_MIN = 60000;
+                var classCheckInTime = new Date(classDate - (MIN_EARLY * MS_PER_MIN));
+
+                // Compare check-in time to class time to determine if check-in was on time or late
+                var lateCheckIn = false;
+                if (checkInTimeDate >= classCheckInTime) {
+                    lateCheckIn = true;
+                }
 
                 // Push data to object
                 className['hasInstructor'] = true;
                 className['instructor'] = name;
+                className['checkInTime'] = checkInTimeDatePretty;
+                className['lateCheckIn'] = lateCheckIn;
     
-                // Initialize and increment class counter object for instructors
+                // Initialize and increment class counter object and late check-ins for instructors
                 if (!instructorCounts.hasOwnProperty(name)) {
                     instructorCounts[name] = {};
-                    instructorCounts[name][engClassType] = 1;                
+                    instructorCounts[name][engClassType] = 1;
                 } else {
                     if (!instructorCounts[name].hasOwnProperty(engClassType)) {
                         instructorCounts[name][engClassType] = 1;
@@ -1653,17 +1628,23 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
                         instructorCounts[name][engClassType]++;
                     }
                 }
+
+                // Check for late check-ins
+                if (!instructorCounts[name].hasOwnProperty('LATE')) {
+                    if (className['lateCheckIn'] === true) {
+                        instructorCounts[name]['LATE'] = 1;
+                    } else {
+                        instructorCounts[name]['LATE'] = 0;
+                    }
+                } else {
+                    if (className['lateCheckIn'] === true) {
+                        instructorCounts[name]['LATE']++;
+                    }
+                }
             }
         });
 
-        if (className['hasInstructor'] === false) {
-            // Populate name with blank as no instructor has checked in yet
-            var name = 'NO CHECK IN';
-            // Push data to object                    
-            className['instructor'] = name;
-        }
-
-        // Create instructor data object and push to array
+        // Create instructor data object and push to array - NOT NEEDED?
         var data = {
             name,
             class: engClassType,
@@ -1678,31 +1659,54 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
     // Iterate through object and output report
     var selectedMonthVal = $('#instructor_report_datepicker').val();
     var msg = `<h3 class="center"><b>INSTRUCTOR REPORT for ${selectedMonthVal}</h3></b><hr>`;
-    
+
+    // Iterate through instructorCounts array and prepare message to display instructor report summary on screen
+    var lateCount = 0;
+    var bellyCount = 0;
+    var yogaCount = 0;
     $.each(instructorCounts, (name, className) => {
-        console.log(`${name} | ${className}`);
-        msg += `<b>${name}: </b>`;
+        msg += `<b>${name}</b><br>`;
         $.each(className, (className1, count) => {
-            console.log(`${className1} | ${count}`);
-            msg += `${className1} x ${count} `;
+            if (className1 === 'LATE') {
+                lateCount = count;
+                return true;
+            }
+            if (className1.includes('Belly')) {
+                bellyCount = bellyCount + count;
+            } else if (className1.includes('Yoga')) {
+                yogaCount = yogaCount + count;
+            }
+            msg += `${className1} x ${count}<br>`;
         });
-        msg += '<br>';
+        
+        // Display totals
+        msg += `TOTAL BELLY: ${bellyCount}<br>`;
+        msg += `TOTAL YOGA: ${yogaCount}<br>`;
+        msg += `<font color="red">LATE: ${lateCount}</font><br>`;
+        
+        // Reset counters
+        bellyCount = 0;
+        yogaCount = 0;
     });
+
     msg += '<hr>';
     console.log(msg);
     
     // Build details table
     var instructorReportDetailsTable = $('#instructor_report_details_table').DataTable({
-        // "data": instructorData,
         "data": apptsByType,
         "pageLength": 50,            
-        "order": [[2, 'asc']],
+        "order": [[4, 'asc']],
         "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
         dom: 'lfrtipB',
         buttons: [{ extend: 'excel', text: '<strong>Export to Excel</strong>'}],
         destroy: true,
         columnDefs: [
-            { "type": "date", "targets": 2 },
+            { targets: 4, type: "date"},
+            { targets: 2, visible: false },            
+            { targets: 0, width: "5%" },
+            
+            // Apply new class to Name column if no check-in
             { targets: 0,
                 createdCell: function(td, cellData, rowData, col) {
                     switch (cellData) {
@@ -1714,10 +1718,23 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
                             break;
                     }
                 }
+            },
+            
+            // Apply new class to check-in column if LATE check-in
+            { targets: 1,
+                createdCell: function(td, cellData, rowData, col) {
+                    if (rowData['lateCheckIn']) {
+                        $(td).addClass('instructor-table-no-checkin');
+                    } else {
+                        $(td).addClass('instructor-table-checkedin');
+                    }
+                }
             }
         ],
         "columns": [
             { "data": "instructor"},
+            { "data": "checkInTime"},
+            { "data": "lateCheckIn"},
             { "data": "class"},
             { "data": "date"}
         ]

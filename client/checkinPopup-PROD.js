@@ -654,9 +654,9 @@ $( async () => {
                 // applyRowStyle($row, data, 'checkout');
                 // Confirm check in message
                 
-                // If successful alert student
-                var message = { title: 'Check-in Cancelled', body: `Check-in for ${firstName} ${lastName} has been cancelled.` };
-                writeMessage('modal', message);
+                // If successful alert student - REMOVE MODAL TO MAKE QUICKER
+                // var message = { title: 'Check-in Cancelled', body: `Check-in for ${firstName} ${lastName} has been cancelled.` };
+                // writeMessage('modal', message);
 
                 return appointmentsResult;
             }
@@ -906,7 +906,7 @@ $( async () => {
     }    
 
     // Gather data and build the table
-    await initializeAppointmentsTable(true, selected_class_index);    
+    await initializeAppointmentsTable(true, selected_class_index);
 
     // EVENT: CHECK-IN TABLE ROW / CHECK-IN BUTTON click - event to be captured after dynamic table is generated    
     $('#checkin_table tbody').on('click', 'tr', async function(e) {
@@ -970,7 +970,7 @@ $( async () => {
                     <br>
                     <div id="pin_message_div" class="hide center"><b>Pin Incorrect! Please try again.</b></div>`
         };
-        writeMessage('modal-cancel', message);
+        var $pinModalDialog = writeMessage('modal-cancel', message);
         $('#instructor_pin_form').focus();
 
         // If PIN not retrieved yet, retrieve from server
@@ -994,7 +994,7 @@ $( async () => {
 
             // Cache and disable submit button, clear error messages
             writeMessage('error', "");
-            $submitButton = $('#instructor_pin_submit');
+            var $submitButton = $('#instructor_pin_submit');
             $submitButton.prop('disabled', true).addClass('disabled');
 
             // Check submitted PIN matches instructor PIN code
@@ -1005,13 +1005,17 @@ $( async () => {
                 // Show alert, clear PIN field and re-enable submit button                
                 $('#pin_message_div').removeClass('hide');
                 $('#instructor_pin').val('');
-                $submitButton = $('#instructor_pin_submit');
+                
+                // Why caching the submit button again?  Try removing...
+                // $submitButton = $('#instructor_pin_submit');
+                
                 $submitButton.prop('disabled',false).removeClass('disabled');
             } else {
                 // PIN is correct - proceed with instructor check-in
                 console.log('PIN correct');
                 $('#pin_message_div').removeClass('hide');
                 $('#pin_message_div').html('<b>Thank you!</b>');
+                
                 // Filter instructor object for selected instructor
                 var selectedInstructor = $('#teacher_checkin_dropdown').val();
                 
@@ -1048,9 +1052,9 @@ $( async () => {
                         var appointmentsResult = await initApiCall(funcType, activity, params);
                         console.log('AppointmentsResult is:', appointmentsResult);
 
-                        // If successful alert student and re-enable check-in button
-                        var message = { title: 'Check-in cancelled', body: `Check-in cancelled for ${classInstructor[0].firstName} ${classInstructor[0].lastName}.` };
-                        writeMessage('modal', message);
+                        // If successful alert student and re-enable check-in button - REMOVE MODAL TO MAKE QUICKER
+                        // var message = { title: 'Check-in cancelled', body: `Check-in cancelled for ${classInstructor[0].firstName} ${classInstructor[0].lastName}.` };
+                        // writeMessage('modal', message);
 
                         $('#teacher_checkin_submit').val('Instructor Check-in');
                         $('#teacher_checkin_dropdown').prop('disabled', false);
@@ -1078,10 +1082,10 @@ $( async () => {
                         var addInstructorResult = await addStudentToClass(classInstructor, certificate, checkInType);
                         console.log('addInstructorResult:', addInstructorResult);
 
-                        // Alert instructor check-in was successful
                         if (addInstructorResult) {
-                            var message = { title: `Instructor Check-in Successful for ${classInstructor[0].firstName} ${classInstructor[0].lastName}!`, body: `Thanks for checking in, ${classInstructor[0].firstName}.  Enjoy your class!` };
-                            writeMessage('modal', message);
+                            // Alert instructor check-in was successful - REMOVE MODAL TO MAKE FASTER
+                            // var message = { title: `Instructor Check-in Successful for ${classInstructor[0].firstName} ${classInstructor[0].lastName}!`, body: `Thanks for checking in, ${classInstructor[0].firstName}.  Enjoy your class!` };
+                            // writeMessage('modal', message);
 
                             // If successful update check-in button
                             $('#teacher_checkin_submit').val('Cancel Instructor Check-in');
@@ -1099,7 +1103,9 @@ $( async () => {
                         console.log (e);
                     }
                 }
-            }            
+            }
+            // Close PIN dialog modal
+            $pinModalDialog.dialog('close');
         });
     });
     
@@ -1174,7 +1180,7 @@ $( async () => {
 
             // Cache and disable submit button, clear error messages
             writeMessage('error', "");
-            $submitButton = $('#search_submit');
+            var $submitButton = $('#search_submit');
             $submitButton.prop('disabled', true).addClass('disabled');
             
             // Retrieve student data
