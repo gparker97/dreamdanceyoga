@@ -407,47 +407,6 @@ $( async () => {
         return classFull;
     }
 
-    // FUNCTION: getInstructors()
-    // ***** NOTE: REMOVE THIS AND USE MAIN FUNCTION getDdyInstructors()!!
-    // 1) Capture Acuity clients list
-    // 2) Iterate through list and search for text to specify the client is an instructor
-    // 3) Populate the instructor dropdown with a list of instructors
-    async function getInstructors() {
-        // Make API call
-        // Initiate performance timer
-        let clientsApiCallt0 = performance.now();
-        var funcType = 'clients_search';
-        var activity = 'retrieveAllClients';
-        var clientsResult = await initApiCall(funcType, activity);
-        let clientsApiCallt1 = performance.now();
-        console.log('clientsResult is:', clientsResult);
-        console.log('Client API call took: ', (clientsApiCallt1 - clientsApiCallt0), ' milliseconds');
-        
-        // Filter clients result to store instructors only by looking for text in the clients notes field
-        // Initiate performance timer
-        let instructorArrayCheckt0 = performance.now();
-        var instructorNote = 'DDY Instructor';
-        var instructorNoteUAT = 'DDY TEST Instructor';
-        
-        var instructors = $(clientsResult).filter((i) => {
-            if (environment === 'UAT') {
-                return (clientsResult[i].notes.includes(instructorNote) || clientsResult[i].notes.includes(instructorNoteUAT));
-            } else {
-                return clientsResult[i].notes.includes(instructorNote);
-            }
-        });
-        let instructorArrayCheckt1 = performance.now();
-        console.log('Instructors is:', instructors);
-        console.log('Instructor array iteration took: ', (instructorArrayCheckt1 - instructorArrayCheckt0), ' milliseconds');
-        
-        // Populate instructor dropdown menu
-        var $dropdown = $('#teacher_checkin_dropdown');
-        var func = "clients";
-        populateDropdown($dropdown, instructors, func);
-
-        return instructors;
-    }
-
     // FUNCTION: populateClasses(upcoming_classes)
     // 1) Receive list of upcoming classes for the selected day
     // 2) Populate dropdown menu with list of upcoming classes
@@ -847,9 +806,12 @@ $( async () => {
 
         // Capture list of instructors the first time the window is open
         if (instructors.length === 0) {
-            // NOTE: REPLACE THE BELOW WITH getDdyInstructors()!!
-            instructors = await getInstructors();
-            // Will need to populate dropdown here with new function from main
+            instructors = await getDdyInstructors();
+            
+            // Populate instructor dropdown menu
+            var $dropdown = $('#teacher_checkin_dropdown');
+            var func = "clients";
+            populateDropdown($dropdown, instructors, func);
         } else {
             console.log('INIT APPTS TABLE: Instructors array already populated, skipping instructor capture.');
         }
@@ -988,6 +950,8 @@ $( async () => {
 
         // Set pin
         var pin = atob(pin64);
+        var badPinCount = 0;
+        const MAX_TRIES = 3;
 
         // EVENT: INSTRUCTOR PIN SUBMIT
         $('#instructor_pin_form').on('submit', async (e) => {
@@ -1006,13 +970,22 @@ $( async () => {
             var inputPin = $('#instructor_pin').val();
 
             if (inputPin != pin) {
-                console.log('PIN incorrect!');
-                // Show alert, clear PIN field and re-enable submit button                
-                $('#pin_message_div').removeClass('hide');
-                $('#instructor_pin').val('');
+                badPinCount++;
+                console.log('PIN incorrect!');                
                 
-                // Why caching the submit button again?  Try removing...
-                // $submitButton = $('#instructor_pin_submit');
+                // Show alert, clear PIN field and re-enable submit button                
+                var $pinMsgElement = $('#pin_message_div');
+                $pinMsgElement.removeClass('hide');
+                $pinMsgElement.html(`<b>Pin Incorrect!  Please try again (${badPinCount}/${MAX_TRIES}).`);
+                $('#instructor_pin').val('');
+
+                // Check if exceeded max retries
+                if (badPinCount > MAX_TRIES) {
+                    // Close PIN dialog modal
+                    $pinMsgElement.html(`<b>Exceeded max retry attmpts!  Closing...</b>`);
+                    $pinModalDialog.dialog('close');
+                    console.log(`INSTRUCTOR PIN: Exceeded max pin retry attempts`);
+                }
                 
                 $submitButton.prop('disabled',false).removeClass('disabled');
             } else {
@@ -1107,10 +1080,10 @@ $( async () => {
                         console.log(`ERROR: Error adding instructor to class!`);
                         console.log (e);
                     }
-                }
-            }
-            // Close PIN dialog modal
-            $pinModalDialog.dialog('close');
+                }                
+                // Close PIN dialog modal
+                $pinModalDialog.dialog('close');
+            }            
         });
     });
     

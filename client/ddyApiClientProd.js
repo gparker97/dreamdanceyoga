@@ -390,7 +390,7 @@
 
 	<!-- JQUERY UI MODAL CONTAINER -->
 	<div id="modal_output"></div>
-	
+
 	<!-- Submit buttons -->
 	<input type="submit" id="buy_package_submit" class="submit-button hide" value="BUY PACKAGE" />
 	<input type="submit" id="buy_class_submit" class="submit-button hide" value="BUY CLASS" />
@@ -450,7 +450,7 @@
 $( () => {
 	// Setup script
 	const environment = 'PROD';
-	const version = '1.6.0';
+	const version = '1.6.1';
 	
 	// Arrays to cache Acuity API call responses (avoid making multiple calls)
 	var clients = [];
@@ -994,13 +994,15 @@ $( () => {
 
 		// Store selected payment method
 		var paymentMethod = $dropdown.val();
+
+		// If payment method is anything besides "Select One" or "None", reveal employee commission dropdown and store selected name
+		$commissionElement = $('#employee_commission_div');
+		$commissionDropdown = $('#employee_commission_dropdown');		
+		var employeeCommission = $commissionDropdown.val();
 		if (debug) {
 			console.log('Payment method dropdown val: ', paymentMethod);
+			console.log('Employee commission dropdown val: ', employeeCommission);
 		}
-
-		// If payment method is anything besides "Select One" or "None", reveal employee commission dropdown		
-		$commissionElement = $('#employee_commission_div');
-		$commissionDropdown = $('#employee_commission_dropdown');
 
 		// Enable and disable various elements based on payment method selection
 		switch (paymentMethod) {
@@ -1014,7 +1016,7 @@ $( () => {
 				// Hide and disable payment options and commission element
 				$createInvoiceElement.prop('checked', false).prop('disabled', true).addClass('disabled');
 				$applyPaymentElement.prop('checked', false).prop('disabled', true).addClass('disabled');				
-				$commissionDropdown.val('select');
+				$commissionDropdown.val('select');				
 				$commissionElement.hide();
 				break;
 			case 'none':
@@ -1062,7 +1064,7 @@ $( () => {
 				break;
 		}
 
-		// When appropriate make API call and populate employee commission dropdown if not populated already
+		// If not populated yet, make API call and populate employee commission dropdown with DDY employee names
 		if (paymentMethod != 'select' && paymentMethod != 'none') {
 			if (typeof ddyInstructors === 'undefined') {
 				ddyInstructors = await getDdyInstructors();
@@ -1085,9 +1087,14 @@ $( () => {
 
 		// Enable and reveal submit button unless payment method is 'Select One'
 		if (paymentMethod !== 'select') {
+			// Reveal submit button element
+			$revealedElements = revealElement($submitButtonElement, $revealedElements);
 			if (paymentDetailsOK) {
-				$submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);
-				$revealedElements = revealElement($submitButtonElement, $revealedElements);
+				// Enable submit button
+				$submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);				
+			} else {
+				// Disable submit button
+				$submitButtonElement.prop('disabled', true).addClass('disabled').val(submitButtonText);
 			}
 		}
 	});
@@ -1136,6 +1143,9 @@ $( () => {
 		// If all payment details are OK, enable (or re-enable) submit button and update text
 		if (paymentDetailsOK) {
 			$submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);
+		} else {
+			// Disable submit button
+			$submitButtonElement.prop('disabled', true).addClass('disabled').val(submitButtonText);
 		}
 	});
 	

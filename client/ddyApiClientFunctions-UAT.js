@@ -1,6 +1,6 @@
 // Setup script
 const environment = 'UAT';
-const version = '1.7.2';
+const version = '1.7.8';
 
 // Set API host
 // var apiHostUAT = 'https://greg-monster.dreamdanceyoga.com:3443/api/ddy'; // GREG computer
@@ -24,7 +24,7 @@ async function initApiCall(func, activity, params) {
             console.log('InitApiCall params:');
             console.log(params);
         }
-    }	
+    }
 
     // Initialize parameters for API call
     switch (func) {
@@ -468,7 +468,10 @@ async function initApiCall(func, activity, params) {
 
 async function callAPI(func, params) {
     // set apiHost based on environment
-    apiHost = eval(`apiHost${environment}`);		
+    apiHost = eval(`apiHost${environment}`);
+
+    // Set secure functions to prevent logging response to console
+    var secureFuncs = ['pin'];
     
     // Loop through params and build API call URL	
     var url = `${apiHost}/${func}`;
@@ -510,8 +513,12 @@ async function callAPI(func, params) {
                 $loading.show();                
             },
             success: function(response, status, xhr) {
-                console.log('API call response:');
-                console.log(response);			
+                // Log result to console unless it is a secure function
+                if (!secureFuncs.includes(func)) {
+                    console.log(`API call response for function ${func}:`);
+                    console.log(response);
+                }
+
                 if (debug) {
                     writeMessage('debug', `<br><b>API RESPONSE SUCCESSFUL</b><br>Function: ${func}`);                        
                     console.log('Status:');
@@ -961,13 +968,13 @@ function confirmPaymentDetails(event, products, $revealedElements, $submitButton
     var studentName = $('#search_student_dropdown option:selected').text();
     var productName = $('#select_package_class_dropdown option:selected').text();
     var paymentMethod = $('#payment_method_dropdown option:selected').text();
+    var paymentMethodVal = $('#payment_method_dropdown').val();
     var updatedPrice = $('#updated_price').val() || false;
     var depositAmount = $('#deposit_amount').val() || 'FULLY PAID';
     var amountDue = 0;
-    var soldBy = $('#employee_commission_dropdown option:selected').text();
-
+    var soldBy = $('#employee_commission_dropdown').val();
     // Set sold by value to none if no person is selected
-    if (soldBy === 'Select One') { soldBy = 'None'; }
+    if (soldBy === 'select') { soldBy = 'None'; }
     
     // Find the array index of the selected product / package and extract price
     var selectedProductVal = $('#select_package_class_dropdown').val();
@@ -981,7 +988,7 @@ function confirmPaymentDetails(event, products, $revealedElements, $submitButton
         depositAmount = parseFloat(depositAmount).toFixed(2);
 
         // Check if deposit amount is more than the total price
-        if (parseFloat(depositAmount) >= parseFloat(price)) {
+        if (parseFloat(price) > 0 && parseFloat(depositAmount) >= parseFloat(price)) {
             var message = { title: 'ERROR', body: "<strong>Deposit is more than the total price. Please reduce deposit amount.</strong>" };
             writeMessage('modal', message);
             
@@ -993,7 +1000,7 @@ function confirmPaymentDetails(event, products, $revealedElements, $submitButton
             amountDue = price - depositAmount;
             amountDue = parseFloat(amountDue).toFixed(2);
             // Set deposit amount for display
-            depositAmount = `$${depositAmount}`;            
+            depositAmount = `$${depositAmount}`;
         }
     }
 
@@ -1008,12 +1015,22 @@ function confirmPaymentDetails(event, products, $revealedElements, $submitButton
                             <div class="confirm-final"><strong>SINGAPORE #1 CONFIRM?</strong></div>`;
     $confirmElement.html(confirmDetails);
     
-    // If payment method dropdown was changed, reveal confirm container
-    if (event === 'payment_method_dropdown') {        
+    // If payment method dropdown was changed, reveal confirm container, unless payment option is not selected
+    if (event === 'payment_method_dropdown' && paymentMethod !== 'Select One') {
         $revealedElements = revealElement($confirmElement, $revealedElements);        
     }
 
-    return true;
+    if (debug) {
+        console.log(`Sold by: ${soldBy}`);
+        console.log(`Payment method val: ${paymentMethodVal}`);
+    }
+
+    // If employee is selected return true, otherwise return false
+    if (soldBy === 'None' && paymentMethodVal !== 'none') {
+        return false;
+    } else {
+        return true;
+    }
 }
 
 // FUNCTION: weChatPay()
@@ -1239,6 +1256,7 @@ function stripePollForSourceStatus(stripePollParams) {
 // 1. Get details of purchase to determine whether package or class series
 // 2. Extract payment method and redirect as required
 // 3. Call appropriate function to continue purchase (package or class series)
+// 4. If purchase successful, add student note to record DDY employee commission (if applicable)
 async function initPurchase(action, products, clients) {
     try {			
         // Find the array index of the selected product / package or class series
@@ -1246,6 +1264,7 @@ async function initPurchase(action, products, clients) {
         var selectedProduct = $.grep(products, (i) => {
             return i.name === selectedProductVal;
         });
+        var price = selectedProduct[0].price;
         console.log('Selected Product: ', selectedProduct);
 
         // Capture selected client from clients array
@@ -1273,14 +1292,14 @@ async function initPurchase(action, products, clients) {
                         break;
                     case 'buy_package_top':
                         var productID = selectedProduct[0].id;
-                        var productURL = `https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=${productID}&firstName=${selectedClient[0].firstName}&lastName=${selectedClient[0].lastName}&email=${selectedClient[0].email}&phone=${selectedClient[0].phone}`;    
+                        var productURL = `https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=${productID}&firstName=${selectedClient[0].firstName}&lastName=${selectedClient[0].lastName}&email=${selectedClient[0].email}&phone=${selectedClient[0].phone}`;
                         break;
                 }
                 
                 // Replace any '+' symbols in URL with ASCII code
                 productURL = productURL.replace(/\+/g, "%2B");
                 
-                // Open new tab with Acuity direct purchase link
+                // Open new tab with Acuity direct purchase link                
                 var win = window.open(productURL, '_blank');
                 return false;
                 break;
@@ -1298,12 +1317,18 @@ async function initPurchase(action, products, clients) {
                     }
                 }
 
-                var weChatPayResult = await weChatPay(action, selectedProduct, selectedClient, newPrice);
-                console.log(`weChatPayResult: ${weChatPayResult}`);
+                // Only trigger wechat pay if price is > 0 otherwise stripe will return an error
+                var pricePaid = newPrice || price;
+                if (pricePaid > 0) {
+                    var weChatPayResult = await weChatPay(action, selectedProduct, selectedClient, newPrice);
+                    console.log(`weChatPayResult: ${weChatPayResult}`);
 
-                // Return false back to calling function as WeChat payment needs to be authorized before package purchase will continue
-                return false;
-                break;
+                    // Return false back to calling function as WeChat payment needs to be authorized before package purchase will continue
+                    return false;
+                }
+                else {
+                    break;
+                }
         }
     }
     catch(e) {
@@ -1324,58 +1349,64 @@ async function initPurchase(action, products, clients) {
             break;
     }
 
-    if (purchaseResult) {
-        // Non credit card / wechat pay purchase - update student notes with DDY employee commission details in Acuity
-        // If purchase made via Acuity / Stripe - to be done only upon successful purchase via webhook / zapier
-        // Capture relevant details
-        var studentName = $('#search_student_dropdown option:selected').text();
-        var productName = $('#select_package_class_dropdown option:selected').text();
-        var paymentMethod = $('#payment_method_dropdown option:selected').text();
-        var updatedPrice = $('#updated_price').val() || false;    
-        var soldBy = $('#employee_commission_dropdown option:selected').text();
-
-        // Retrieve student info and notes from Acuity
-        var params = { 
-            searchTerm: studentName
-        }
-        var funcType = 'clients_search';
-        var activity = 'retrieveClientInfo';
-        var clientSearchResult = await initApiCall(funcType, activity, params);
-        console.log('clientSearchResult is:', clientSearchResult);
-
-        // Capture student notes
-        var firstName = clientSearchResult[0].firstName;
-        var lastName = clientSearchResult[0].lastName;
-        var phone = clientSearchResult[0].phone;
-        var studentNotes = clientSearchResult[0].notes;        
-        
-        // Convert line breaks to ASCII code
-        studentNotes = studentNotes.replace(/(?:\r\n|\r|\n)/g, "%0A");
-        console.log(`Notes with converted LB for ${firstName} ${lastName}: `, studentNotes);
-
-        // Build student commission note
-        var timestamp = new Date().toLocaleString();
-        var commissionNote = `%0A${timestamp}: ${productName} sold by ${soldBy} for $${updatedPrice}`;
-        studentNotes += commissionNote;
-        console.log(`FULL commission note with history: ${studentNotes}`);
-        
-        // Update student notes with commission detail    
-        var params = { 
-            firstName,
-            lastName,
-            phone,
-            notes: studentNotes
-        }
-        var funcType = 'clients_update';
-        var activity = 'addClientNotes';
-        var clientUpdateResult = await initApiCall(funcType, activity, params);
-        console.log('clientUpdateResult for commission update is:', clientUpdateResult);
-    }
-
     return purchaseResult;
 }
 
-// FUNCTION: buyPackage(selectedProduct, selectedClient) NEW ****
+// FUNCTION: employeeCommissionNotes(selectedProduct, selectedClient)
+// 1. Capture student notes
+// 2. Build and append commission note with DDY employee and details of product sold
+// 3. Append commission message to student notes (for display / processing later)
+async function employeeCommissionNotes(selectedProduct, selectedClient) {
+    // For all purchases except CC (done via Zapier) - update student notes with DDY employee commission details in Acuity
+    // If purchase made via Acuity / Stripe - to be done only upon successful purchase via zapier
+    
+    // Capture relevant details    
+    var productName = selectedProduct[0].name;    
+    var price = selectedProduct[0].price;
+    var updatedPrice = $('#updated_price').val() || price;
+    var soldBy = $('#employee_commission_dropdown option:selected').text();
+
+    // Capture student notes and details
+    var firstName = selectedClient[0].firstName;
+    var lastName = selectedClient[0].lastName;
+    var phone = selectedClient[0].phone;
+    var studentNotes = selectedClient[0].notes;
+    
+    // Convert line breaks to ASCII code
+    studentNotes = studentNotes.replace(/(?:\r\n|\r|\n)/g, "%0A");
+    console.log(`Notes with converted LB for ${firstName} ${lastName}: `, studentNotes);
+
+    // Build DDY employee commission note
+    var timestamp = new Date().toLocaleString();
+    var commissionNote = `%0A${timestamp}~${productName}~sold by ${soldBy}~$${updatedPrice}`;
+    studentNotes += commissionNote;
+    console.log(`FULL commission note with history: ${studentNotes}`);
+    
+    // Update student notes with commission detail
+    var params = { 
+        firstName,
+        lastName,
+        phone,
+        notes: studentNotes
+    }
+    var funcType = 'clients_update';
+    var activity = 'addClientNotes';
+    
+    // Make API call to update student notes
+    try {
+        var clientUpdateResult = await initApiCall(funcType, activity, params);
+        console.log('clientUpdateResult for commission update is:', clientUpdateResult);
+        return true;
+    }
+    catch (e) {
+        console.error(`ERROR: Error detected in enmployeeCommissionNotes: ${funcType}`);
+        console.error(e);
+        console.error('clientUpdateResult for commission update is:', clientUpdateResult);
+        return false;
+    }
+}
+
+// FUNCTION: buyPackage(selectedProduct, selectedClient)
 // 1. Generate a package certificate and assign to user's email address
 // 2. Generate a Xero invoice for the package price (if requested)
 // 3. Apply full payment to Xero invoice based on payment method selected (if requested)
@@ -1398,7 +1429,16 @@ async function buyPackage(selectedProduct, selectedClient) {
         console.log('buyPackage result:');
         console.log(result);
 
-        // Successful - display details in modal window
+        // If successful, call function to update student notes to record DDY employee commission details
+        var commissionResult = await employeeCommissionNotes(selectedProduct, selectedClient);
+        
+        // Successful - display details in modal window        
+        var commissionResultString = 'FAILED - PLEASE CHECK';
+        if (commissionResult) {
+            var soldBy = $('#employee_commission_dropdown option:selected').text();
+            commissionResultString = `Sold by ${soldBy}`;
+        }
+
         var xeroInvoiceResult = result.xeroInvoiceStatus;
         var xeroInvoiceStatusMessage = result.xeroInvoiceStatusMessage;
         var xeroInvoiceStatusString = result.xeroInvoiceStatusString;
@@ -1414,7 +1454,15 @@ async function buyPackage(selectedProduct, selectedClient) {
         var clientEmail = selectedClient[0].email;
         var message = { 
             title: 'PURCHASE SUCCESS',
-            body: `<b>Student Name:</b> ${clientName}<br><b>Email:</b> ${clientEmail}<br><b>Code:</b> ${result.certificate}<br><b>Payment Method:</b> ${paymentMethod}<hr><strong>Xero Results</strong><br>${xeroInvoiceStatusMessage}<br>${xeroPaymentStatusMessage}<hr><strong>Inform student to use email address to book classes</strong>`
+            body: `<b>Student Name:</b> ${clientName}<br>
+                    <b>Email:</b> ${clientEmail}<br>
+                    <b>Code:</b> ${result.certificate}<br>
+                    <b>Payment Method:</b> ${paymentMethod}<br>
+                    <b>Commission:</b> ${commissionResultString}<br>
+                    <strong>Xero Results</strong><br>
+                    ${xeroInvoiceStatusMessage}<br>
+                    ${xeroPaymentStatusMessage}<hr>
+                    <strong>Inform student to use email address to book classes</strong>`
         };
         writeMessage('modal', message);
         return result;
@@ -1424,8 +1472,8 @@ async function buyPackage(selectedProduct, selectedClient) {
         console.error(e);
         var message = { title: 'ERROR', body: `An error occured with ${funcType}, please check and try again` };
         writeMessage('modal', message);
-        return false;
-    }		
+        return false;        
+    }
 }
 
 // FUNCTION: buyClass() **** IN DEVELOPMENT ****
@@ -1518,7 +1566,13 @@ async function buySeries(selectedClass, selectedClient) {
             // Write message that class series is booked
             var message = {
                 title: 'BOOKING SUCCESS',
-                body: `<strong>Student Name:</strong> ${clientName}<br><strong>Class:</strong> ${bookClass[0].type}<br><strong>First Class:</strong> ${firstClassDatePretty}<br><strong># of Classes:</strong> ${bookClass.length}<br><strong>Payment Method:</strong> ${paymentMethod}<hr><strong>Xero Results</strong><br>${xeroInvoiceStatusMessage}<br>${xeroPaymentStatusMessage}`
+                body: `<strong>Student Name:</strong> ${clientName}<br>
+                        <strong>Class:</strong> ${bookClass[0].type}<br>
+                        <strong>First Class:</strong> ${firstClassDatePretty}<br>
+                        <strong># of Classes:</strong> ${bookClass.length}<br>
+                        <strong>Payment Method:</strong> ${paymentMethod}<hr>
+                        <strong>Xero Results</strong><br>
+                        ${xeroInvoiceStatusMessage}<br>${xeroPaymentStatusMessage}`
             };				
             writeMessage('modal', message);
             return bookClass;
@@ -1625,22 +1679,81 @@ async function retrieveAppointments(upcoming_classes, classDate, selected_class_
 // 5. Display instructor report for user
 // 6. Provide option to generate a pay run in Xero
 async function generateInstructorReport(reportMonth, $revealedElements) {
-    // Retrieve all clients from Acuity
-
-
-    // Read NOTES field and search for line to indicate commissions (sold by) in selected month
-
-
-    // Parse NOTES field and capture appropriate details in array
-
-
-    // Prepare commission details for printing
-
-    
     // Get first and last day of report month
     var minDate = new Date(reportMonth.getFullYear(), reportMonth.getMonth(), 1);
     var maxDate = new Date(reportMonth.getFullYear(), reportMonth.getMonth() + 1, 0);
-    console.log(`minDate: ${minDate}, maxDate: ${maxDate}`);
+    var maxDateNext = new Date(reportMonth.getFullYear(), reportMonth.getMonth() + 1);
+    console.log(`minDate: ${minDate}, maxDate: ${maxDate}, maxDateNext: ${maxDateNext}`);
+
+    // EMPLOYEE COMMISSION
+    // Retrieve all clients from Acuity and gather student notes to determine commission
+    var funcType = 'clients_search';
+    var activity = 'retrieveAllClients';
+    var clientsResult = await initApiCall(funcType, activity);
+
+    // Read NOTES field and search for line to indicate commissions (sold by) in selected month
+    var employeeCommissionDetails = [];
+    var count = 0;
+    $.each(clientsResult, (i, client) => {
+        var clientNotes = client.notes;
+        var clientFirstName = client.firstName;
+        var clientLastName = client.lastName;
+        // Move to next client if notes field is empty or doesn't include any commission related info
+        if (clientNotes.length === 0) { return true }
+        if (!clientNotes.includes('sold by')) { return true }
+
+        // Capture each line in notes field and parse to capture required commission info
+        var notesByLine = clientNotes.split('\n');
+        for (var i=0; i < notesByLine.length; i++) {
+            if (debug) {
+                console.log(`Notes length for ${clientFirstName} ${clientLastName} is: ${notesByLine.length}`);
+                console.log(`On notes line ${clientFirstName} ${clientLastName} - ${i}: ${notesByLine[i]}`);
+            }
+
+            // Return if line does not include commission related info            
+            if (!notesByLine[i].includes('sold by')) { continue; }
+            
+            // Capture commission date and remove Chinese characters if any
+            var timeSold = notesByLine[i].split('~')[0];
+            timeSold = timeSold.replace(/[^\x00-\x7F]/g, "");
+            var timeSoldDate = new Date(timeSold);
+            
+            // Store commission details if entry is within date range, otherwise move on
+            if (timeSoldDate >= minDate && timeSoldDate <= maxDateNext) {
+                var options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
+                var timeSoldDatePretty = timeSoldDate.toLocaleString('en-US', options);
+                var clientName = `${clientFirstName} ${clientLastName}`;
+                var productSold = notesByLine[i].split('~')[1].trim();
+                var employeeNameTemp = notesByLine[i].split('sold by')[1];
+                var employeeName = employeeNameTemp.split('~')[0].trim();
+                var productPrice = notesByLine[i].split('$')[1];
+                                
+                console.log(`${clientFirstName} ${clientLastName} notes line ${i}: ${notesByLine[i]}`);
+                console.log(`Package sold time string: ${timeSold}`);
+                console.log(`Package sold time as date: ${timeSoldDate}`);
+                console.log(`Product: ${productSold}`);
+                console.log(`Employee: ${employeeName}`);
+                console.log(`Price: ${productPrice}`);
+
+                // Add commission details to object
+                employeeCommissionDetails[count] = {
+                    employeeName,
+                    clientName,
+                    date: timeSoldDatePretty,
+                    product: productSold,
+                    price: productPrice,
+                    match: false
+                };
+
+                // Increment counter
+                count++;
+            } else {
+                console.log(`Commission for ${clientFirstName} ${clientLastName} sold on ${timeSoldDate}: Not in range of mindate ${minDate} and maxdate ${maxDateNext}, skipping...`);
+            }            
+        }        
+    });
+
+    console.log(`Employee commission details:`, employeeCommissionDetails);
     
     // Retrieve appointments for selected month
     var func = 'appointments_get';
@@ -1649,8 +1762,7 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
     appointmentsResult = await initApiCall(func, activity, params);
     console.log('Instructor report appointments result:', appointmentsResult);
     
-    // Rollup appointments array by class and notes
-    var instructorCheckinNote = 'INSTRUCTOR CHECK-IN';
+    // Rollup appointments array by class and notes    
     var apptsByType = d3.nest().key(function(i) {
         return `${i.type} ${i.datetime}`;
     }).entries(appointmentsResult);
@@ -1758,38 +1870,76 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
     var bellyCount = 0;
     var yogaCount = 0;
     $.each(instructorCounts, (name, className) => {
-        msg += `<b>${name}</b><br>`;
+        msg += `<center><b>${name}</b></center>`;
         $.each(className, (className1, count) => {
             if (className1 === 'LATE') {
                 lateCount = count;
                 return true;
             }
-            if (className1.includes('Belly')) {
+            if (className1.includes('Belly') || className1.includes('Chinese Dance')) {
                 bellyCount = bellyCount + count;
             } else if (className1.includes('Yoga')) {
                 yogaCount = yogaCount + count;
             }
             msg += `${className1} x ${count}<br>`;
         });
-
-        // Add commissions to totals
-
         
         // Display totals
-        msg += `TOTAL BELLY: ${bellyCount}<br>`;
-        msg += `TOTAL YOGA: ${yogaCount}<br>`;
+        msg += `<strong>TOTAL DANCE:</strong> ${bellyCount}<br>`;
+        msg += `<strong>TOTAL YOGA:</strong> ${yogaCount}<br>`;
         
-        msg += `COMMISSIONS:<br>`;
-        // Output commissions here        
+        // Calculate and display commissions
+        msg += `<strong>COMMISSION: </strong>`;
+        var commissions = false;
+        var commissionMsgTemp = '';
+        var commissionCount = 0;
+        // Iterate through commissions array and display line if match to teacher name
+        for (var i=0; i < employeeCommissionDetails.length; i++) {
+            if (employeeCommissionDetails[i].employeeName === name) {
+                let num = commissionCount + 1;
+                commissionMsgTemp += `&nbsp&nbsp&nbsp${num}) ${employeeCommissionDetails[i].date}: ${employeeCommissionDetails[i].product} @ $${employeeCommissionDetails[i].price} - ${employeeCommissionDetails[i].clientName}<br>`
+                commissions = true;
+                employeeCommissionDetails[i].match = true;
+                commissionCount++;
+            }
+        }
 
-        msg += `<font color="red">LATE: ${lateCount}</font><br>`;
+        if (!commissions) {
+            msg += 'None<br>';
+        } else {
+            msg += `${commissionCount}<br>${commissionMsgTemp}`;
+        }
+
+        msg += `<font color="red"><strong>LATE:</strong> ${lateCount}</font><br><hr>`;
         
         // Reset counters
         bellyCount = 0;
         yogaCount = 0;
     });
 
-    msg += '<hr>';
+    console.log(`Employee commission details AFTER message iteration: `, employeeCommissionDetails);
+
+    // Add additional commission lines if applicable
+    var addlCommissionTempMsg = '<center><strong>Additional Commissions</strong></center>';
+    var noCommissionTempMsg = '<center><strong>Unmatched Commissions</strong></center>';
+    var addlCommission = false;
+    var noCommission = false;
+    for (var i=0; i < employeeCommissionDetails.length; i++) {
+        if (!employeeCommissionDetails[i].match) {
+            var employeeName = employeeCommissionDetails[i].employeeName;
+            if (employeeName === 'N/A' || employeeName === 'Select One') {
+                // Unmatched commissions
+                noCommissionTempMsg += `${employeeCommissionDetails[i].date}: ${employeeCommissionDetails[i].product} @ $${employeeCommissionDetails[i].price} - ${employeeCommissionDetails[i].clientName}<br>`
+                noCommission = true;
+            } else {
+                // Commissions for non-teachers
+                addlCommissionTempMsg += `<strong>${employeeCommissionDetails[i].employeeName}</strong> - ${employeeCommissionDetails[i].date}: ${employeeCommissionDetails[i].product} @ $${employeeCommissionDetails[i].price} - ${employeeCommissionDetails[i].clientName}<br>`
+                addlCommission = true;
+            }
+        }
+    }
+    if (addlCommission) { msg += `${addlCommissionTempMsg}<hr>`; }
+    if (noCommission) { msg += `${noCommissionTempMsg}<hr>`; }
     console.log(msg);
     
     // Build details table

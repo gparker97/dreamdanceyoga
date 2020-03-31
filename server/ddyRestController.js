@@ -209,7 +209,6 @@ async function initAcuityAPIcall(req) {
             if (!idToUpdate) {
                 // In some cases PUT requires query parameters as well as JSON body - i.e. clients update PUT
                 // Set query parameters and JSON body with same data for update (duplicate will be ignored)
-                // acuityURL =`/${func}?admin=true`;
                 if (queryIds.length > 0) {
                     var count=0;                
                     queryIds.forEach(i => {
