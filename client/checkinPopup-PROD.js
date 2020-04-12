@@ -338,10 +338,12 @@
 <script type="text/javascript">
 {
 $( async () => {
+    'use strict';
+
     // FUNCTION: toggleFullScreen()
     // 1) Toggle fullscreen mode with cross-browser compatibility
     function toggleFullScreen($element) {
-        $element = $element || document.documentElement;
+        var $element = $element || document.documentElement;
         if (!document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
             $('#fullscreen_submit').val('Exit Fullscreen');
             if ($element.requestFullscreen) {
@@ -433,7 +435,7 @@ $( async () => {
             selectedAppointments[i].fullName = `${selectedAppointments[i].firstName} ${selectedAppointments[i].lastName}`
             
             // Translate certificate code to readable student type
-            cert = selectedAppointments[i].certificate;
+            var cert = selectedAppointments[i].certificate;
             
             if (debug) {
                 console.log(`Cert for ${selectedAppointments[i].firstName}: ${cert}`);
@@ -443,14 +445,13 @@ $( async () => {
                 if (cert.includes('TRIAL')) { cert = "TRIALCLASS"; }
                 switch (cert) {
                     case 'CLASSPASS':
-                        // selectedAppointments[i].studentType = 'CP';
                         selectedAppointments[i].studentType = "<img class='ddy-member' src='https://sophiadance.squarespace.com/s/classpass-logo-transparent.png'>";
                         break;
                     case 'TRIALCLASS':
                     case 'FIRSTCLASSFREE':
                         selectedAppointments[i].studentType = 'TRIAL CLASS';
                         break;
-                    case 'DDYINSTRUCTOR':                        
+                    case 'DDYINSTRUCTOR':
                         selectedAppointments[i].studentType = 'INSTRUCTOR';
                         // Set instructor dropdown value
                         $('#teacher_checkin_dropdown').val(`${selectedAppointments[i].firstName} ${selectedAppointments[i].lastName}`);
@@ -458,11 +459,12 @@ $( async () => {
                         $('#teacher_checkin_submit').val('Cancel Instructor Check-in');
                         $('#teacher_checkin_dropdown').prop('disabled', true);
                         $('#teacher_checkin_dropdown').addClass('disabled');
+                        // Clear button HTML so check-in button is not displayed for instructors
+                        selectedAppointments[i].buttonHTML = '';
                         // Hack to ensure the instructor name is listed at top of the table
                         selectedAppointments[i].firstName=`00${selectedAppointments[i].firstName}`;
                         break;
                     default:
-                        // selectedAppointments[i].studentType = "<p class='ddy-member'><img src='https://sophiadance.squarespace.com/s/dancer-icon-transparent-24px.png'></p>";
                         selectedAppointments[i].studentType = "<img class='ddy-member' src='https://sophiadance.squarespace.com/s/ddy-logo-small.png'>";
                 }
             } else {
@@ -508,8 +510,6 @@ $( async () => {
                                     break;
                                 case 'INSTRUCTOR':
                                     $(td).addClass('instructor');
-                                    // REMOVE CHECK-IN BUTTON HERE?
-                                    // CLEAR selectedappointments[i].buttonHTML ?
                                     break;
                                 case 'Dream Dance and Yoga Member':
                                     $(td).addClass('ddy-member');
@@ -856,6 +856,7 @@ $( async () => {
     // Declare vars
     var selectedAppointments = [];
     var instructors = [];
+    var clients = [];
     var checkin_table = {};
     var classFull = false;
     var pin64 = null;
@@ -976,7 +977,7 @@ $( async () => {
                 // Show alert, clear PIN field and re-enable submit button                
                 var $pinMsgElement = $('#pin_message_div');
                 $pinMsgElement.removeClass('hide');
-                $pinMsgElement.html(`<b>Pin Incorrect!  Please try again (${badPinCount}/${MAX_TRIES}).`);
+                $pinMsgElement.html(`<b>Pin Incorrect! Please try again (${badPinCount}/${MAX_TRIES}).`);
                 $('#instructor_pin').val('');
 
                 // Check if exceeded max retries
@@ -1010,6 +1011,8 @@ $( async () => {
 
                 // If CANCEL check-in - remove instructor from class, re-enable instructor dropdown
                 if ($('#teacher_checkin_dropdown').hasClass('disabled')) {
+                    // CREATE FUNCTION HERE - cancelInstructorCheckin(selectedAppointments)
+
                     // Call checkIn to cancel instructor check-in
                     try {
                         // Filter selected appointments array to get instructor appointment data
@@ -1017,7 +1020,7 @@ $( async () => {
                             return (`${selectedAppointments[i].certificate}` === 'DDYINSTRUCTOR');
                         });                        
                         console.log('Class instructor appt is:', classInstructorAppt);
-                        
+
                         var cancelNote = 'Instructor check-in cancel';
                         var apptId = classInstructorAppt[0].id;
                         var funcType = 'appointments_put';
@@ -1025,7 +1028,7 @@ $( async () => {
                         var params = {
                             apptId,
                             cancelNote
-                        }                        
+                        }
                         
                         var appointmentsResult = await initApiCall(funcType, activity, params);
                         console.log('AppointmentsResult is:', appointmentsResult);
@@ -1177,6 +1180,8 @@ $( async () => {
                 $revealedElements = revealElement($element, $revealedElements);
             }
             catch (e) {
+                console.error(`REGISTER NOW: Error retrieving students: ${e.responseText}`);
+                console.error(e);
                 var message = { title: 'ERROR', body: "Error retrieving students, please try again." };
                 writeMessage('modal', message);
             }		
@@ -1225,7 +1230,7 @@ $( async () => {
 
                 // If no certificate then alert student to contact staff
                 if (!certificate || certificate === '') {
-                    var message = { title: 'No Certificate!', body: "Sorry, we couldn't find a valid certificate code! Please check with Dream Dance and Yoga staff to register for this class." };
+                    var message = { title: 'No Certificate!', body: "<strong>Sorry, we couldn't find a valid certificate code!</strong><br>Please check with Dream Dance and Yoga staff to register." };
                     writeMessage('modal', message);
                 } else {
                     // Set check-in type and add student to class

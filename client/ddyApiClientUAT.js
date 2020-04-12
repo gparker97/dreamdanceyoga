@@ -448,15 +448,17 @@
 <script type="text/javascript">
 {
 $( () => {
+	'use strict';
+
 	// Setup script
 	const environment = 'UAT';
-	const version = '1.6.1';
 	
 	// Arrays to cache Acuity API call responses (avoid making multiple calls)
 	var clients = [];
     var products = [];
     var certificates = [];
-    var upcoming_classes = [];
+	var upcoming_classes = [];
+	var ddyInstructors = [];
 
 	// Var to hold selected action
 	var action = '';
@@ -563,9 +565,9 @@ $( () => {
 				break;
 			case 'instructor_report_top':
 				$detailsTop.html('<h2>INSTRUCTOR REPORT</h2><hr/>');
-				$element = $('#instructor_report_div');
+				var $element = $('#instructor_report_div');
 				$revealedElements = revealElement($element, $revealedElements);
-				// $element.removeClass('hide');
+				
 				// Show datepicker to select month to generate report
 				// Month year only datepicker
 				$("#instructor_report_datepicker").datepicker({
@@ -600,7 +602,7 @@ $( () => {
 			case 'studio_metrics_top':
 				$detailsTop.html('<h2>DDY STUDIO METRICS</h2><hr/>');
 				// Reveal datepicker
-				$element = $('#studio_metrics_div');
+				var $element = $('#studio_metrics_div');
 				$revealedElements = revealElement($element, $revealedElements);
 				// Store action
 				$('#studio_metrics_div').data('action', e.currentTarget.id);
@@ -695,6 +697,8 @@ $( () => {
 			}
 		}
 		catch (e) {
+			console.error(`SEARCH STUDENTS: Error retrieving students: ${e.responseText}`);
+            console.error(e);
 			var message = { title: 'ERROR', body: "Error retrieving students, please try again." };
 			writeMessage('modal', message);
 		}
@@ -883,7 +887,7 @@ $( () => {
 		
 		// Generate modal message with certificate details
 		var selectedStudent = $('#search_student_dropdown option:selected').text();
-		message = { title: `PACKAGES: ${selectedStudent}`, body: certificatesOutput };
+		var message = { title: `PACKAGES: ${selectedStudent}`, body: certificatesOutput };
 		writeMessage('modal', message);
 
 		// CLEAN UP: Re-enable view packages submit button, clear search dropdown		
@@ -939,11 +943,11 @@ $( () => {
 		switch (action) {
 			case 'buy_class_top':
 			case 'buy_package_top':
-				$element = $('#payment_method_div');
+				var $element = $('#payment_method_div');
 				$revealedElements = revealElement($element, $revealedElements);
 				break;
 			case 'buy_single_class_top':
-				$element = $('#buy_single_class_submit');
+				var $element = $('#buy_single_class_submit');
 				$revealedElements = revealElement($element, $revealedElements);
 				break;
 		}
@@ -996,8 +1000,8 @@ $( () => {
 		var paymentMethod = $dropdown.val();
 
 		// If payment method is anything besides "Select One" or "None", reveal employee commission dropdown and store selected name
-		$commissionElement = $('#employee_commission_div');
-		$commissionDropdown = $('#employee_commission_dropdown');		
+		var $commissionElement = $('#employee_commission_div');
+		var $commissionDropdown = $('#employee_commission_dropdown');		
 		var employeeCommission = $commissionDropdown.val();
 		if (debug) {
 			console.log('Payment method dropdown val: ', paymentMethod);
@@ -1066,7 +1070,7 @@ $( () => {
 
 		// If not populated yet, make API call and populate employee commission dropdown with DDY employee names
 		if (paymentMethod != 'select' && paymentMethod != 'none') {
-			if (typeof ddyInstructors === 'undefined') {
+			if (ddyInstructors.length === 0) {
 				ddyInstructors = await getDdyInstructors();
 				console.log('DDY Instructors list: ', ddyInstructors);
 				
@@ -1186,8 +1190,8 @@ $( () => {
 		$element.prop('disabled', true).addClass('disabled');
 
 		// Store selected date
-		selectedDate = $('#checkin_datepicker').datepicker('getDate');
-		classDate = $.datepicker.formatDate('yy/mm/dd', selectedDate);
+		var selectedDate = $('#checkin_datepicker').datepicker('getDate');
+		var classDate = $.datepicker.formatDate('yy/mm/dd', selectedDate);
 		console.log('Selected class date is: ', classDate);
 		
 		// Make API call to retrieve selected day's classes and populate dropdown
@@ -1223,9 +1227,9 @@ $( () => {
 			if (selectedAppointments !== 'None') {				
 				// Open new window
 				if (environment === 'UAT') {
-					winName = 'checkin-window-uat';
+					var winName = 'checkin-window-uat';
 				} else {
-					winName = 'checkin-window';			
+					var winName = 'checkin-window';
 				}
 
 				// Close open window if it exists
@@ -1254,10 +1258,12 @@ $( () => {
 				}				
 			} else {
 				var message = { title: 'ERROR', body: "No students scheduled for that class, please try again." };
-				writeMessage('modal', message);		
+				writeMessage('modal', message);
 			}
 		}
 		catch(e) {
+			console.error(`GENERATE CHECK-IN TABLE: Error generating check-in table: ${e.responseText}`);
+			console.error(e);
 			var message = { title: 'ERROR', body: "Error retrieving appointments, please try again." };
 			writeMessage('modal', message);	
 		}
@@ -1337,7 +1343,7 @@ $( () => {
 				
 		if (result) {
 			// Reveal studio metrics container and re-enable submit button
-			$element = $('#studio_metrics_data_div');
+			var $element = $('#studio_metrics_data_div');
 			$revealedElements = revealElement($element, $revealedElements);
 
 			var $element = $('#studio_metrics_submit');

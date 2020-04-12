@@ -1,6 +1,6 @@
 // Setup script
 const environment = 'PROD';
-const version = '1.7.8';
+const version = '1.8.1';
 
 // Set API host
 // var apiHostUAT = 'https://greg-monster.dreamdanceyoga.com:3443/api/ddy'; // GREG computer
@@ -459,16 +459,14 @@ async function initApiCall(func, activity, params) {
     } catch(e) {
         console.log(`ERROR: Error returned from callAPI function: ${func}`);
         console.error(e);
-        if (debug) {
-            writeMessage('debug', `<br>XHR responseText: ${e.responseText}`);
-        }
+        console.error(`Error response: ${e.responseText}`);
         return e;
     }
 }
 
 async function callAPI(func, params) {
-    // set apiHost based on environment
-    apiHost = eval(`apiHost${environment}`);
+    // set apiHost based on environment    
+    var apiHost = eval(`apiHost${environment}`);
 
     // Set secure functions to prevent logging response to console
     var secureFuncs = ['pin'];
@@ -546,9 +544,7 @@ async function callAPI(func, params) {
     } catch (e) {
         console.log(`ERROR: Error detected in first level API call: ${func}`);
         console.error(e);
-        if (debug) {
-            writeMessage('debug', `<br><b>ERROR CAUGHT</b><br>Function: ${func}<br>Response text: ${e.responseText}`);
-        }
+        console.error(`ERROR RESPONSE: ${e.responseText}`);
         return e;
     }
 }
@@ -666,8 +662,8 @@ async function retrieveProductsClasses(action, $revealedElements) {
     }
     catch(e) {
         console.error(`ERROR: Error detected in initApiCall: ${funcType}`);
-        console.error(e);
-        var message = { title: 'ERROR', body: `An error occured with ${funcType}, please check and try again` };
+        console.error(e);        
+        var message = { title: 'ERROR', body: `An error occured with ${funcType}, please check and try again.<hr><strong>Error Message:</strong> ${e.responseText}` };
         writeMessage('modal', message);
         return false;
     }		
@@ -706,8 +702,8 @@ async function retrieveUpcomingClasses(action, $revealedElements) {
     }
     catch(e) {
         console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
-        console.log (e);
-        var message = { title: 'ERROR', body: `No classes scheduled on ${datePretty}.  Please try another date!` };
+        console.log(e);        
+        var message = { title: 'ERROR', body: `No classes scheduled on ${datePretty}.  Please try another date!<hr><strong>Error Message:</strong> ${e.responseText}` };
         writeMessage('modal', message);        
     }
     // Populate dropdown table with classes and update label text
@@ -717,7 +713,7 @@ async function retrieveUpcomingClasses(action, $revealedElements) {
     populateDropdown($dropdown, result, func);
     
     // Reveal dropdown and enable button to generate table
-    $element = $('#generate_checkin_table_div');
+    var $element = $('#generate_checkin_table_div');
     $revealedElements = revealElement($element, $revealedElements);
     
     return result;
@@ -855,108 +851,167 @@ async function addNewStudent() {
         // Next, book any upcoming appointment and delete the appointment
         // In order for new student data to be pushed to Xero, Acuity requires an appointment to be booked        
         console.log('Booking/cancelling temporary class to trigger Xero contact synchronization...');
-        
-        // Retrieve list of upcoming classes and select one
-        var funcType = 'availability--classes_get';
-        var activity = 'getClassesByDate';
-        var classDate = new Date();
-        var classExists = false;
-
-        // API call to retrieve class list for selected date, if no classes then try next day
-        while (!classExists) {
-            try {                
-                var result = await initApiCall(funcType, activity, classDate);
-                console.log(`${funcType} result:`, result);
-                var classId = result[0].appointmentTypeID;
-                classExists = true;
-                console.log(`Class found, will book class ${result[0].name} on ${result[0].localeTime}, ID ${classId}`);
-            }
-            catch(e) {                
-                console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
-                console.log (e);
-                console.log(`No classes detected on ${classDate}!  Trying next day...`);
-                classDate.setDate(classDate.getDate() + 1);
-                console.log(`NEW classDate is: ${classDate}`);
-            }
-        }        
-
-        // Once a class is found, book a temp appointment
-        // Store required parameters for appointment post API call                
-        var calendarID = result[0].calendarID;
-        var datetime = result[0].time;
-        var noEmail = true;
-        var certificate = 'DDYINSTRUCTOR';
-        var params = {
-            classId,
-            datetime,
-            firstName,
-            lastName,
-            email,
-            certificate,
-            calendarID,
-            noEmail
-        };
-
-        // Make API call to book temporary appointment
-        try {
-            console.log('Booking temp appointment...');
-
-            var funcType = 'appointments_post';
-            var activity = 'addToClass';
-            var appointmentsResult = await initApiCall(funcType, activity, params);
-            console.log('AppointmentsResult is:', appointmentsResult);
-            
-            // Store temp appointment ID for the cancellation
-            var apptId = appointmentsResult.id;
-        }
-        catch (e) {
-            console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
-            console.log (e);
-            var errorText = e.responseText;
-            console.log(`Error text is: ${errorText}`);
-        }        
-
-        // Cancel the same appointment
-        try {
-            console.log(`Cancelling temp appointment id ${apptId}...`);
-            
-            var cancelNote = 'Temp appt cancel';            
-            var funcType = 'appointments_put';            
-            var activity = 'cancelAppointment';
-            var params = {
-                apptId,
-                cancelNote,
-                noEmail
-            }                        
-            
-            var appointmentsResult = await initApiCall(funcType, activity, params);
-            console.log('AppointmentsResult is:', appointmentsResult);
-        }
-        catch (e) {
-            console.log(`ERROR: Error cancelling temp appointment!`);
-            console.log (e);
-        }
+        var tempClassResult = await bookCancelTempClass(params);
 
         // If successful inform user
-        var message = { 
-            title: 'Student Created!',
-            body: `<strong>New student created successfully!</strong><br><br>
-                    <strong>Name:</strong> ${firstName} ${lastName}<br>
-                    <strong>Phone:</strong> ${phone}<br>
-                    <strong>Email:</strong> ${email}<br>
-                    <strong>Preferred Language:</strong> ${language}<br>
-                    <strong>English Level:</strong> ${englishLevel}`
-        };
-        writeMessage('modal', message);        
-        return result;
+        if (tempClassResult) {
+            var message = {
+                title: 'Student Created!',
+                body: `<strong>New student created successfully!</strong><br><br>
+                        <strong>Name:</strong> ${firstName} ${lastName}<br>
+                        <strong>Phone:</strong> ${phone}<br>
+                        <strong>Email:</strong> ${email}<br>
+                        <strong>Preferred Language:</strong> ${language}<br>
+                        <strong>English Level:</strong> ${englishLevel}`
+            };
+            writeMessage('modal', message);
+            return result;
+        } else {
+            throw 'ERROR CREATING NEW STUDENT - TEMP CLASS BOOKING ERROR!';
+        }
     }
     catch(e) {
         console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
         console.error(e);
-        var message = { title: 'ERROR', body: "<strong>Error occured creating new student, please check and try again</strong>" };
+        var message = { title: 'ERROR', body: `<strong>Error occured creating new student, please check and try again</strong><hr><strong>Error Message:</strong> ${e.responseText}` };
         writeMessage('modal', message);
         return false;
     }		
+}
+
+// FUNCTION: bookCancelTempClass()
+// 1. Find the next available class
+// 2. Book the class with the currently selected student
+// 3. Cancel the same class
+// 4. Return result to calling function
+async function bookCancelTempClass(studentData) {
+    // Retrieve list of upcoming classes and select first class
+    try {
+        var classList = await findClassByDate(false);
+    }
+    catch(e) {        
+        return false;
+    }    
+
+    // Once a class is found, book a temp appointment for selected student using the first class found
+    // Store required parameters for appointment post API call                
+    var firstName = studentData.firstName || studentData[0].firstName;
+    var lastName = studentData.lastName || studentData[0].lastName;
+    var email = studentData.email || studentData[0].email;
+    var classId = classList[0].appointmentTypeID;
+    var calendarID = classList[0].calendarID;
+    var datetime = classList[0].time;
+    var noEmail = true;
+    var certificate = 'DDYINSTRUCTOR';
+    var params = {
+        classId,
+        datetime,
+        firstName,
+        lastName,
+        email,
+        certificate,
+        calendarID,
+        noEmail
+    };
+
+    // Make API call to book temporary appointment and store temp appt ID for cancellation
+    try {
+    var bookApptResult = await bookAppointment(params);
+    var apptIdToCancel = bookApptResult.id;
+    }
+    catch(e) {
+        return false;
+    }
+
+    // Cancel the same appointment
+    try {
+        var cancelApptResult = await cancelAppointment(apptIdToCancel, noEmail);
+    }
+    catch(e) {
+        return false;
+    }
+
+    return true;
+}
+
+// FUNCTION: findClassByDate()
+// 1. Return all classes on a given date, if no date specified return classes for the current day
+// 2. Return result to calling function
+async function findClassByDate(date) {
+    // Retrieve list of upcoming classes and select one
+    var funcType = 'availability--classes_get';
+    var activity = 'getClassesByDate';    
+    var classDate = date || new Date();
+    var classExists = false;
+
+    // API call to retrieve class list for selected date, if no classes then try next day
+    while (!classExists) {
+        try {                
+            var result = await initApiCall(funcType, activity, classDate);
+            console.log(`${funcType} result:`, result);
+            var classId = result[0].appointmentTypeID;
+            classExists = true;
+            console.log(`CLASS FOUND: ${result[0].name} on ${result[0].localeTime}, ID ${classId}`);
+            return result;
+        }
+        catch(e) {
+            console.log(`No classes detected on ${classDate}!  Trying next day...`);
+            classDate.setDate(classDate.getDate() + 1);
+            console.log(`NEW classDate is: ${classDate}`);
+        }
+    }
+}
+
+// FUNCTION: bookAppointment()
+// 1. Collect details for appointment to book from calling function
+// 2. Book appointment
+// 3. Return result to calling function
+async function bookAppointment(apptDetails) {
+    // Make API call to book temporary appointment
+    try {
+        console.log('Booking temp appointment...');
+
+        var funcType = 'appointments_post';
+        var activity = 'addToClass';
+        var appointmentsResult = await initApiCall(funcType, activity, apptDetails);
+        console.log('AppointmentsResult is:', appointmentsResult);
+        return appointmentsResult;
+    }
+    catch (e) {
+        console.error(`ERROR: Error detected in initApiCall: ${funcType}`);        
+        console.error(`Error response: ${e.responseText}`);
+        console.error(e);
+        return false;
+    }
+}
+
+// FUNCTION: cancelAppointment()
+// 1. Collect details for appointment to cancel from calling function
+// 2. Cancel appointment
+// 3. Return result to calling function
+async function cancelAppointment(apptId, noEmail) {
+    try {
+        console.log(`Cancelling appointment id ${apptId}...`);
+        
+        var cancelNote = 'Temp appt cancel';
+        var funcType = 'appointments_put';
+        var activity = 'cancelAppointment';
+        var params = {
+            apptId,
+            cancelNote,
+            noEmail
+        }                        
+        
+        var appointmentsResult = await initApiCall(funcType, activity, params);
+        console.log('Cancel appointment result is:', appointmentsResult);
+        return appointmentsResult;
+    }
+    catch (e) {
+        console.error(`ERROR: Error cancelling appointment!`);
+        console.error(`Error response: ${e.responseText}`);
+        console.error(e);
+        return false;
+    }
 }
 
 // FUNCTION: confirmPaymentDetails()
@@ -1246,7 +1301,7 @@ function stripePollForSourceStatus(stripePollParams) {
     catch(e) {
         console.error(`ERROR: Error detected in Stripe retrieveSource call`);
         console.error(e);
-        var message = { title: 'ERROR', body: `An error occured with Stripe API call: ${e.message}<br>Please check and try again` };
+        var message = { title: 'ERROR', body: `An error occured with Stripe API call: ${e.message}<br>Please check and try again.<hr><strong>Error Message:</strong> ${e.responseText}` };
         writeMessage('modal', message);
         return false;
     }
@@ -1334,7 +1389,7 @@ async function initPurchase(action, products, clients) {
     catch(e) {
         console.error(`ERROR: Error detected in initPurchase: ${e.message}`);
         console.error(e);
-        var message = { title: 'ERROR', body: `An error occured with initPurchase, please check and try again` };
+        var message = { title: 'ERROR', body: `An error occured with initPurchase, please check and try again.<hr><strong>Error Message:</strong> ${e.responseText}` };
         writeMessage('modal', message);
         return false;
     }
@@ -1359,12 +1414,18 @@ async function initPurchase(action, products, clients) {
 async function employeeCommissionNotes(selectedProduct, selectedClient) {
     // For all purchases except CC (done via Zapier) - update student notes with DDY employee commission details in Acuity
     // If purchase made via Acuity / Stripe - to be done only upon successful purchase via zapier
-    
+
     // Capture relevant details    
     var productName = selectedProduct[0].name;    
     var price = selectedProduct[0].price;
     var updatedPrice = $('#updated_price').val() || price;
     var soldBy = $('#employee_commission_dropdown option:selected').text();
+
+    // Return if product price is 0
+    if (parseFloat(updatedPrice) === 0) {
+        console.log(`Product price is 0, not recording commission`);
+        return false;
+    }
 
     // Capture student notes and details
     var firstName = selectedClient[0].firstName;
@@ -1395,13 +1456,14 @@ async function employeeCommissionNotes(selectedProduct, selectedClient) {
     // Make API call to update student notes
     try {
         var clientUpdateResult = await initApiCall(funcType, activity, params);
-        console.log('clientUpdateResult for commission update is:', clientUpdateResult);
+        console.log('COMMISSION: Commission notes update result:', clientUpdateResult);
         return true;
     }
     catch (e) {
-        console.error(`ERROR: Error detected in enmployeeCommissionNotes: ${funcType}`);
+        console.error(`ERROR: Error detected in enmployeeCommissionNotes: ${funcType}`);        
+        console.error('COMMISSION: Commission notes update error:', clientUpdateResult);
+        console.error(`Error response: ${e.responseText}`);
         console.error(e);
-        console.error('clientUpdateResult for commission update is:', clientUpdateResult);
         return false;
     }
 }
@@ -1412,7 +1474,7 @@ async function employeeCommissionNotes(selectedProduct, selectedClient) {
 // 3. Apply full payment to Xero invoice based on payment method selected (if requested)
 async function buyPackage(selectedProduct, selectedClient) {
     try {
-        console.log('BUY PACKAGE NEW - Selected Product is:', selectedProduct);
+        console.log('BUY PACKAGE - Selected Product is:', selectedProduct);
         // Check if product is a package or a subscription, if subscription then payment method must be CC
         var productExpiry = selectedProduct[0].expires;
         if (productExpiry == null) {
@@ -1420,57 +1482,66 @@ async function buyPackage(selectedProduct, selectedClient) {
             writeMessage('modal', message);
             return false;
         }
-        
-        // If package then buy package
-        var funcType = 'certificates_create';
-        var activity = 'createCertificate';
-        var params = [ selectedProduct, selectedClient ];        
-        var result = await initApiCall(funcType, activity, params);
-        console.log('buyPackage result:');
-        console.log(result);
 
-        // If successful, call function to update student notes to record DDY employee commission details
-        var commissionResult = await employeeCommissionNotes(selectedProduct, selectedClient);
-        
-        // Successful - display details in modal window        
-        var commissionResultString = 'FAILED - PLEASE CHECK';
-        if (commissionResult) {
-            var soldBy = $('#employee_commission_dropdown option:selected').text();
-            commissionResultString = `Sold by ${soldBy}`;
-        }
+        // Before creating certificate, book and cancel temp appt for student to ensure Xero details are up to date
+        // In order for new student data to be pushed to Xero, Acuity requires an appointment to be booked        
+        console.log('Booking/cancelling temporary class to trigger Xero contact synchronization...');
+        var tempClassResult = await bookCancelTempClass(selectedClient);
 
-        var xeroInvoiceResult = result.xeroInvoiceStatus;
-        var xeroInvoiceStatusMessage = result.xeroInvoiceStatusMessage;
-        var xeroInvoiceStatusString = result.xeroInvoiceStatusString;
-        var xeroPaymentResult = result.xeroPaymentStatus;
-        var xeroPaymentStatusMessage = result.xeroPaymentStatusMessage || "XERO: Payment not applied";
-        if (debug) {				
-            writeMessage('debug', `<br>Xero Invoice Status: ${xeroInvoiceResult}`);
-            writeMessage('debug', `<br>Xero Invoice Status String: ${xeroInvoiceStatusString}`);
-            writeMessage('debug', `<br>Xero Payment Status: ${xeroPaymentResult}`);
+        if (tempClassResult) {
+            // If package then buy package
+            var funcType = 'certificates_create';
+            var activity = 'createCertificate';
+            var params = [ selectedProduct, selectedClient ];        
+            var result = await initApiCall(funcType, activity, params);
+            console.log('buyPackage result:');
+            console.log(result);
+
+            // If successful, call function to update student notes to record DDY employee commission details
+            var commissionResult = await employeeCommissionNotes(selectedProduct, selectedClient);
+            
+            // Successful - display details in modal window        
+            var commissionResultString = 'NONE';
+            if (commissionResult) {
+                var soldBy = $('#employee_commission_dropdown option:selected').text();
+                commissionResultString = `Sold by ${soldBy}`;
+            }
+
+            var xeroInvoiceResult = result.xeroInvoiceStatus;
+            var xeroInvoiceStatusMessage = result.xeroInvoiceStatusMessage;
+            var xeroInvoiceStatusString = result.xeroInvoiceStatusString;
+            var xeroPaymentResult = result.xeroPaymentStatus;
+            var xeroPaymentStatusMessage = result.xeroPaymentStatusMessage || "XERO: Payment not applied";
+            if (debug) {				
+                writeMessage('debug', `<br>Xero Invoice Status: ${xeroInvoiceResult}`);
+                writeMessage('debug', `<br>Xero Invoice Status String: ${xeroInvoiceStatusString}`);
+                writeMessage('debug', `<br>Xero Payment Status: ${xeroPaymentResult}`);
+            }
+            var paymentMethod = $('#payment_method_dropdown').find(':selected').text();
+            var clientName = `${selectedClient[0].firstName} ${selectedClient[0].lastName}`;
+            var clientEmail = selectedClient[0].email;
+            var message = { 
+                title: 'PURCHASE SUCCESS',
+                body: `<b>Student Name:</b> ${clientName}<br>
+                        <b>Email:</b> ${clientEmail}<br>
+                        <b>Code:</b> ${result.certificate}<br>
+                        <b>Payment Method:</b> ${paymentMethod}<br>
+                        <b>Commission:</b> ${commissionResultString}<br>
+                        <strong>Xero Results</strong><br>
+                        ${xeroInvoiceStatusMessage}<br>
+                        ${xeroPaymentStatusMessage}<hr>
+                        <strong>Inform student to use email address to book classes</strong>`
+            };
+            writeMessage('modal', message);
+            return result;
+        } else {
+            throw 'ERROR IN BUY PACKAGE - TEMP CLASS BOOKING ERROR';
         }
-        var paymentMethod = $('#payment_method_dropdown').find(':selected').text();
-        var clientName = `${selectedClient[0].firstName} ${selectedClient[0].lastName}`;
-        var clientEmail = selectedClient[0].email;
-        var message = { 
-            title: 'PURCHASE SUCCESS',
-            body: `<b>Student Name:</b> ${clientName}<br>
-                    <b>Email:</b> ${clientEmail}<br>
-                    <b>Code:</b> ${result.certificate}<br>
-                    <b>Payment Method:</b> ${paymentMethod}<br>
-                    <b>Commission:</b> ${commissionResultString}<br>
-                    <strong>Xero Results</strong><br>
-                    ${xeroInvoiceStatusMessage}<br>
-                    ${xeroPaymentStatusMessage}<hr>
-                    <strong>Inform student to use email address to book classes</strong>`
-        };
-        writeMessage('modal', message);
-        return result;
     }
     catch(e) {
         console.error(`ERROR: Error detected in initApiCall: ${funcType}`);
         console.error(e);
-        var message = { title: 'ERROR', body: `An error occured with ${funcType}, please check and try again` };
+        var message = { title: 'ERROR', body: `An error occured with ${funcType}, please check and try again.<hr><strong>Error Message:</strong> ${e.responseText}` };
         writeMessage('modal', message);
         return false;        
     }
@@ -1580,7 +1651,7 @@ async function buySeries(selectedClass, selectedClient) {
         catch(e) {
             console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
             console.log (e);
-            var message = { title: 'ERROR', body: `An error occured booking class, please check and try again` };
+            var message = { title: 'ERROR', body: `An error occured booking class, please check and try again.<hr><strong>Error Message:</strong> ${e.responseText}` };
             writeMessage('modal', message);
             return false;
         }
@@ -1588,7 +1659,7 @@ async function buySeries(selectedClass, selectedClient) {
     catch(e) {
         console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
         console.log (e);
-        var message = { title: 'ERROR', body: 'An error occured retrieving class times (perhaps class started in the past), please check and try again' };
+        var message = { title: 'ERROR', body: `An error occured retrieving class times (perhaps class started in the past), please check and try again.<hr><strong>Error Message:</strong> ${e.responseText}` };
         writeMessage('modal', message);
         return false;
     }		
@@ -1614,7 +1685,7 @@ async function retrieveCertificates(clients) {
         if (e.responseText === "No records returned") {
             console.log('No certificates found');
         } else {
-            console.error('ERROR: An error occured retrieving certificate codes');
+            console.error(`ERROR: An error occured retrieving certificate codes.<hr><strong>Error Message:</strong> ${e.responseText}`);
         }
         return false;
         // var $dropdown = $('#select_code_del');
@@ -1665,7 +1736,7 @@ async function retrieveAppointments(upcoming_classes, classDate, selected_class_
     catch(e) {
         console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
         console.log (e);
-        var message = { title: 'ERROR', body: `An error occured retrieving student list, please check and try again` };
+        var message = { title: 'ERROR', body: `An error occured retrieving student list, please check and try again.<hr><strong>Error Message:</strong> ${e.responseText}`};
         writeMessage('modal', message);
         return false;
     }
@@ -1798,8 +1869,9 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
             if (notes.includes(instructorCheckinNote)) {
                 // Gather required data to store
                 var name = `${apptDetails.firstName} ${apptDetails.lastName}`;
-                var checkInTime = notes.split(/: /)[0];                
-                var checkInTimeDate = new Date(checkInTime);
+                var checkInTime = notes.split(/: /)[0];
+                checkInTime = checkInTime.replace(/[^\x00-\x7F]/g, "");
+                var checkInTimeDate = new Date(checkInTime);                
 
                 // Format check-in time for display
                 var options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour12: true, hour: 'numeric', minute: 'numeric' };
@@ -2022,7 +2094,7 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
     catch(e) {
         console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
         console.log (e);
-        var message = { title: 'ERROR', body: `No appointments on ${minDate} - ${maxDate}.  Please try another date!` };
+        var message = { title: 'ERROR', body: `No appointments on ${minDate} - ${maxDate}.  Please try another date!<hr><strong>Error Message:</strong> ${e.responseText}` };
         writeMessage('modal', message);
         return false;
     }
@@ -2095,7 +2167,7 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
     catch(e) {
         console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
         console.log (e);
-        var message = { title: 'ERROR', body: `No classes scheduled on ${minDate} - ${maxDate}.  Please try another date!` };
+        var message = { title: 'ERROR', body: `No classes scheduled on ${minDate} - ${maxDate}.  Please try another date!<hr><strong>Error Message:</strong> ${e.responseText}` };
         writeMessage('modal', message);
         return false;
     }
@@ -2486,8 +2558,13 @@ function writeMessage(type, msg, $output) {
                     var lastName = $('#student_last_name').val() || false;
                     var phone = $('#student_phone').val() || false;
                     var email = $('#student_email').val() || false;
+                    var emailValid = validateEmail(email);
+                    
+                    // Validate fields are completed correctly
                     if (!firstName || !lastName || !phone || !email) {
                         $('#modal_error').html('<h3 class="center"><strong>Please complete all fields!</strong></h3>');
+                    } else if (!emailValid) {
+                        $('#modal_error').html('<h3 class="center"><strong>Please enter a valid e-mail address!</strong></h3>');
                     } else {
                         $('#modal_error').html('');
                         addNewStudent();
@@ -2543,6 +2620,14 @@ function writeMessage(type, msg, $output) {
     return $modalDialog;
 }
 
+// FUNCTION: validateEmail()
+// 1) Take email address as input
+// 2) Return whether email is valid or not
+function validateEmail(email) {
+    var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return re.test(String(email).toLowerCase());
+}
+
 // FUNCTION: populateDDYInfo()
 // 1) Retrieve certificates
 // 2) Iterate through and store info on memberships, etc
@@ -2590,15 +2675,6 @@ async function populateDDYInfo() {
         $element.html(`<div class="ddy-card-heading">TOTAL MEMBERS</div>
                         <div class="ddy-card-text">${totalMembers}</div>
                         <div class="ddy-card-subtext">As of today</div>`);
-        /*
-        $element.html(`<div>Valid certificates: ${validCerts}
-                        <br>Expired certificates: ${expiredCerts}
-                        <br>Subscribers (Gold + Silver): ${subscribers}
-                        <br>GOLD Members: ${goldMembers}
-                        <br>Silver Members: ${silverMembers}
-                        <br>Package Members: ${packageMembers}                            
-                        <br>TOTAL Members: ${totalMembers}
-                        </div>`); */        
         
         var $element = $('#ddy_card_2');
         $element.html(`<div class="ddy-card-heading">GOLD MEMBERS</div>
