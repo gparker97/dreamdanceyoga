@@ -10,3 +10,4 @@ server/deployProd.sh
 cert/
 server/old_scripts
 client/old_scripts
+temp/
