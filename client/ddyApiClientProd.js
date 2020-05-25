@@ -1,239 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<!--link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous"-->
 		<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 		<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.css">
 		<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
 		<link rel="stylesheet" type="text/css" href="https://sophiadance.squarespace.com/s/loadingSpinner.css"></link>
-        <style type="text/css">
-		.card {
-			background-color: #F2F2F2;
-			box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
-			transition: 0.3s;
-            border-radius 5px;
-            padding: 30px 25px;
-			margin: 10px;
-			text-align: center;
-			display: inline-block;
-		}
-		
-		.card h3 {
-			font-size: 150%;
-		}
-		
-		.card:hover {
-			box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
-		}
-		
-		.center {
-            text-align: center;
-		}
-		
-		.certificate-valid {
-			color: green;
-		}
-		
-		.certificate-expired {
-			color: red;
-			font-weight: bold;
-		}
-
-		.confirm-details {
-			border: 1px solid lightgray;
-			background-color: #fafafa;
-			padding: 5px 15px;
-		}
-
-		.confirm-final {
-			color: red;
-			font-size: 110%;
-		}
-
-		.confirm-title {
-			font-size: 150%;
-			letter-spacing: 6px;
-			color: maroon;
-			padding-bottom: 10px;
-		}
-
-		.dataTables_wrapper .dt-buttons {
-			padding-top: 10px;
-		}
-		
-		.ddy-card {
-			background-color: green;
-			color: white;
-			display: inline-block;
-			border: 1px solid lightgray;
-			margin: 5px 0px;
-			padding: 5px;
-		}
-
-		.ddy-card-gold {
-			background-color: goldenrod;
-		}
-		
-		.ddy-card-green {
-			background-color: green;
-		}
-
-		.ddy-card-maroon {
-			background-color: maroon;
-		}
-
-		.ddy-card-heading {
-			font-size: 120%;
-		}
-
-		.ddy-card-silver {
-			background-color: silver;
-		}
-
-		.ddy-card-subtext {
-			font-size: 80%;
-			color: ghostwhite;
-		}
-
-		.ddy-card-text {
-			font-size: 250%;
-			font-weight: bold;
-			padding: 20px;
-		}
-
-		.ddy-data {			
-			float: left;
-			width: 100%;
-			border: 1px solid lightgray;
-			margin: 5px 0px;
-			padding: 5px;			
-		}
-		
-		.debug-output {
-			border: 1px solid lightgray;
-			border-radius: 2px;  
-			display: block;			
-			margin: 5px 0px;
-			padding: 5px;
-		}
-		
-		.details {            
-			vertical-align: middle;			
-			padding: 30px;
-			margin: 20px;		
-			background-color: #F2F2F2;
-			display: flex;
-			flex-direction: column;
-        }        
-
-        .details-item {            
-            margin: 10px;
-		}
-
-		.disabled,
-		button:disabled {
-			border: 1px solid #999999;
-			background-color: #cccccc;
-			color: #666666;
-		}
-
-		.float-right {
-			float: right;
-		}
-		
-		.inline-block {
-			display: inline-block;
-		}
-		
-		.instructor-container {
-			text-align: center;
-		}
-		
-		.instructor-info {			
-			background-color: #fafafa;
-			padding: 10px;
-			text-align: left;
-			display: inline-block;
-		}
-
-		.instructor-table {			
-			background-color: #F2F2F2;
-			margin: 30px 0px;
-			overflow: hidden;
-		}
-		
-		.instructor-table-checkedin {			
-            color: green;
-            font-weight: bold;
-		}
-
-		.instructor-table-no-checkin {			
-			background-color: maroon !important;
-            color: white;
-            font-weight: bold;
-		}
-
-		.form-label {
-			font-weight: bold;
-		}
-
-		.margin10 {
-			margin: 10px;
-		}
-		
-		.margin-small {
-			margin-bottom: 15px;
-		} 
-
-		.modal-output {            
-            font-family: futura-pt !important;
-            border-radius: 5px;
-        }
-		
-		.my-link {
-            color: blue !important;
-            text-decoration: underline;
-		}
-
-		.qrcode-container {
-			background-color: lightgray;
-			margin: 10px;
-			padding: 5px;
-			border: 1px solid #999999;
-		}
-
-		.spacer {
-            padding: 5px;
-		}
-		
-		.studio-metrics {
-			overflow: hidden;
-			text-align: center;
-		}
-		
-		.submit-button {
-			font-size: 150%;
-			font-weight: bold;
-			padding: 20px;			
-		}
-		
-		.margin {
-			margin: 5px
-		}
-
-		.table {
-			width: 100% !important;
-		}
-		
-		.top-cards {
-            text-align: center;
-		}		
-
-		.hide {
-			display: none;
-		}
-		
-		</style>
+		<link rel="stylesheet" type="text/css" href="https://sophiadance.squarespace.com/s/ddy-mystudio-PROD.css"></link>
 	</head>
 <body>
 
@@ -283,8 +55,6 @@
 </div>
 
 <!-- LOADER DIV -->
-<!--div id="loading"></div-->
-<!--div id="loader-div" class="spinner hide"></div-->
 <div id="loader-div" class="lds-ring hide"><div></div><div></div><div></div><div></div></div>
 
 <div id="details" class="details hide">
@@ -383,9 +153,9 @@
     </div>
 
 	<!-- STUDIO METRICS -->
-	<div id="studio_metrics_div" class="inline-block hide">		
+	<div id="studio_metrics_div" class="inline-block hide">
 		Start date: <input type="text" id="metrics_date_range_from" class="margin" />
-		End date: <input type="text" id="metrics_date_range_to" class="margin" />        
+		End date: <input type="text" id="metrics_date_range_to" class="margin" />
 	</div>
 
 	<!-- JQUERY UI MODAL CONTAINER -->
@@ -605,7 +375,7 @@ $( () => {
 				var $element = $('#studio_metrics_div');
 				$revealedElements = revealElement($element, $revealedElements);
 				// Store action
-				$('#studio_metrics_div').data('action', e.currentTarget.id);
+				$element.data('action', e.currentTarget.id);
 				// Clear date value from datepicker if one exists				
 				$('#metrics_date_range_from').val('');
 				$('#metrics_date_range_to').val('');
@@ -1356,7 +1126,6 @@ $( () => {
 <!-- Acuity Client Functions -->
 <script src="https://sophiadance.squarespace.com/s/ddyApiClientFunctions-PROD.js"></script>
 <!-- JQUERY / JQUERY UI -->
-<!--script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script-->
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
 <!-- STRIPE -->
 <script src="https://js.stripe.com/v3/"></script>
@@ -1371,9 +1140,6 @@ $( () => {
 <script src="https://d3js.org/d3.v5.min.js"></script>
 <!-- JQUERY QRCODE --></div>
 <script type="text/javascript" src="https://sophiadance.squarespace.com/s/jqueryqrcodemin.js"></script>
-<!-- BOOTSTRAP -->
-<!--script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script-->
-<!--script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script-->
 
 <!-- END PROD -->
 </html>

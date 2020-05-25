@@ -1,0 +1,400 @@
+.card {
+    background-color: #F2F2F2;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+    display: inline-block;
+    margin: 10px;
+    padding: 30px 25px;
+    text-align: center;
+    transition: 0.3s;
+}
+
+.card h3 {
+    font-size: 150%;
+}
+
+.card:hover {
+     box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
+}
+
+.center, .top-cards, .instructor-container {
+    text-align: center;
+}
+
+.certificate-valid {
+    color: green;
+}
+
+.certificate-expired {
+    color: red;
+    font-weight: bold;
+}
+
+.checkin-message h3 {
+    background-color: none !important;
+    font-size: 100% !important;
+    font-weight: bold;
+    text-align: center;
+}
+
+.checkin-table {
+    font-size: 110%;
+}
+
+.class-details {
+    background-color: maroon;
+    border-radius: 5px;
+    padding: 10px;
+    position: relative;
+    text-align: center;
+}
+
+.class-details h3 {
+    color: white;
+    font-size: 150%;
+}
+
+.class-full h3 {
+    background-color: maroon !important;
+}
+
+.class-title h2 {
+    border-radius: 5px;
+    font-size: 200% !important;
+    padding: 5px;
+    text-align: center;
+}
+
+.classpass, .form-label {
+    font-weight: bold;
+}
+
+.confirm-details {
+    background-color: #fafafa;
+    border: 1px solid lightgray;
+    padding: 5px 15px;
+}
+
+.confirm-final {
+    color: red;
+    font-size: 110%;
+}
+
+.confirm-title {
+    color: maroon;
+    font-size: 150%;
+    letter-spacing: 6px;
+    padding-bottom: 10px;
+}
+
+.dataTables_wrapper .dt-buttons {
+    padding-top: 10px;
+}
+
+.ddy-card {
+    background-color: green;
+    border: 1px solid lightgray;
+    color: white;
+    display: inline-block;
+    margin: 5px;
+    padding: 5px;
+}
+
+.ddy-card-gold {
+    background-color: goldenrod;
+}
+
+.ddy-card-green {
+    background-color: green;
+}
+
+.ddy-card-maroon {
+    background-color: maroon;
+}
+
+.ddy-card-heading {
+    font-size: 120%;
+}
+
+.ddy-card-silver {
+    background-color: silver;
+}
+
+.ddy-card-subtext {
+    color: ghostwhite;
+    font-size: 80%;
+}
+
+.ddy-card-text {
+    font-size: 250%;
+    font-weight: bold;
+    padding: 20px;
+}
+
+.ddy-data {
+    border: 1px solid lightgray;
+    float: left;
+    margin: 5px;
+    padding: 5px;
+    width: 100%;
+}
+
+.ddy-member {
+    color: maroon;
+    font-weight: bold;
+    vertical-align: middle;
+}
+
+.details {
+    background-color: #F2F2F2;
+    display: flex;
+    flex-direction: column;
+    margin: 20px;
+    padding: 30px;
+    vertical-align: middle;
+}
+
+.debug-output {
+    background-color: #f5d0d0;
+    border: 1px solid lightgray;
+    border-radius: 2px;
+    display: block;
+    margin: 5px;
+    padding: 5px;
+}
+
+.details-item {
+    font-family: futura-pt;
+    margin: 10px;    
+}
+
+.disabled, button:disabled {
+    background-color: #cccccc;
+    border: 1px solid #999999;    
+    color: #666666;
+}
+
+.dropdown {
+    color: black;
+}
+
+.font-size-15x {
+    font-size: 150% !important;
+}
+
+.float-right {
+    float: right;
+}
+
+.inline-block {
+    display: inline-block;
+}
+
+.instructor {
+    color: DimGrey;
+    font-weight: bold;
+}
+
+.instructor-info {
+    background-color: #fafafa;
+    display: inline-block;
+    padding: 10px;
+    text-align: left;
+}
+
+#instructor_pin {
+    -webkit-text-security: disc;
+}
+
+.instructor-table {
+    background-color: #F2F2F2;
+    margin: 30px;
+    overflow: hidden;
+}
+
+.instructor-table-checkedin {
+    color: green;
+    font-weight: bold;
+}
+
+.instructor-table-no-checkin {
+    background-color: maroon !important;
+    color: white;
+    font-weight: bold;
+}
+
+.languagewrapper {
+    display: none;
+}
+
+.margin {
+    margin: 5px;
+}
+
+.margin10 {
+    margin: 10px;
+}
+
+.margin-small {
+    margin-bottom: 15px;
+    margin: 20px;
+}
+
+.modal-output {
+    font-family: futura-pt !important;
+    border-radius: 5px;
+}
+
+.my-link {
+    color: blue !important;
+    text-decoration: underline;
+}
+
+.overflow {
+    overflow: hidden;
+}
+
+.qrcode-container {
+    background-color: lightgray;
+    margin: 10px;
+    padding: 5px;
+    border: 1px solid #999999;
+}
+
+.register-now {
+    display: inline-block;
+    font-size: 125%;
+    font-weight: bold;
+    margin-left: auto;
+    padding: 5px;
+}
+
+.right {
+    float: right;
+    text-align: right;
+}
+
+.select-another-class {
+    bottom: 5px;
+    font-size: 14px;
+    position: absolute;
+    right: 5px;
+}
+
+.select-another-class-dropdown {
+    color: maroon;
+    text-align: center;
+    width: 100%;
+}
+
+.select-name-dropdown {
+    display: inline-block;
+    padding-right: 40px;
+}
+
+.selected {
+    background-color: #acbad4 !important;
+    color: DimGrey !important;
+}
+
+.slot-details h3 {
+    background-color: #4D4A4A;
+    border-radius: 10px;
+    color: white;
+    padding: 5px;
+}
+
+.student-name {
+    font-weight: bold;
+    font-size: 140%;
+}
+
+.studio-metrics {
+    overflow: hidden;
+    text-align: center;
+}
+
+.sqsp-font {
+    font-family: futura-pt !important;
+}
+
+.submit-button {
+    color: black;
+    font-size: 150%;    
+    font-weight: bold;
+    padding: 20px;
+}
+
+.submit-button-bold {
+    color: black;
+    font-size: 150%;
+    font-weight: bold;
+}
+
+.submit-button-checkin {
+    color: black;
+    font-weight: bold;
+}
+
+.submit-button-large {
+    font-size: 180%;
+    font-weight: bold;
+    padding: 20px;
+}
+
+.table {
+     width: 100% !important;
+}
+
+.table tbody tr {
+     cursor: pointer;
+}
+
+.table thead {
+    display: none;
+}
+
+.table-footer {
+    background-color: #EEEEEE;
+    border-radius: 5px;
+    color: black; 
+    display: flex;
+    flex-flow: wrap;
+    margin: 5px;
+    padding: 2px;
+}
+
+.teacher-checkin, .spacer {
+    padding: 5px;
+}
+
+.top-of-table {
+    width: 100%;
+    padding: 5px;
+}
+
+.top-of-table h3 {
+    font-size: 125%;
+    color: white;
+    background-color: #4D4A4A;
+    padding: 5px 30px;
+    border-radius: 10px;
+}
+
+.trial-class-checkbox {
+    float: right;
+}
+
+.trialclass {
+    background-color: maroon;
+    color: white;
+    font-weight: bold;
+}
+
+.width-100 {
+    width: 100%;
+}
+
+.hide {
+    display: none;
+}

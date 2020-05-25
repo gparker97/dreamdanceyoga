@@ -1,0 +1,225 @@
+.card {
+	background-color: #F2F2F2;
+	box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+	transition: 0.3s;
+	border-radius 5px;
+	padding: 30px 25px;
+	margin: 10px;
+	text-align: center;
+	display: inline-block;
+}
+
+.card h3 {
+	font-size: 150%;
+}
+
+.card:hover {
+	box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
+}
+
+.center {
+	text-align: center;
+}
+
+.certificate-valid {
+	color: green;
+}
+
+.certificate-expired {
+	color: red;
+	font-weight: bold;
+}
+
+.confirm-details {
+	border: 1px solid lightgray;
+	background-color: #fafafa;
+	padding: 5px 15px;
+}
+
+.confirm-final {
+	color: red;
+	font-size: 110%;
+}
+
+.confirm-title {
+	font-size: 150%;
+	letter-spacing: 6px;
+	color: maroon;
+	padding-bottom: 10px;
+}
+
+.dataTables_wrapper .dt-buttons {
+	padding-top: 10px;
+}
+
+.ddy-card {
+	background-color: green;
+	color: white;
+	display: inline-block;
+	border: 1px solid lightgray;
+	margin: 5px 0px;
+	padding: 5px;
+}
+
+.ddy-card-gold {
+	background-color: goldenrod;
+}
+
+.ddy-card-green {
+	background-color: green;
+}
+
+.ddy-card-maroon {
+	background-color: maroon;
+}
+
+.ddy-card-heading {
+	font-size: 120%;
+}
+
+.ddy-card-silver {
+	background-color: silver;
+}
+
+.ddy-card-subtext {
+	font-size: 80%;
+	color: ghostwhite;
+}
+
+.ddy-card-text {
+	font-size: 250%;
+	font-weight: bold;
+	padding: 20px;
+}
+
+.ddy-data {			
+	float: left;
+	width: 100%;
+	border: 1px solid lightgray;
+	margin: 5px 0px;
+	padding: 5px;			
+}
+
+.debug-output {
+	border: 1px solid lightgray;
+	border-radius: 2px;  
+	display: block;			
+	margin: 5px 0px;
+	padding: 5px;
+}
+
+.details {            
+	vertical-align: middle;			
+	padding: 30px;
+	margin: 20px;		
+	background-color: #F2F2F2;
+	display: flex;
+	flex-direction: column;
+}        
+
+.details-item {            
+	margin: 10px;
+}
+
+.disabled,
+button:disabled {
+	border: 1px solid #999999;
+	background-color: #cccccc;
+	color: #666666;
+}
+
+.float-right {
+	float: right;
+}
+
+.inline-block {
+	display: inline-block;
+}
+
+.instructor-container {
+	text-align: center;
+}
+
+.instructor-info {			
+	background-color: #fafafa;
+	padding: 10px;
+	text-align: left;
+	display: inline-block;
+}
+
+.instructor-table {			
+	background-color: #F2F2F2;
+	margin: 30px 0px;
+	overflow: hidden;
+}
+
+.instructor-table-checkedin {			
+	color: green;
+	font-weight: bold;
+}
+
+.instructor-table-no-checkin {			
+	background-color: maroon !important;
+	color: white;
+	font-weight: bold;
+}
+
+.form-label {
+	font-weight: bold;
+}
+
+.margin10 {
+	margin: 10px;
+}
+
+.margin-small {
+	margin-bottom: 15px;
+} 
+
+.modal-output {            
+	font-family: futura-pt !important;
+	border-radius: 5px;
+}
+
+.my-link {
+	color: blue !important;
+	text-decoration: underline;
+}
+
+.qrcode-container {
+	background-color: lightgray;
+	margin: 10px;
+	padding: 5px;
+	border: 1px solid #999999;
+}
+
+.spacer {
+	padding: 5px;
+}
+
+.studio-metrics {
+	overflow: hidden;
+	text-align: center;
+}
+
+.submit-button {
+	font-size: 150%;
+	font-weight: bold;
+	padding: 20px;			
+}
+
+.margin {
+	margin: 5px
+}
+
+.table {
+	width: 100% !important;
+}
+
+.top-cards {
+	text-align: center;
+}		
+
+.hide {
+	display: none;
+}

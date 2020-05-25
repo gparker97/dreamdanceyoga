@@ -1,272 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>        
+	<head>
       	<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
         <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.css"></link>
-        <link rel="stylesheet" type="text/css" href="https://sophiadance.squarespace.com/s/loadingSpinner.css"></link>        
-  		
-        <style type="text/css">        
-        .center {
-            text-align: center;
-        }
-
-        .class-details {
-            padding: 10px;
-            text-align: center;
-            border-radius: 5px;
-            /* background-color: #acbad4; */
-            background-color: maroon;
-            position: relative;
-        }
-
-        .class-details h3 {			
-            color: white;
-            font-size: 150%;
-        }
-
-        .class-title h2 {
-            padding: 5px;
-            margin: 0px;
-            text-align: center;
-            border-radius: 5px;
-            /* background-color: #acbad4; */
-            /* background-color: #4D4A4A; */
-            /* color: #4D4A4A; */
-            font-size: 200% !important;
-        }
-        
-        .class-full h3 {
-            background-color: maroon !important;
-        }
-        
-        .classpass {
-            font-weight: bold;
-        }        
-
-        .checkin-message h3 {            
-            font-weight: bold;
-            text-align: center;
-            font-size: 100% !important;
-            background-color: none !important;
-        }
-
-        .checkin-table {            
-            font-size: 110%;
-        }        
-
-        .ddy-member {
-            /* background-color: #acbad4 !important; */
-            color: maroon;
-            font-weight: bold;            
-            vertical-align: middle;
-        }
-        
-        .debug-output {
-			border: 1px solid lightgray;
-			border-radius: 2px;
-			display: block;			
-			margin: 5px 0px;
-			padding: 5px;
-        }
-
-        .details-item {                        
-            font-family: futura-pt;
-        }
-        
-        
-        .disabled, button:disabled {
-			border: 1px solid #999999;
-			background-color: #cccccc;
-			color: #666666;
-        }
-
-        .dropdown {
-            color: black;
-        }
-        
-        .font-size-15x {
-            font-size: 150% !important;
-        }
-
-        .inline {
-            display: inline-block;            
-        }
-
-        .instructor {
-            /* background-color: #acbad4 !important; */
-            color: DimGrey;
-            font-weight: bold;
-        }
-
-        html, body {
-            min-height: 100%;
-            margin: auto;
-            background-color: white;
-        }
-
-        #instructor_pin {
-            -webkit-text-security: disc;
-        }
-
-        .languagewrapper {
-            display: none;
-        }
-
-        .margin-small {
-            margin: 20px;            
-        }        
-
-        .modal-output {            
-            font-family: futura-pt !important;
-            border-radius: 5px;
-        }
-
-        .my-link {
-            color: blue !important;
-            text-decoration: underline;
-        }
-
-        .overflow {
-            overflow: hidden;
-        }        
-
-        .register-now {
-            padding: 5px;            
-            display: inline-block;            
-            font-size: 125%;
-            font-weight: bold;
-            margin-left: auto;
-        }
-
-        .right {
-            float: right;
-            text-align: right;
-        }
-
-        .select-another-class {            
-            position: absolute;
-            right: 5px;
-            bottom: 5px;
-            font-size: 14px;
-        }
-
-        .select-another-class-dropdown {
-            text-align: center;
-            width: 100%;
-            color: maroon;
-        }
-
-        .select-name-dropdown {
-            display: inline-block;
-            padding-right: 40px;            
-        }
-
-        .selected {
-            background-color: #acbad4 !important;             
-            color: DimGrey !important;
-        }
-        
-        .slot-details h3 {
-            color: white;
-            border-radius: 10px;
-            background-color: #4D4A4A;
-            padding: 5px;
-            font-size: 75%;
-        }
-        
-        .spacer {
-            padding: 5px;
-        }
-        
-        .student-name {
-            font-weight: bold;  
-            font-size: 140%;
-        }
-        
-        .sqsp-font {
-            font-family: futura-pt !important;
-        }
-        
-        .submit-button {            
-            font-weight: bold;
-            color: black;            
-        }
-
-        .submit-button-bold {
-            font-size: 150%;
-            font-weight: bold;
-            color: black;
-        }
-
-        .submit-button-large {
-			font-size: 180%;
-			font-weight: bold;
-            padding: 20px;            
-        }
-        
-        .table {
-            width: 100% !important;
-        }
-
-        .table thead {
-            display: none;
-        }
-        
-        .table tbody tr {
-            cursor: pointer;
-        }
-        
-        .table-footer {
-            display: flex;
-            flex-flow: wrap;
-            border-radius: 5px;
-            padding: 2px;
-            margin: 5px;            
-            background-color: #EEEEEE;
-            color: black;
-        }
-
-        .teacher-checkin {
-            padding: 5px;
-        }
-
-        .top-of-table {            
-            width: 100%;
-            padding: 5px;
-        }
-
-        .top-of-table h3 {
-            font-size: 125%;
-            color: white;
-            background-color: #4D4A4A;
-            padding: 5px 30px;
-            border-radius: 10px;
-        }
-
-        .trial-class-checkbox {
-            display: inline-block;
-            float: right;            
-        }
-
-        .trialclass {
-            background-color: maroon;
-            color: white;
-            font-weight: bold;
-        }
-
-        .width-100 {
-            width: 100%;
-        }
-
-        .hide {
-			display: none;
-        }
-        
-        /* Datatables disable header
-        .dataTables_wrapper table thead {            
-            display: none;
-        } */
-
+        <link rel="stylesheet" type="text/css" href="https://sophiadance.squarespace.com/s/loadingSpinner.css"></link>
+        <link rel="stylesheet" type="text/css" href="https://sophiadance.squarespace.com/s/ddy-mystudio-UAT.css"></link>
+        <style type="text/css">
+            html, body {
+                min-height: 100%;
+                margin: auto;
+                background-color: white;
+            }
         </style>
     </head>
 
@@ -275,7 +19,7 @@
         <!-- Placeholder to hold teacher and class info -->
         <div id="class_title_div" class="class-title"></div>
         <div id="top_of_table_div" class="top-of-table">
-            <div class="center"><h3 class="inline"><strong>点击您的名字登录 | TAP YOUR NAME TO CHECK IN!</h3></strong></div>
+            <div class="center"><h3 class="inline-block"><strong>点击您的名字登录 | TAP YOUR NAME TO CHECK IN!</h3></strong></div>
         </div>
         <div id="class_info_div" class="class-details"></div>
         <div id="spacer_div" class="spacer"></div>
@@ -291,7 +35,7 @@
                         <th></th>
                         <th>First Name</th>
                         <th></th>
-                        <th></th>					
+                        <th></th>
                     </tr>
                 </thead>
             </table>
@@ -306,11 +50,11 @@
                     <select id="teacher_checkin_dropdown" class="dropdown">
                         <option value="select">Select One</option>
                     </select>
-                    <input type="submit" id="teacher_checkin_submit" class="submit-button" value="Instructor Check-In" />
+                    <input type="submit" id="teacher_checkin_submit" class="submit-button-checkin" value="Instructor Check-In" />
                 </div>
             </div>        
             <div id="register_now_div" class="register-now">
-                <input type="submit" id="register_now_submit" class="submit-button right" value="Register Now!" />
+                <input type="submit" id="register_now_submit" class="submit-button-checkin right" value="Register Now!" />
             </div>
         
             <!-- Dropdown to select another class -->            
@@ -323,7 +67,7 @@
         </div>
 
         <!-- Fullscreen and slots info -->
-        <input type="submit" id="fullscreen_submit" class="submit-button inline" value="Fullscreen" />
+        <input type="submit" id="fullscreen_submit" class="submit-button-checkin inline-block" value="Fullscreen" />
         <div id="slots_info_div" class="slot-details right"></div>        
     </div>
     
@@ -394,7 +138,7 @@ $( async () => {
         // OLD design with select another class button that closes window
         // var classInfoDetailsHTML = `<h3 class="inline"><strong>${className}</strong><br>${classDate} ${classTime}
         // <input type="submit" id="close_window_submit" class="select-another-class submit-button" value="Select another class" /></h3>`;
-        var classInfoDetailsHTML = `<h3 class="inline"><strong>${className}</strong><br>${classDate} ${classTime}</h3>`;        
+        var classInfoDetailsHTML = `<h3 class="inline-block"><strong>${className}</strong><br>${classDate} ${classTime}</h3>`;        
         $('#class_info_div').html(classInfoDetailsHTML);
 
         // Store slots available info and populate slots_info HTML        
@@ -426,7 +170,7 @@ $( async () => {
     function prepareApptData(selectedAppointments) {
         $.each(selectedAppointments, (i, val) => {
             // Append check-in button HTML
-            selectedAppointments[i].buttonHTML = `<button type="button" id="${selectedAppointments[i].id}" class="submit-button">Check In!</button>`;
+            selectedAppointments[i].buttonHTML = `<button type="button" id="${selectedAppointments[i].id}" class="submit-button-checkin">Check In!</button>`;
             if (debug) {
                 console.log(`selectedAppointments[${i}].buttonHTML is: `, selectedAppointments[i].buttonHTML);
             }

@@ -1340,14 +1340,20 @@ async function initPurchase(action, products, clients) {
         switch (paymentMethod) {
             case 'cc-online':
                 // Prepare Acuity direct purchase link URL
+                
+                // Grab teacher name from dropdown to store employee name for commission - will put this in the certificate field
+                // This data will be scraped from the order page later to record for teacher commission using Zapier (when I get around to it)
+                var soldBy = $('#employee_commission_dropdown option:selected').text();
+                soldBy = soldBy.replace(/\s+/g,'-').toUpperCase();
+                
                 switch (action) {
                     case 'buy_class_top':
-                        var productURL = selectedProduct[0].schedulingUrl;            
-                        productURL += `&firstName=${selectedClient[0].firstName}&lastName=${selectedClient[0].lastName}&email=${selectedClient[0].email}&phone=${selectedClient[0].phone}`;
+                        var productURL = selectedProduct[0].schedulingUrl;
+                        productURL += `&firstName=${selectedClient[0].firstName}&lastName=${selectedClient[0].lastName}&email=${selectedClient[0].email}&phone=${selectedClient[0].phone}&certificate=${soldBy}-CLS`;
                         break;
                     case 'buy_package_top':
                         var productID = selectedProduct[0].id;
-                        var productURL = `https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=${productID}&firstName=${selectedClient[0].firstName}&lastName=${selectedClient[0].lastName}&email=${selectedClient[0].email}&phone=${selectedClient[0].phone}`;
+                        var productURL = `https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=${productID}&firstName=${selectedClient[0].firstName}&lastName=${selectedClient[0].lastName}&email=${selectedClient[0].email}&phone=${selectedClient[0].phone}&certificate=${soldBy}-PRD`;
                         break;
                 }
                 
