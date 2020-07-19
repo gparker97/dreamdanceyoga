@@ -19,7 +19,7 @@
         <!-- Placeholder to hold teacher and class info -->
         <div id="class_title_div" class="class-title"></div>
         <div id="top_of_table_div" class="top-of-table">
-            <div class="center"><h3 class="inline-block"><strong>点击您的名字登录 | TAP YOUR NAME TO CHECK IN!</h3></strong></div>
+            <div class="center"><h3 class="inline-block"><strong>点击您的名字登录 | TAP YOUR NAME TO CHECK IN</h3></strong></div>
         </div>
         <div id="class_info_div" class="class-details"></div>
         <div id="spacer_div" class="spacer"></div>
@@ -54,7 +54,7 @@
                 </div>
             </div>        
             <div id="register_now_div" class="register-now">
-                <input type="submit" id="register_now_submit" class="submit-button-checkin right" value="Register Now!" />
+                <input type="submit" id="register_now_submit" class="submit-button-checkin right" value="Register Now" />
             </div>
         
             <!-- Dropdown to select another class -->            
@@ -67,7 +67,7 @@
         </div>
 
         <!-- Fullscreen and slots info -->
-        <input type="submit" id="fullscreen_submit" class="submit-button-checkin inline-block" value="Fullscreen" />
+        <input type="submit" id="fullscreen_submit" class="submit-button-checkin inline-block hide" value="Fullscreen" />
         <div id="slots_info_div" class="slot-details right"></div>        
     </div>
     
@@ -86,6 +86,7 @@ $( async () => {
 
     // FUNCTION: toggleFullScreen()
     // 1) Toggle fullscreen mode with cross-browser compatibility
+    // NOTE: Fullscreen button has been hidden as not needed with kiosk app functionality (already fullscreen)
     function toggleFullScreen($element) {
         var $element = $element || document.documentElement;
         if (!document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
@@ -170,7 +171,7 @@ $( async () => {
     function prepareApptData(selectedAppointments) {
         $.each(selectedAppointments, (i, val) => {
             // Append check-in button HTML
-            selectedAppointments[i].buttonHTML = `<button type="button" id="${selectedAppointments[i].id}" class="submit-button-checkin">Check In!</button>`;
+            selectedAppointments[i].buttonHTML = `<button type="button" id="${selectedAppointments[i].id}" class="submit-button-checkin">Check In</button>`;
             if (debug) {
                 console.log(`selectedAppointments[${i}].buttonHTML is: `, selectedAppointments[i].buttonHTML);
             }
@@ -267,7 +268,7 @@ $( async () => {
                     { "data": "fullName"},
                     { "data": "firstName"},                    
                     { "data": "buttonHTML"}
-                    // { "defaultContent": `<button type="button" class="check-in">Check In!</button>` }                
+                    // { "defaultContent": `<button type="button" class="check-in">Check In</button>` }                
                 ]
             });
         }
@@ -313,7 +314,7 @@ $( async () => {
         console.log('In applyRowStyle() checkedIn is: ', checkedIn);
         if (checkedIn) {
             $($row).removeClass('selected');
-            $(`#${data.id}`).html('Check In!');
+            $(`#${data.id}`).html('Check In');
         } else {            
             $($row).addClass('selected');
             $(`#${data.id}`).html('Cancel Check In');
@@ -543,7 +544,7 @@ $( async () => {
         console.log('Appointments result: ', selectedAppointments);
         
         if (!selectedAppointments) {
-            var message = { title: 'No Appointments!', body: `No appointments scheduled for this class!` };
+            var message = { title: 'No Bookings!', body: `No bookings for this class!` };
             writeMessage('modal', message);            
             return false;
         }
@@ -1034,7 +1035,7 @@ $( async () => {
         writeMessage('error', "");
 
         if (debug) {
-            writeMessage('debug', "<br><b>clicked CHECK-IN TABLE ROW OR BUTTON...</b>");                
+            writeMessage('debug', "<br><b>clicked TOGGLE FULLSCREEN BUTTON...</b>");                
         }
 
         // Toggle fullscreen mode

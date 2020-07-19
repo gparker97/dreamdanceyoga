@@ -23,7 +23,7 @@ const stripeTest = require('stripe')(stripeSecretTest);
 const stripe = require('stripe')(stripeSecretLive);
 
 // Version
-const ddyRestControllerVersion = '1.4.7';
+const ddyRestControllerVersion = '1.5.2';
 
 // DEBUG mode
 const debug = true;
@@ -55,7 +55,7 @@ const supportedFunctions = [
     'appointments',
     'appointment-types',
     'availability',
-    'forms'    
+    'forms'
 ];
 
 // Grab user info from file
@@ -88,8 +88,7 @@ const httpsOptions = {
     cert: fs.readFileSync(path.join(__dirname, 'ssl', 'api_dreamdanceyoga_com.crt')),
     key: fs.readFileSync(path.join(__dirname, 'ssl', 'dreamdanceyoga-api.key')),
     ca: [
-        fs.readFileSync(path.join(__dirname,'ssl', 'COMODORSADomainValidationSecureServerCA.crt')),
-        fs.readFileSync(path.join(__dirname, 'ssl', 'COMODORSAAddTrustCA.crt'))
+        fs.readFileSync(path.join(__dirname,'ssl', 'SectigoRSADomainValidationSecureServerCA.crt'))
     ]
 };
 
@@ -668,7 +667,7 @@ app.get('/api/ddy/:function', async (req, res) => {
         case 'getXeroInvoice':
             // Return list of Xero invoices
             var xeroInvoice = await createXeroInvoice(req.query, reqFunc);
-            return res.status(200).send(xeroInvoice);            
+            return res.status(200).send(xeroInvoice);
         default:
             // Acuity request, set proper options and make calls
             // If first query ID is "method" then set method (PUT/POST/DELETE) otherwise default to GET and remove query
@@ -687,7 +686,7 @@ app.get('/api/ddy/:function', async (req, res) => {
                     return res.status(400).send(`ERROR: Error 400 or higher occured\nStatus Code: ${acuityResult.status_code}\nError Message: ${acuityResult.message}`);
                 } else if (acuityResult.length < 1) {
                     console.log(`acuityAPIcall: COMPLETED NO RECORDS - returning 400 response to server: ${reqFunc}`);
-                    return res.status(400).send('No records returned');
+                    return res.status(200).send('No records returned');
                 } else {
                     // Store Acuity API call responses (in case required for future use) and perform further actions
                     switch (reqFunc) {

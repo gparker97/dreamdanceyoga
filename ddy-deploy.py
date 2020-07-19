@@ -19,8 +19,10 @@ class my_colors:
     ENDC = '\033[0m'
 
 ## Capture arguments
+args = False
 if len(sys.argv) > 1:
-    option_1 = sys.argv[1]
+    args = True
+    arg_1 = sys.argv[1]
 
 ########################################
 ## SET DETAILS OF DDY FILES TO DEPLOY ##
@@ -101,6 +103,7 @@ ddy_file_data.append(ddy_rest_controller)
 ## 2) Copies file to backup path
 def backup_existing_file(ddy_data, backup_filename, backup_file_full_path, ddy_cxn):
     BACKUP_SOURCE = backup_file_full_path
+
     ## Backup existing file
     if BACKUP_SOURCE != 'UNKNOWN':
         timestamp = datetime.now().strftime('%d%b%Y-%H:%M:%S')
@@ -114,8 +117,8 @@ def backup_existing_file(ddy_data, backup_filename, backup_file_full_path, ddy_c
             print('File backup completed successfully!')
             return True
         else:
-            print(f'\n{my_colors.RED}ERROR: File backup failed.  Exiting...\n{backup_file.stderr}{my_colors.ENDC}')
-            exit()
+            print(f'\n{my_colors.RED}ERROR: File backup failed.  Please make backup manually...\n{backup_file.stderr}{my_colors.ENDC}')
+            val = input('Press enter when complete... ')
     else:
         print('\nFilename not known, skipping backup...')
         return False
@@ -355,10 +358,14 @@ def deploy_ddy_rest_controller(ddy_file):
                                 print('\nExiting...')
                                 exit()
                     else:
-                        print('DDY API UAT process not running, skipping process stop...')
+                        print(f'{my_colors.RED}DDY API UAT process not running, skipping process stop...{my_colors.ENDC}')
                     
                     ## Backup existing UAT file
-                    backup_existing_file(ddy_file, ddy_file['FILE_AWS_UAT'], ddy_file['FULL_PATH_AWS_UAT'], c)
+                    ##backup_existing_file(ddy_file, ddy_file['FILE_AWS_UAT'], ddy_file['FULL_PATH_AWS_UAT'], c)
+                    if UAT_FILENAME != 'UNKNOWN':
+                        backup_existing_file(ddy_file, UAT_FILENAME, ddy_file['FULL_PATH_AWS_UAT_EXISTING'], c)
+                    else:
+                        print(f'{my_colors.RED}DDY UAT process not found, skipping UAT file backup...{my_colors.ENDC}')
 
                     ## Rename UAT file
                     print('\nPutting new UAT file in place...', flush=True)
@@ -406,8 +413,8 @@ def deploy_ddy_rest_controller(ddy_file):
                 else:
                     print('DDY API PROD process not running, skipping process stop...')
 
-                ## Backup existing PROD file
-                backup_existing_file(ddy_file, ddy_file['FILE_AWS_PROD'], ddy_file['FULL_PATH_AWS_PROD'], c)
+                ## Backup existing PROD file                
+                backup_existing_file(ddy_file, PROD_FILENAME, ddy_file['FULL_PATH_AWS_PROD_EXISTING'], c)
 
                 ## Copy PROD file to production
                 print('\nCopying PROD file to production...\nSource: {FULL_PATH_AWS_UAT}\nDestination: {FULL_PATH_AWS_PROD}'.format(**ddy_file), flush=True)
@@ -452,21 +459,26 @@ print(f'{my_colors.RED}\n==== DREAM DANCE AND YOGA MYSTUDIO DEPLOY TO PROD ===={
 deploy_success = True
 deployment_attempted = False
 
-## Loop through array of DDY mystudio files to deploy to production
-for ddy_file in ddy_file_data:
-    val = input('\nDeploy {name} to production (y/n)? '.format(**ddy_file))
-    if val == 'y':
-        deployment_attempted = True
-        if ddy_file['copy']:
-            ## Generate local PROD file, and prepare for copy to Squarespace (either copy/paste or deploy to Static Files)
-            deploy_success = ddy_file_copy(ddy_file)
-        elif ddy_file['name'] == 'DDY Rest Controller':
-            ## Deploy DDY Rest Controller to AWS - UAT and PROD
-            deploy_success = deploy_ddy_rest_controller(ddy_file)
+if args and arg_1 == 'ddyrest':
+    deployment_attempted = True
+    ddy_file = ddy_rest_controller
+    deploy_success = deploy_ddy_rest_controller(ddy_file)
+else:
+    ## Loop through array of DDY mystudio files to deploy to production
+    for ddy_file in ddy_file_data:
+        val = input('\nDeploy {name} (y/n)? '.format(**ddy_file))
+        if val == 'y':
+            deployment_attempted = True
+            if ddy_file['copy']:
+                ## Generate local PROD file, and prepare for copy to Squarespace (either copy/paste or deploy to Static Files)
+                deploy_success = ddy_file_copy(ddy_file)
+            elif ddy_file['name'] == 'DDY Rest Controller':
+                ## Deploy DDY Rest Controller to AWS - UAT and PROD
+                deploy_success = deploy_ddy_rest_controller(ddy_file)
+            else:
+                print('Deployment for {name} not implemented yet!'.format(**ddy_file))
         else:
-            print('Deployment for {name} not implemented yet!'.format(**ddy_file))
-    else:
-        print('Skipping {name}'.format(**ddy_file))
+            print('Skipping {name}'.format(**ddy_file))
 
 if deployment_attempted:
     if deploy_success:

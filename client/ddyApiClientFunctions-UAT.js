@@ -1,6 +1,6 @@
 // Setup script
 const environment = 'UAT';
-const version = '1.8.1';
+const version = '1.8.7';
 
 // Set API host
 // var apiHostUAT = 'https://greg-monster.dreamdanceyoga.com:3443/api/ddy'; // GREG computer
@@ -598,6 +598,7 @@ function populateDropdown($drop, data, func) {
 async function retrieveProductsClasses(action, $revealedElements) {
     switch (action) {
         case 'buy_single_class_top':
+        case 'book_private_class_top':
         case 'buy_class_top':
             var funcType = "appointment-types_get";
             break;
@@ -615,43 +616,36 @@ async function retrieveProductsClasses(action, $revealedElements) {
         }
         
         // If successful populate dropdown menu based on selected action
-        switch (action) {
+        switch (action) {            
             case 'buy_single_class_top':
-                // Filter classes result for single class types
-                var singleClasses = $(result).filter((i) => {
-                    return (result[i].type === 'class' || result[i].type === 'service');
+                // Filter classes result for SINGLE class types    
+                result = $(result).filter((i) => {
+                    return (result[i].type === 'class');
                 });
-                console.log('singleClasses is:', singleClasses);
-                
-                var $dropdown = $('#select_package_class_dropdown');
-                var func = "products";
-                populateDropdown($dropdown, singleClasses, func);
-
-                // Reveal select class dropdown
-                var $element = $('#select_package_class_div');
-                $revealedElements = revealElement($element, $revealedElements);
-                
-                return singleClasses;
+                console.log('Result updated for single classes:', result);
+                break;
+            case 'book_private_class_top':
+                // Filter classes result for SERVICE class types (by selecting type "service")    
+                result = $(result).filter((i) => {
+                    return (result[i].type === 'service');
+                });
+                console.log('Result updated for private classes:', result);
                 break;
             case 'buy_class_top':                
                 // Filter classes result for SERIES class types and for series associated with a calender ID ONLY
                 // This should be a way to return only ACTIVE class series, and discard anything inactive or from the past
                 // Have not validated this logic with Acuity
-                var classSeriesActive = $(result).filter((i) => {
+                result = $(result).filter((i) => {
                     return (result[i].type === 'series' && result[i].calendarIDs.length > 0);
                 });
-                console.log('classSeriesActive is:', classSeriesActive);
-
-                var $dropdown = $('#select_package_class_dropdown');
-                var func = "products";
-                populateDropdown($dropdown, classSeriesActive, func);
-                break;              
-            case 'buy_package_top':
-                var $dropdown = $('#select_package_class_dropdown');
-                var func = "products";
-                populateDropdown($dropdown, result, func);
+                console.log('Result updated for only ACTIVE class series:', result);
                 break;
         }
+        
+        // Populate products or classes dropdown with results
+        var $dropdown = $('#select_package_class_dropdown');
+        var func = "products";
+        populateDropdown($dropdown, result, func);
         
         // Reveal student search container, store action, give focus to the form			
         $revealedElements = revealElement($('#search_student_div'), $revealedElements);
@@ -698,24 +692,33 @@ async function retrieveUpcomingClasses(action, $revealedElements) {
     // API call to retrieve today's classes
     try {
         var result = await initApiCall(funcType, activity, classDate);
-        console.log(`${funcType} result:`, result);        
+        console.log(`${funcType} result:`, result);
+        
+        if (result === "No records returned") {
+            var message = { title: 'ERROR', body: `No classes scheduled on ${datePretty}.  Please try another date!` };
+            writeMessage('modal', message);
+            // Reveal dropdown and enable button to generate table
+            var $element = $('#generate_checkin_table_div');
+            $revealedElements = revealElement($element, $revealedElements);
+        } else {
+            // Classes found - populate dropdown table with classes and update label text
+            $('#upcoming_classes_dropdown_label').text(dropdownLabel);
+            var $dropdown = $('#upcoming_classes_dropdown');
+            var func = "classes";
+            populateDropdown($dropdown, result, func);            
+        }
     }
     catch(e) {
         console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
         console.log(e);        
-        var message = { title: 'ERROR', body: `No classes scheduled on ${datePretty}.  Please try another date!<hr><strong>Error Message:</strong> ${e.responseText}` };
-        writeMessage('modal', message);        
+        var message = { title: 'ERROR', body: `Error while retrieving upcoming classes.  Please try again!<hr><strong>Error Message:</strong> ${e.responseText}` };
+        writeMessage('modal', message);
     }
-    // Populate dropdown table with classes and update label text
-    $('#upcoming_classes_dropdown_label').text(dropdownLabel);
-    var $dropdown = $('#upcoming_classes_dropdown');
-    var func = "classes";
-    populateDropdown($dropdown, result, func);
     
     // Reveal dropdown and enable button to generate table
     var $element = $('#generate_checkin_table_div');
     $revealedElements = revealElement($element, $revealedElements);
-    
+
     return result;
 }
 
@@ -735,16 +738,9 @@ async function retrieveStudents(checkIn) {
         if (debug) {
             writeMessage('debug', `<br>Completed initApicall: ${funcType}`);				
         }
-        
-        // If successful populate dropdown menu			
-        var func = "clients";
-        populateDropdown($dropdown, result, func);
-        return result;
-    }
-    catch(e) {
-        console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
-        console.error(e);
-        if (e.responseText === "No records returned") {            
+
+        // Check if any students were returned, otherwise display error modal or option to create new student
+        if (result === "No records returned") {
             if (checkIn) {
                 var message = { 
                     title: 'Student Not Found',
@@ -763,10 +759,12 @@ async function retrieveStudents(checkIn) {
             }
             writeMessage('modal-cancel', message);
         } else {
-            writeMessage('modal', "<strong>An error occured, please check and try again</strong>");
-        }			
-        clearDropdown($dropdown);
-
+            // If successful populate dropdown menu			
+            var func = "clients";
+            populateDropdown($dropdown, result, func);
+            return result;
+        }
+    
         // ADD EVENT TO CAPTURE NEW STUDENT BUTTON CLICK
         $('#add_new_student_modal').on('click', async (e) => {
             e.preventDefault();                
@@ -776,7 +774,12 @@ async function retrieveStudents(checkIn) {
             // Gather student info and kick off process to create new student
             gatherNewStudentInfo();        
         });
-
+    }
+    catch(e) {
+        console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
+        console.error(e);
+        writeMessage('modal', "<strong>An error occured, please check and try again</strong><hr><strong>Error Message:</strong> ${e.responseText}");
+        clearDropdown($dropdown);
         return false;
     }		
 }
@@ -902,6 +905,7 @@ async function bookCancelTempClass(studentData) {
     var calendarID = classList[0].calendarID;
     var datetime = classList[0].time;
     var noEmail = true;
+    var notes = 'TEST BOOKING FOR NEW STUDENT ADD';
     var certificate = 'DDYINSTRUCTOR';
     var params = {
         classId,
@@ -911,6 +915,7 @@ async function bookCancelTempClass(studentData) {
         email,
         certificate,
         calendarID,
+        notes,
         noEmail
     };
 
@@ -949,13 +954,20 @@ async function findClassByDate(date) {
         try {                
             var result = await initApiCall(funcType, activity, classDate);
             console.log(`${funcType} result:`, result);
-            var classId = result[0].appointmentTypeID;
-            classExists = true;
-            console.log(`CLASS FOUND: ${result[0].name} on ${result[0].localeTime}, ID ${classId}`);
-            return result;
+            
+            if (result === "No records returned") {
+                console.log(`No classes detected on ${classDate}!  Trying next day...`);
+                classDate.setDate(classDate.getDate() + 1);
+                console.log(`NEW classDate is: ${classDate}`);
+            } else {
+                var classId = result[0].appointmentTypeID;
+                classExists = true;
+                console.log(`CLASS FOUND: ${result[0].name} on ${result[0].localeTime}, ID ${classId}`);
+                return result;
+            }
         }
         catch(e) {
-            console.log(`No classes detected on ${classDate}!  Trying next day...`);
+            console.error(`Error caught retrieving classes on ${classDate}!\nError message: ${e.responseText}\nTrying next day...`);
             classDate.setDate(classDate.getDate() + 1);
             console.log(`NEW classDate is: ${classDate}`);
         }
@@ -1677,7 +1689,15 @@ async function retrieveCertificates(clients) {
         var activity = "retrieveCertificates"
         var params = clients;
         result = await initApiCall('certificates_get', activity, params);
+        if (result === "No records returned") {
+            console.log('No certificates found');
+            
+            // Clear delete codes dropdown - LATER?
+            // var $dropdown = $('#select_code_del');
+            // clearDropdown($dropdown);
+        }
         return result;
+        
         // If successful populate dropdown menu for deletion - LATER?
         // var $dropdown = $('#select_code_del');
         // var func = "certificates";
@@ -1688,14 +1708,8 @@ async function retrieveCertificates(clients) {
     catch(e) {
         console.error(`ERROR: Error detected in initApiCall: ${funcType}`);
         console.error (e);
-        if (e.responseText === "No records returned") {
-            console.log('No certificates found');
-        } else {
-            console.error(`ERROR: An error occured retrieving certificate codes.<hr><strong>Error Message:</strong> ${e.responseText}`);
-        }
+        console.error(`ERROR: An error occured retrieving certificate codes.<hr><strong>Error Message:</strong> ${e.responseText}`);
         return false;
-        // var $dropdown = $('#select_code_del');
-        // clearDropdown($dropdown);
     }		
 }
 
@@ -1782,11 +1796,6 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
         // Capture each line in notes field and parse to capture required commission info
         var notesByLine = clientNotes.split('\n');
         for (var i=0; i < notesByLine.length; i++) {
-            if (debug) {
-                console.log(`Notes length for ${clientFirstName} ${clientLastName} is: ${notesByLine.length}`);
-                console.log(`On notes line ${clientFirstName} ${clientLastName} - ${i}: ${notesByLine[i]}`);
-            }
-
             // Return if line does not include commission related info            
             if (!notesByLine[i].includes('sold by')) { continue; }
             
@@ -1805,12 +1814,8 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
                 var employeeName = employeeNameTemp.split('~')[0].trim();
                 var productPrice = notesByLine[i].split('$')[1];
                                 
-                console.log(`${clientFirstName} ${clientLastName} notes line ${i}: ${notesByLine[i]}`);
-                console.log(`Package sold time string: ${timeSold}`);
-                console.log(`Package sold time as date: ${timeSoldDate}`);
-                console.log(`Product: ${productSold}`);
-                console.log(`Employee: ${employeeName}`);
-                console.log(`Price: ${productPrice}`);
+                console.log(`${clientFirstName} ${clientLastName} notes line ${i}: ${notesByLine[i]}`);                
+                console.log(`Package sold details: ${productSold} by ${employeeName} for $${productPrice} at ${timeSoldDate}`);
 
                 // Add commission details to object
                 employeeCommissionDetails[count] = {
@@ -1821,8 +1826,6 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
                     price: productPrice,
                     match: false
                 };
-
-                // Increment counter
                 count++;
             } else {
                 console.log(`Commission for ${clientFirstName} ${clientLastName} sold on ${timeSoldDate}: Not in range of mindate ${minDate} and maxdate ${maxDateNext}, skipping...`);
@@ -1832,6 +1835,7 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
 
     console.log(`Employee commission details:`, employeeCommissionDetails);
     
+    // DDY INSTRUCTOR CLASS COUNT
     // Retrieve appointments for selected month
     var func = 'appointments_get';
     var activity = 'getApptsByDateRange';
@@ -1844,6 +1848,12 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
         return `${i.type} ${i.datetime}`;
     }).entries(appointmentsResult);
     console.log('Appointments by Class Type: ', apptsByType);
+
+    // Filter out ONLINE classes from array as they do not have any instructor check-in
+    var apptsByType = $(apptsByType).filter((i) => {
+        return (!apptsByType[i].key.includes('ONLINE'));
+    });
+    console.log('Appointments by type updated to exclude ONLINE classes:', apptsByType);
 
     // Loop through data and store instructor info
     var instructorData = [];
@@ -1869,9 +1879,35 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
         className['checkInTime'] = '';
         className['lateCheckIn'] = false;
 
+        // If PRIVATE or GROUP CLASS then capture class duration and move on (no instructor check-in yet)
+        // Assume that if class exists, teacher has checked in and should be paid
+        if (engClassType.includes('Private')) {
+            var teacherName = className.values[0].calendar;
+            var classDuration = parseInt(className.values[0].duration);
+            
+            // Populate instructor value since check-in is assumed for private classes
+            className['instructor'] = teacherName;
+
+            // Update class name with student name for Private Classes
+            var studentName = `${className.values[0].firstName} ${className.values[0].lastName}`;
+            className['class'] = `${engClassType} - ${studentName}`;
+            
+            // Add class duration to instructor counts
+            if (!instructorCounts.hasOwnProperty(teacherName)) {
+                instructorCounts[teacherName] = {};
+                instructorCounts[teacherName][engClassType] = classDuration;
+            } else if (!instructorCounts[teacherName].hasOwnProperty(engClassType)) {
+                instructorCounts[teacherName][engClassType] = classDuration;
+            } else {
+                instructorCounts[teacherName][engClassType] += classDuration;
+            }
+            return true;
+        }
+
         $.each(className.values, (i2, apptDetails) => {
             // Check notes field in Acuity to determine if instructor has checked in or not
             var notes = apptDetails.notes;
+            
             if (notes.includes(instructorCheckinNote)) {
                 // Gather required data to store
                 var name = `${apptDetails.firstName} ${apptDetails.lastName}`;
@@ -1937,34 +1973,40 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
     });
     console.log('Instructor data: ', instructorData);
     console.log('Instructor counts: ', instructorCounts);
-    console.log('Appointments by Class Type AFTER iteration: ', apptsByType);
+    console.log('Appointments by Class Type with teacher names and check-in data: ', apptsByType);
 
     // Iterate through object and output report
     var selectedMonthVal = $('#instructor_report_datepicker').val();
     var msg = `<h3 class="center"><b>INSTRUCTOR REPORT for ${selectedMonthVal}</h3></b><hr>`;
 
     // Iterate through instructorCounts array and prepare message to display instructor report summary on screen
-    var lateCount = 0;
-    var bellyCount = 0;
-    var yogaCount = 0;
     $.each(instructorCounts, (name, className) => {
+        var lateCount = 0;
+        var bellyCount = 0;
+        var yogaCount = 0;
+        var privateDuration = 0;
         msg += `<center><b>${name}</b></center>`;
         $.each(className, (className1, count) => {
             if (className1 === 'LATE') {
                 lateCount = count;
                 return true;
             }
-            if (className1.includes('Belly') || className1.includes('Chinese Dance')) {
+            if (className1.includes('Private')) {
+                privateDuration += count;
+                msg += `${className1} x ${count / 60} hour(s)<br>`;
+            } else if (className1.includes('Belly') || className1.includes('Chinese Dance')) {
                 bellyCount = bellyCount + count;
+                msg += `${className1} x ${count}<br>`;
             } else if (className1.includes('Yoga')) {
                 yogaCount = yogaCount + count;
+                msg += `${className1} x ${count}<br>`;
             }
-            msg += `${className1} x ${count}<br>`;
         });
         
         // Display totals
         msg += `<strong>TOTAL DANCE:</strong> ${bellyCount}<br>`;
         msg += `<strong>TOTAL YOGA:</strong> ${yogaCount}<br>`;
+        msg += `<strong>TOTAL PRIVATE:</strong> ${privateDuration / 60} hour(s)<br>`;
         
         // Calculate and display commissions
         msg += `<strong>COMMISSION: </strong>`;
@@ -1989,16 +2031,12 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
         }
 
         msg += `<font color="red"><strong>LATE:</strong> ${lateCount}</font><br><hr>`;
-        
-        // Reset counters
-        bellyCount = 0;
-        yogaCount = 0;
     });
 
     console.log(`Employee commission details AFTER message iteration: `, employeeCommissionDetails);
 
     // Add additional commission lines if applicable
-    var addlCommissionTempMsg = '<center><strong>Additional Commissions</strong></center>';
+    var addlCommissionTempMsg = '<center><strong>Additional Sales - No Commission</strong></center>';
     var noCommissionTempMsg = '<center><strong>Unmatched Commissions</strong></center>';
     var addlCommission = false;
     var noCommission = false;
@@ -2094,13 +2132,25 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
     var activity = 'getApptsByDateRange';
     var params = [minDate, maxDate];
     try {
-        appointmentsResult = await initApiCall(funcType, activity, params);
+        var appointmentsResult = await initApiCall(funcType, activity, params);
         console.log('Appointments result:', appointmentsResult);
+
+        if (appointmentsResult === "No records returned") {
+            var message = { title: 'ERROR', body: `No appointments on ${minDate} - ${maxDate}.  Please try another date!<hr><strong>Error Message:</strong> ${e.responseText}` };
+            writeMessage('modal', message);
+            return false;
+        } else {
+            // If successful, create results array that excludes ONLINE classes
+            var appointmentsResultLiveClasses = $(appointmentsResult).filter((i) => {
+                return (!appointmentsResult[i].type.includes('ONLINE'));
+            });
+            console.log('Appointments result updated to exclude ONLINE classes:', appointmentsResultLiveClasses);
+        }
     }
     catch(e) {
         console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
         console.log (e);
-        var message = { title: 'ERROR', body: `No appointments on ${minDate} - ${maxDate}.  Please try another date!<hr><strong>Error Message:</strong> ${e.responseText}` };
+        var message = { title: 'ERROR', body: `Error caught retrieving appointments for ${minDate} - ${maxDate}.<hr><strong>Error Message:</strong> ${e.responseText}` };
         writeMessage('modal', message);
         return false;
     }
@@ -2169,14 +2219,29 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
     try {
         availClassesResult = await initApiCall(funcType, activity, params);
         console.log('Classes availability result:', availClassesResult);
+        
+        if (availClassesResult === "No records returned") {
+            var message = { title: 'ERROR', body: `No classes scheduled on ${minDate} - ${maxDate}.  Please try another date!` };
+            writeMessage('modal', message);
+            return false;    
+        }
     }
     catch(e) {
         console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
         console.log (e);
-        var message = { title: 'ERROR', body: `No classes scheduled on ${minDate} - ${maxDate}.  Please try another date!<hr><strong>Error Message:</strong> ${e.responseText}` };
+        var message = { title: 'ERROR', body: `Error caught retrieving classes on ${minDate} - ${maxDate}.<hr><strong>Error Message:</strong> ${e.responseText}` };
         writeMessage('modal', message);
         return false;
     }
+
+    // NEW FUNCTION HERE
+    // FILTER APPOINTMENTS RESULT AND AVAILCLASSES RESULT TO EXCLUDE ONLINE CLASSES
+    // Filter available classes result to exclude online classes
+    // var result = $(result).filter((i) => {
+        // return (result[i].type === 'series' && result[i].calendarIDs.length > 0);
+    // });
+    // console.log('Result updated for only ACTIVE class series:', result);
+
 
     // Parse and rollup appointments array by class day and certificate for class availability chart
     var weekday = ['Sun', 'Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat'];

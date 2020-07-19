@@ -25,7 +25,13 @@
 	
 	<a href="#">
 		<div id="buy_single_class_top" class="card">
-			<h3><strong><i class="fas fa-cube fa-3x margin-small"></i><br>BUY SINGLE CLASS</strong></h3>
+			<h3><strong><i class="fas fa-cube fa-3x margin-small"></i><br>BOOK SINGLE CLASS</strong></h3>
+		</div>
+	</a>
+
+	<a href="#">
+		<div id="book_private_class_top" class="card">
+			<h3><strong><i class="fas fa-user-friends fa-3x margin-small"></i><br>BOOK PRIVATE / GROUP CLASS</strong></h3>
 		</div>
 	</a>
 
@@ -164,7 +170,7 @@
 	<!-- Submit buttons -->
 	<input type="submit" id="buy_package_submit" class="submit-button hide" value="BUY PACKAGE" />
 	<input type="submit" id="buy_class_submit" class="submit-button hide" value="BUY CLASS" />
-	<input type="submit" id="buy_single_class_submit" class="submit-button hide" value="BUY SINGLE CLASS" />
+	<input type="submit" id="buy_single_class_submit" class="submit-button hide" value="BOOK CLASS" />
 	<input type="submit" id="view_packages_submit" class="submit-button hide" value="VIEW PACKAGES" />
 	<button type="button" id="generate_checkin_table_submit" class="submit-button hide" disabled>GENERATE CHECK-IN TABLE</button>
 	<button type="button" id="get_instructor_report_submit" class="submit-button hide" disabled>GET INSTRUCTOR REPORT</button>
@@ -294,12 +300,17 @@ $( () => {
 				products = await retrieveProductsClasses(action, $revealedElements);
 				break;
 			case 'buy_single_class_top':
-				$detailsTop.html('<h2>BUY A SINGLE CLASS</h2><hr/>');
+				$detailsTop.html('<h2>BOOK A SINGLE CLASS</h2><hr/>');
 				$('#search_student_div').data('action', e.currentTarget.id);
 				products = await retrieveProductsClasses(action, $revealedElements);
 				break;
 			case 'buy_package_top':
 				$detailsTop.html('<h2>BUY A PACKAGE / MEMBERSHIP</h2><hr/>');
+				$('#search_student_div').data('action', e.currentTarget.id);
+				products = await retrieveProductsClasses(action, $revealedElements);
+				break;
+			case 'book_private_class_top':
+				$detailsTop.html('<h2>BOOK A PRIVATE / GROUP CLASS</h2><hr/>');
 				$('#search_student_div').data('action', e.currentTarget.id);
 				products = await retrieveProductsClasses(action, $revealedElements);
 				break;
@@ -454,8 +465,10 @@ $( () => {
 				$revealedElements = revealElement($('#search_student_dropdown_div'), $revealedElements);
 				var action = $('#search_student_div').data('action');
 				switch (action) {
+					case 'buy_single_class_top':
 					case 'buy_class_top':
 					case 'buy_package_top':
+					case 'book_private_class_top':
                         $revealedElements = revealElement($('#select_package_class_div'), $revealedElements);
 						break;
 					case 'view_student_package_top':
@@ -533,7 +546,7 @@ $( () => {
 			console.log(`selectedClassVal is ${selectedClassVal}`);
 			console.log(`selectedClass is ${selectedClass}`);
 			console.log(`classType is ${classType}`);
-		}		
+		}
 		if (classType === "series") {
 			// Initiate purchase with relevant details and call appropriate function
 			var buySeriesResult = await initPurchase(action, products, clients);
@@ -546,7 +559,7 @@ $( () => {
 			// FUTURE - reveal datepicker and buy single class
 			// var buyClassResult = await buyClass();
 			console.log(`ERROR: Class is not a series`);
-			var message = { title: "ERROR", body: "<b>You can only book a class series, not a single class.<br>Please try again.</b>" };
+			var message = { title: "ERROR", body: '<b>You can only book a class series. To book a single class, use "BOOK SINGLE CLASS".<br>Please try again.</b>' };
 			writeMessage('modal', message, $('#modal_output'));
 		}
 			
@@ -555,7 +568,7 @@ $( () => {
 		if (buySeriesResult) {			
 			$submitButtonElement.val('DONE');
 		}
-	});		
+	});
 
 	// EVENT: VIEW PACKAGES SUBMIT
 	$('#view_packages_submit').on('click', async (e) => {
@@ -574,9 +587,10 @@ $( () => {
 
 		// Retrieve certificates for selected student
 		var certificates = await retrieveCertificates(clients);
+		var selectedClientVal = $('#search_student_dropdown').val();		
+		console.log(`Certificates for ${selectedClientVal}: `, certificates);
 
 		// Get student email
-		var selectedClientVal = $('#search_student_dropdown').val();
 		var selectedClient = $.grep(clients, (i) => {
 			return `${i.firstName} ${i.lastName}` === selectedClientVal;
 		});
@@ -675,17 +689,33 @@ $( () => {
         // Clear any error message		
 		writeMessage('error', "");
 
-		// Find the array index of the selected product / package and extract expiry date to determine if package or subscription
+		// Find the array index of the selected product / package to capture Acuity direct booking URL
         var selectedClassVal = $('#select_package_class_dropdown').val();
         var selectedClass = $.grep(products, (i) => {
             return i.name === selectedClassVal;
         });
         console.log('Selected Class: ', selectedClass);
 		
-		// Open new tab with direct link to product in Acuity
-		var productURL = selectedClass[0].schedulingUrl;
+		// Capture client information from search dropdown to customize Acuity URL with student info
+		var selectedClientVal = $('#search_student_dropdown').val();
+		var selectedClient = $.grep(clients, (i) => {
+			return `${i.firstName} ${i.lastName}` === selectedClientVal;
+		});
+		var email = selectedClient[0].email;
+		var certificate = email;
+		var firstName = selectedClient[0].firstName;
+		var lastName = selectedClient[0].lastName;
+		var phone = selectedClient[0].phone;		
+		var className = selectedClass[0].name;
 
-		var win = window.open(productURL, '_blank');		
+		// If booking a private trial class, use the trial class coupon code
+		if (className.includes('Trial Class')) { certificate = 'TRIALCLASS'; }
+
+		// Customize URL and open new tab with direct link to product in Acuity
+		var productURL = selectedClass[0].schedulingUrl;
+		productURL += `&firstName=${firstName}&lastName=${lastName}&email=${email}&phone=${phone}&certificate=${certificate}`;
+		
+		var win = window.open(productURL, '_blank');
 	});
 
 	// EVENT: Search student dropdown change - update confirmation details
@@ -715,20 +745,21 @@ $( () => {
 			case 'buy_package_top':
 				var $element = $('#payment_method_div');
 				$revealedElements = revealElement($element, $revealedElements);
+
+				// Populate confirmation details
+				var event = e.currentTarget.id;
+				var paymentDetailsOK = confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement);
+
+				// If all payment details are OK, enable (or re-enable) submit button and update text
+				if (paymentDetailsOK) {			
+					$submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);
+				}
 				break;
 			case 'buy_single_class_top':
+			case 'book_private_class_top':
 				var $element = $('#buy_single_class_submit');
 				$revealedElements = revealElement($element, $revealedElements);
 				break;
-		}
-
-		// Populate confirmation details
-		var event = e.currentTarget.id;
-		var paymentDetailsOK = confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement);
-
-		// If all payment details are OK, enable (or re-enable) submit button and update text
-		if (paymentDetailsOK) {			
-			$submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);
 		}
 	});
 
