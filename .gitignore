@@ -13,3 +13,4 @@ client/old_scripts
 temp/
 utils/
 .git-rewrite
+.gitignore
