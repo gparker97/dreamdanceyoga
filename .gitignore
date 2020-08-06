@@ -6,8 +6,11 @@ api-users.json
 stripe-keys.json
 node_modules/
 server/ssl/
-server/deployProd.sh
+server/deployProd-DEPRECATED.sh
 cert/
 server/old_scripts
 client/old_scripts
 temp/
+utils/
+.gitignore
+.git-rewrite
