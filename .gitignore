@@ -12,5 +12,4 @@ server/old_scripts
 client/old_scripts
 temp/
 utils/
-.gitignore
 .git-rewrite
