@@ -86,6 +86,7 @@ $( async () => {
 
     // FUNCTION: toggleFullScreen()
     // 1) Toggle fullscreen mode with cross-browser compatibility
+    // NOTE: Fullscreen button has been hidden as not needed with kiosk app functionality (already fullscreen)
     function toggleFullScreen($element) {
         var $element = $element || document.documentElement;
         if (!document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
@@ -680,7 +681,7 @@ $( async () => {
                         </form>
                     </div>
                     <br>
-                    <div id="pin_message_div" class="hide center"><b>Pin Incorrect! Please try again.</b></div>`
+                    <div id="pin_message_div" class="hide center"></div>`
         };
         var $pinModalDialog = writeMessage('modal-cancel', message);
         $('#instructor_pin_form').focus();
@@ -688,7 +689,7 @@ $( async () => {
         // If PIN not retrieved yet, retrieve from server
         if (pin64 === null) {
             // PIN has not been retrieved yet - retrieve from server
-            pin64 = await callAPI('pin');
+            pin64 = await initApiCall('pin');
         } else {
             console.log('TEACHER CHECK-IN: PIN already retrieved.');
         }
@@ -721,7 +722,7 @@ $( async () => {
                 // Show alert, clear PIN field and re-enable submit button                
                 var $pinMsgElement = $('#pin_message_div');
                 $pinMsgElement.removeClass('hide');
-                $pinMsgElement.html(`<b>Pin Incorrect! Please try again (${badPinCount}/${MAX_TRIES}).`);
+                $pinMsgElement.html(`<b>Pin Incorrect! Please try again. (${badPinCount}/${MAX_TRIES})`);
                 $('#instructor_pin').val('');
 
                 // Check if exceeded max retries
@@ -1034,7 +1035,7 @@ $( async () => {
         writeMessage('error', "");
 
         if (debug) {
-            writeMessage('debug', "<br><b>clicked CHECK-IN TABLE ROW OR BUTTON...</b>");                
+            writeMessage('debug', "<br><b>clicked TOGGLE FULLSCREEN BUTTON...</b>");                
         }
 
         // Toggle fullscreen mode

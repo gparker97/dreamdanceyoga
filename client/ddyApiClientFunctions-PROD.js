@@ -1,6 +1,7 @@
 // Setup script
 const environment = 'PROD';
-const version = '1.8.7';
+const version = '1.8.8';
+var ddyToken = null;
 
 // Set API host
 // var apiHostUAT = 'https://greg-monster.dreamdanceyoga.com:3443/api/ddy'; // GREG computer
@@ -442,6 +443,10 @@ async function initApiCall(func, activity, params) {
                     return 'Activity not defined';
                 }
             break;
+        case 'version':
+        case 'pin':
+            var params = {};
+            break;
         default:
             console.log(`ERROR: Function not found: ${func}`);				
             return false;            
@@ -452,10 +457,22 @@ async function initApiCall(func, activity, params) {
         if (debug) {			
             writeMessage('debug', `<br><b>Starting API call: ${func}..</b>`);				
         }
+
+        // Retrieve token from server if not defined
+        if (!ddyToken) {
+            try {
+                ddyToken = await callAPI('ddytoken');
+                console.log('Token retrieved');
+            } catch (e) {
+                console.error(`ERROR: Could not retrieve token: ${e.responseText}`);
+                console.error(e);
+            }
+        }
+
         var funcToCall = func.split('_')[0];
         console.log(`Starting API call: ${func}`);
         console.log(params);
-        return await callAPI(funcToCall, params);
+        return await callAPI(funcToCall, params, ddyToken);
     } catch(e) {
         console.log(`ERROR: Error returned from callAPI function: ${func}`);
         console.error(e);
@@ -464,13 +481,13 @@ async function initApiCall(func, activity, params) {
     }
 }
 
-async function callAPI(func, params) {
+async function callAPI(func, params, ddyToken) {
     // set apiHost based on environment    
     var apiHost = eval(`apiHost${environment}`);
 
     // Set secure functions to prevent logging response to console
-    var secureFuncs = ['pin'];
-    
+    var secureFuncs = ['pin', 'ddytoken'];
+
     // Loop through params and build API call URL	
     var url = `${apiHost}/${func}`;
     var count = 1;	
@@ -484,9 +501,10 @@ async function callAPI(func, params) {
         }			
     });
     
-    // Replace any '+' symbols in URL with ASCII code
+    // Replace any '+' symbols in URL with ASCII code and remove chinese characters
     url = url.replace(/\+/g, "%2B");
-    
+    url = url.replace(/[^\x00-\x7F]/g, "");
+
     if (debug) { 
         writeMessage('debug', `<br>STARTED CALL API FUNCTION<br>Function: ${func}<br>URL: ${url}`);
     }
@@ -494,18 +512,21 @@ async function callAPI(func, params) {
     // Define loader div
     // var $loading = $('#loading');
     var $loading = $('#loader-div');
+
+    // Set headers with auth
+    const tokenString = `Basic ${ddyToken}`;
+    var headers = {};
+    headers.Authorization = tokenString;
     
     // AJAX GET call to ddyRestController
-    // Refactor later to send POST with JSON body - no longer sustainable as GET with long query string
+    // Refactor later (as in never) to send POST with JSON body - not sustainable as GET with long query string
     try {	
         let result = await $.ajax({
             method: "GET",
             crossDomain: true,
             xhrFields: { withCredentials: true },
-            headers: { 
-                'Authorization': '***REMOVED***',
-            },
-            url: url,
+            headers,
+            url,
             datatype: 'json',            
             beforeSend: function(xhr) {
                 $loading.show();                
@@ -1502,7 +1523,8 @@ async function buyPackage(selectedProduct, selectedClient) {
         }
 
         // Before creating certificate, book and cancel temp appt for student to ensure Xero details are up to date
-        // In order for new student data to be pushed to Xero, Acuity requires an appointment to be booked        
+        // In order for new student data to be pushed to Xero, Acuity requires an appointment to be booked
+        // UPDATE: ONLY DO THIS IF IT IS A NEW STUDENT OTHERWISE SKIP (TAKES TOO MUCH TIME)
         console.log('Booking/cancelling temporary class to trigger Xero contact synchronization...');
         var tempClassResult = await bookCancelTempClass(selectedClient);
 
@@ -1994,7 +2016,7 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
             if (className1.includes('Private')) {
                 privateDuration += count;
                 msg += `${className1} x ${count / 60} hour(s)<br>`;
-            } else if (className1.includes('Belly') || className1.includes('Chinese Dance')) {
+            } else if (className1.includes('dance') || className1.includes('Dance')) {
                 bellyCount = bellyCount + count;
                 msg += `${className1} x ${count}<br>`;
             } else if (className1.includes('Yoga')) {
@@ -2808,7 +2830,8 @@ async function getDdyInstructors() {
 async function populateEnvironment() {
     // Populate environment and version container
     try {
-        const restControllerVersion = await callAPI('version');
+        // const restControllerVersion = await callAPI('version');
+        const restControllerVersion = await initApiCall('version');
         $('#environment').html(`Client version: ${version}<br>Server version: ${restControllerVersion}<br>Environment: ${environment}`);
     }
     catch (e) {			

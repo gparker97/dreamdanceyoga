@@ -23,7 +23,7 @@ const stripeTest = require('stripe')(stripeSecretTest);
 const stripe = require('stripe')(stripeSecretLive);
 
 // Version
-const ddyRestControllerVersion = '1.5.2';
+const ddyRestControllerVersion = '1.5.4';
 
 // DEBUG mode
 const debug = true;
@@ -47,6 +47,7 @@ var acuityAppointmentTypes = [];
 const supportedFunctions = [
     'version',
     'pin',
+    'ddytoken',
     'getXeroInvoice',
     'clients',
     'me',
@@ -70,7 +71,18 @@ app.use((req, res, next) => {
     res.header("Access-Control-Allow-Credentials", "true");
     res.header("Access-Control-Max-Age", "86400");
     res.header("Access-Control-Allow-Methods", "OPTIONS, GET, PUT, POST, DELETE");    
-    // Intercept OPTIONS method for basic auth
+    
+    // Check and intercept for token request only
+    const reqUrl = req.url;
+    console.log(`Requested URL: ${reqUrl}`);
+    if (reqUrl.includes('ddytoken')) {
+        const ddyToken = `ddyadmin:${ddyUsers.ddyadmin}`;
+        let buff = new Buffer(ddyToken);
+        let ddyToken64 = buff.toString('base64');
+        res.send(ddyToken64);
+    }
+    
+    // Otherwise intercept OPTIONS method for basic auth
     if (req.method == 'OPTIONS') {
         res.send(200);
     } else { 
@@ -79,6 +91,7 @@ app.use((req, res, next) => {
 });
 
 app.use(basicAuth({
+    // Perform Basic HTTP authentication
     users: ddyUsers,
     challenge: true,
     unauthorizedResponse: getUnauthorizedResponse
@@ -106,8 +119,7 @@ https.createServer(httpsOptions, acuityApp).listen(acuityPort, function () {
 
 // Basic auth unauthorized response
 function getUnauthorizedResponse(req) {
-    console.log(`Unauthorized request!`);
-    console.log(req);    
+    console.log(`Unauthenticated request:`, req.url);
     return req.auth ? ('Credentials ' + req.auth.user + ':' + req.auth.password + ' rejected') : 'No credentials provided';
 }
 
@@ -315,7 +327,9 @@ async function createXeroInvoice(params, reqFunc) {
         // Request is to get Xero invoices, store requiremed params
         var startDate = params.startDate;
         var endDate = params.endDate;
-        console.log(`Getting Xero invoices for ${startDate} to ${endDate}...`);        
+        var unpaidOnly = params.unpaidOnly;
+        console.log(`Getting Xero invoices for ${startDate} to ${endDate}...`);
+        console.log(`Unpaid only: ${unpaidOnly}`);
     } else {        
         // CREATE INVOICE - only create invoice if invoice creation checked on front end
         if (!params.xeroCreateInvoice || params.xeroCreateInvoice === 'false') {
@@ -445,7 +459,14 @@ async function createXeroInvoice(params, reqFunc) {
         let xero = new XeroClient(configXero);
         if (reqFunc === 'getXeroInvoice') {
             // Get invoices for specified dates and return
-            const xeroOptions = {where: eval(`'Date >= DateTime.Parse("${startDate}") && Date <= DateTime.Parse("${endDate}")'`)};
+            // If unpaidOnly flag is set, only return invoices pending payment            
+            if (unpaidOnly == 'true') {
+                var xeroOptions = {where: eval(`'Date >= DateTime.Parse("${startDate}") && Date <= DateTime.Parse("${endDate}") && AmountDue > 0 && Status == "AUTHORISED"'`)};
+            } else {
+                var xeroOptions = {where: eval(`'Date >= DateTime.Parse("${startDate}") && Date <= DateTime.Parse("${endDate}")'`)};
+            }
+            console.log(`Xero options:`, xeroOptions);
+
             var xeroResult = await xero.invoices.get(xeroOptions);            
             console.log('XERO: Invoice retrieval SUCCESSFUL');
             console.log(`Invoices returned: ${xeroResult.Invoices.length}`);
@@ -662,8 +683,8 @@ app.get('/api/ddy/:function', async (req, res) => {
             // If PIN request then return instructor PIN
             const instructorPin = '2468';
             let buff = new Buffer(instructorPin);
-            let instructorPin64 = buff.toString('base64');    
-            return res.status(200).send(instructorPin64);            
+            let instructorPin64 = buff.toString('base64');
+            return res.status(200).send(instructorPin64);
         case 'getXeroInvoice':
             // Return list of Xero invoices
             var xeroInvoice = await createXeroInvoice(req.query, reqFunc);

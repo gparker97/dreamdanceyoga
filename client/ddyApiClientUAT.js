@@ -674,7 +674,7 @@ $( () => {
 		var message = { title: `PACKAGES: ${selectedStudent}`, body: certificatesOutput };
 		writeMessage('modal', message);
 
-		// CLEAN UP: Re-enable view packages submit button, clear search dropdown		
+		// CLEAN UP: Re-enable view packages submit button, clear search dropdown
 		$('#view_packages_submit').prop('disabled', false).removeClass('disabled');
 		
 		// Clear dropdown at top level instead
@@ -732,7 +732,7 @@ $( () => {
 		$submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);
 	});
 	
-	// EVENT: Select package dropdown change - reveal payment method button
+	// EVENT: Select package dropdown change - reveal payment method dropdown
 	$('#select_package_class_dropdown').change( (e) => {
 		e.preventDefault();
 		console.log(`Event captured: ${e.currentTarget.id}`);
