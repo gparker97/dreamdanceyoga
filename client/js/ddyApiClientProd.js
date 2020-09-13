@@ -54,6 +54,12 @@
 	</a>
 
 	<a href="#">
+		<div id="member_report_top" class="card">
+			<h3><strong><i class="fas fa-users fa-3x margin-small"></i><br>DDY MEMBER REPORT</strong></h3>
+		</div>
+	</a>
+
+	<a href="#">
 		<div id="studio_metrics_top" class="card">
 			<h3><strong><i class="fas fa-chart-bar fa-3x margin-small"></i><br>DDY STUDIO METRICS</strong></h3>
 		</div>
@@ -81,6 +87,14 @@
 		<select id="search_student_dropdown" name="search_student_dropdown" class="dropdown">
 			<option value="Select One">Select One</option>	
 		</select>
+	</div>
+
+	<!-- SELECT LOCATION -->
+	<div id="select_location_div" class="details-item hide">
+		<label for="select_location_dropdown" class="form-label">Select Studio Location: </label>
+		<select id="select_location_dropdown" class="dropdown">
+			<option value="location">Select One</option>
+		</select> 
 	</div>
 
 	<!-- SELECT PACKAGE/CLASS -->
@@ -193,23 +207,37 @@
 						<th>Date</th>
 					</tr>
 				</thead>
-			</table>		
+			</table>
 		</div>
 	</div>
 	
 	<!-- STUDIO METRICS DATA-->
 	<div id="studio_metrics_data_div" class="studio-metrics hide">
 		<br><hr>
-		<div id="ddy_card_1" class="ddy-card ddy-card-maroon"></div>
-		<div id="ddy_card_2" class="ddy-card ddy-card-gold"></div>
-		<div id="ddy_card_3" class="ddy-card ddy-card-silver"></div>
-		<div id="ddy_card_4" class="ddy-card ddy-card-green"></div>
-		<br><hr>
-		<div id="metrics_data_chart_1" class="ddy-data"></div>
-		<div id="metrics_data_chart_2" class="ddy-data"></div>
-		<div id="metrics_data_chart_3" class="ddy-data"></div>
-		<div id="metrics_data_chart_4" class="ddy-data"></div>
-		<div id="metrics_data_chart_5" class="ddy-data"></div>
+		<div id="ddy_member_div" class="ddy-member-cards">
+			<div id="ddy_total_member_div">
+				<div id="ddy_card_1" class="ddy-card ddy-card-maroon"></div>
+			</div>
+			<div id="ddy_gold_member_div">
+				<div id="ddy_card_2" class="ddy-card ddy-card-gold"></div>
+			</div>
+			<div id="ddy_silver_member_div">
+				<div id="ddy_card_3" class="ddy-card ddy-card-silver"></div>
+				<div id="ddy_card_4" class="ddy-card ddy-card-silver"></div>
+			</div>
+			<div id="ddy_package_member_div">
+				<div id="ddy_card_5" class="ddy-card ddy-card-green"></div>
+				<div id="ddy_card_6" class="ddy-card ddy-card-green"></div>
+				<div id="ddy_card_7" class="ddy-card ddy-card-green"></div>
+				<div id="ddy_card_8" class="ddy-card ddy-card-green"></div>
+			</div>
+		</div>
+		<div id="studio_metrics_data_charts_div" class="ddy-member-cards hide">
+			<br><hr>		
+			<div id="metrics_data_chart_1" class="ddy-data"></div>
+			<div id="metrics_data_chart_2" class="ddy-data"></div>
+			<div id="metrics_data_chart_3" class="ddy-data"></div>
+		</div>
 	</div>
 </div>
 
@@ -231,13 +259,17 @@ $( () => {
 	
 	// Arrays to cache Acuity API call responses (avoid making multiple calls)
 	var clients = [];
+	var locations = [];
     var products = [];
     var certificates = [];
 	var upcoming_classes = [];
 	var ddyInstructors = [];
 
-	// Var to hold selected action
+	// Var to hold selected action from top cards
 	var action = '';
+
+	// Var to hold selected location
+	var selectedLocation = '';
 	
 	// Declare var to hold array of div/button elements to clean up
 	var $revealedElements = [];
@@ -267,16 +299,16 @@ $( () => {
 		writeMessage('debug', "<b>Debug mode ON</b>");
 	}
 
+	// Fill in version and environment details at bottom of page
+	populateEnvironment();
+	
 	// Grab certificates and populate with relevant DDY info
 	populateDDYInfo();
-	
-	// Fill in version and environment details at bottom of page
-	populateEnvironment();	
 
 	// EVENT: TOP LEVEL CARD CLICK
 	$('.card').on('click', async (e) => {	
 		e.preventDefault();
-			
+
 		// Store action
 		action = e.currentTarget.id;
 		console.log(`Event captured: ${action}`);
@@ -284,6 +316,9 @@ $( () => {
 		
 		// On any top level card click clean up and remove existing containers, buttons, etc
 		cleanUp($revealedElements);
+
+		// Reset products array to force reload of products / classes
+		products = [];
 		
 		// Reveal details div and append action type
 		var $detailsContainer = $('#details');
@@ -296,46 +331,67 @@ $( () => {
 		switch (action) {
 			case 'buy_class_top':
 				$detailsTop.html('<h2>BUY A CLASS SERIES</h2><hr/>');
-				$('#search_student_div').data('action', e.currentTarget.id);
-				products = await retrieveProductsClasses(action, $revealedElements);
+				
+				// Set submit button element and text
+				$submitButtonElement = $('#buy_class_submit');
+				submitButtonText = 'BUY CLASS SERIES';
+				
+				// Reveal student search form and focus
+				$revealedElements = revealElement($('#search_student_div'), $revealedElements);
+				$('#search_student_form').focus();
 				break;
 			case 'buy_single_class_top':
 				$detailsTop.html('<h2>BOOK A SINGLE CLASS</h2><hr/>');
-				$('#search_student_div').data('action', e.currentTarget.id);
-				products = await retrieveProductsClasses(action, $revealedElements);
+				
+				// Reveal student search form and focus
+				$revealedElements = revealElement($('#search_student_div'), $revealedElements);
+				$('#search_student_form').focus();
 				break;
 			case 'buy_package_top':
 				$detailsTop.html('<h2>BUY A PACKAGE / MEMBERSHIP</h2><hr/>');
-				$('#search_student_div').data('action', e.currentTarget.id);
-				products = await retrieveProductsClasses(action, $revealedElements);
+				
+				// Set submit button element and text
+				$submitButtonElement = $('#buy_package_submit');
+				submitButtonText = 'BUY PACKAGE';
+				
+				// Reveal student search form and focus
+				$revealedElements = revealElement($('#search_student_div'), $revealedElements);
+				$('#search_student_form').focus();
 				break;
 			case 'book_private_class_top':
 				$detailsTop.html('<h2>BOOK A PRIVATE / GROUP CLASS</h2><hr/>');
-				$('#search_student_div').data('action', e.currentTarget.id);
-				products = await retrieveProductsClasses(action, $revealedElements);
+				
+				// Reveal student search form and focus
+				$revealedElements = revealElement($('#search_student_div'), $revealedElements);
+				$('#search_student_form').focus();
 				break;
 			case 'view_student_package_top':
 				$detailsTop.html('<h2>VIEW STUDENT INFO</h2><hr/>');
-				// Reveal student search form and store action
+				
+				// Reveal student search form and focus
 				$revealedElements = revealElement($('#search_student_div'), $revealedElements);
 				$('#search_student_form').focus();
-				$('#search_student_div').data('action', e.currentTarget.id);
+
 				// AUTOCOMPLETE TEST
 				// var studentNames = ['Greg Parker', 'Sophia Meng', 'Larry Parker', 'Grace Meng', 'Zhifen Liang'];
-				// console.log('Enabling autocompelte with array: ', studentNames);
+				// console.log('Enabling autocomplete with array: ', studentNames);
 				// $('#search_student_form').autocomplete({source: studentNames});
 				// END AUTOCOMPLETE TEST
 				break;
             case 'checkin_table_top':
                 $detailsTop.html('<h2>CHECK-IN TABLE - SELECT CLASS</h2><hr/>');
-                // Reveal dropdown table and store action
+				
+				// Reveal dropdown table and store action
 				$('#generate_checkin_table_div').data('action', e.currentTarget.id);
+				
 				// Clear date value from datepicker if one exists
 				var selectedDate = $('#checkin_datepicker').val();
 				if (selectedDate) { $('#checkin_datepicker').val(''); }
+				
 				// Make API call to retrieve today's classes
                 upcoming_classes = await retrieveUpcomingClasses(action, $revealedElements);
 				console.log('Upcoming Classes:', upcoming_classes);
+				
 				// Show datepicker to select past class if required
 				$("#checkin_datepicker").datepicker({
 					showOn: "button",
@@ -351,7 +407,8 @@ $( () => {
 				
 				// Show datepicker to select month to generate report
 				// Month year only datepicker
-				$("#instructor_report_datepicker").datepicker({
+				var $datePickerElement = $("#instructor_report_datepicker");
+				$datePickerElement.datepicker({
 					showOn: "button",
 					buttonImage: "https://sophiadance.squarespace.com/s/calendar-tiny.gif",
 					buttonImageOnly: true,
@@ -376,23 +433,55 @@ $( () => {
 				}).focus(function () {
 					$(".ui-datepicker-calendar").hide();
 				});
+				$datePickerElement.focus();
 				
 				// Clear date value from label if it exists
-				$('#instructor_report_datepicker').val('');
+				$datePickerElement.val('');
+				break;
+			case 'member_report_top':
+				$detailsTop.html('<h2>DDY MEMBER REPORT<a href="#" id="ddy_member_report_title"><i class="fas fa-sync-alt fa-xs margin-small"></i></a></h2>');
+				
+				// Reveal DDY member report div and put focus
+				var $element = $('#studio_metrics_data_div');
+				$revealedElements = revealElement($element, $revealedElements);
+				window.location.hash = '#studio_metrics_data_div';
+
+				// EVENT: REFRESH DDY MEMBER REPORT button click
+				$('#ddy_member_report_title').on('click', async (e) => {
+					e.preventDefault();
+					console.log(`Event captured: ${e.currentTarget.id}`);
+					console.log(e);
+					// Clear any error message
+					writeMessage('error', "");
+
+					if (debug) {
+						writeMessage('debug', "<br><b>clicked REFRESH DDY MEMBER REPORT button...</b>");
+					}
+					
+					// Refresh DDY member report details
+					await populateDDYInfo();
+				});
+
 				break;
 			case 'studio_metrics_top':
 				$detailsTop.html('<h2>DDY STUDIO METRICS</h2><hr/>');
+				
 				// Reveal datepicker
 				var $element = $('#studio_metrics_div');
 				$revealedElements = revealElement($element, $revealedElements);
+				
 				// Store action
 				$element.data('action', e.currentTarget.id);
-				// Clear date value from datepicker if one exists				
-				$('#metrics_date_range_from').val('');
-				$('#metrics_date_range_to').val('');
+				
+				// Store datepicker elements and clear date value from datepicker if one exists				
+				var $datePickerFrom = $('#metrics_date_range_from');
+				var $datePickerTo = $('#metrics_date_range_to');
+				$datePickerFrom.val('');
+				$datePickerTo.val('');
+				
 				// Show datepicker to select date range				
 				var dateFormat = "mm/dd/yy";
-				var from = $('#metrics_date_range_from').datepicker({
+				var from = $datePickerFrom.datepicker({
 					showOn: "button",
 					buttonImage: "https://sophiadance.squarespace.com/s/calendar-tiny.gif",
 					buttonImageOnly: true,
@@ -403,7 +492,7 @@ $( () => {
 					}).on('change', function() {
 						to.datepicker('option', 'minDate', getDate(this));
 					});
-				var to = $('#metrics_date_range_to').datepicker({
+				var to = $datePickerTo.datepicker({
 					showOn: "button",
 					buttonImage: "https://sophiadance.squarespace.com/s/calendar-tiny.gif",
 					buttonImageOnly: true,
@@ -413,10 +502,13 @@ $( () => {
 					numberOfMonths: 1
 				}).on('change', function() {
 					from.datepicker('option', 'maxDate', getDate(this));
-				});			
+				});
+				$datePickerFrom.focus();
+
 				function getDate(element) {
 					var date;
 					try {
+				
 						date = $.datepicker.parseDate(dateFormat, element.value);
 					} catch(e) {
 						date = null;
@@ -458,32 +550,23 @@ $( () => {
 		$searchSubmitButton.prop('disabled', true).addClass('disabled');
 		
 		// Retrieve student data
-		try {
-			clients = await retrieveStudents();
-			if (clients) {
-				// Reveal student dropdown menu and appropriate containers
-				$revealedElements = revealElement($('#search_student_dropdown_div'), $revealedElements);
-				var action = $('#search_student_div').data('action');
-				switch (action) {
-					case 'buy_single_class_top':
-					case 'buy_class_top':
-					case 'buy_package_top':
-					case 'book_private_class_top':
-                        $revealedElements = revealElement($('#select_package_class_div'), $revealedElements);
-						break;
-					case 'view_student_package_top':
-                        $revealedElements = revealElement($('#view_packages_submit'), $revealedElements);					
-						break;
-					default:
-						break;
-				}
+		clients = await retrieveStudents();
+		if (clients) {
+			// Reveal student dropdown menu
+			$revealedElements = revealElement($('#search_student_dropdown_div'), $revealedElements);
+
+			// Retrieve locations for selected actions
+			switch (action) {
+				case 'buy_class_top':
+				case 'buy_package_top':
+				case 'buy_single_class_top':
+				case 'book_private_class_top':
+					locations = await retrieveLocations($revealedElements);
+					break;
+				case 'view_student_package_top':
+					$revealedElements = revealElement($('#view_packages_submit'), $revealedElements);					
+					break;
 			}
-		}
-		catch (e) {
-			console.error(`SEARCH STUDENTS: Error retrieving students: ${e.responseText}`);
-            console.error(e);
-			var message = { title: 'ERROR', body: "Error retrieving students, please try again." };
-			writeMessage('modal', message);
 		}
 
         // Clear search query, re-enable search submit button
@@ -491,7 +574,47 @@ $( () => {
 		$searchSubmitButton.prop('disabled', false).removeClass('disabled');
 
 		// Re-enable final submit button and update text (in case it's visible)
-		$submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);
+		// RE-ENABLE IF ISSUES
+		// $submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);
+
+		// Update payment confirmation details
+		// TESTING - REVERT TO ENABLING SUBMIT BUTTON IF ISSUES //
+		var event = e.currentTarget.id;
+		confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement, submitButtonText);
+	});
+
+	// EVENT: LOCATION DROPDOWN CHANGE
+	$('#select_location_dropdown').on('change', async (e) => {
+		e.preventDefault();
+		console.log(`Event captured: ${e.currentTarget.id}`);
+		console.log(e);
+		// Clear any error message
+		writeMessage('error', "");
+
+		// Capture selected location and parse down to location name for product / class selection
+		selectedLocation = $('#select_location_dropdown').val();
+		selectedLocation = selectedLocation.split(',')[0].trim();
+		if (selectedLocation.includes('@')) {
+			selectedLocation = selectedLocation.split('@')[1].trim();
+		}
+		console.log(`Selected location: ${selectedLocation}`);
+
+		// Populate products / classes array if not populated already
+		products = await retrieveProductsClasses(action, products);
+
+		// If successful, filter for selected action and location and populate dropdown
+		if (products) {
+			var filteredProducts = await filterProductsClasses(action, selectedLocation, products, $revealedElements);
+			var $dropdown = $('#select_package_class_dropdown');
+			var func = "products";
+			populateDropdown($dropdown, filteredProducts, func);
+		} else {
+			console.error('ERROR: Products / classes API call failed!');
+		}
+
+		// Update payment confirmation details
+		var event = e.currentTarget.id;
+		confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement, submitButtonText);
 	});
 
 	// EVENT: BUY PACKAGE SUBMIT
@@ -514,8 +637,7 @@ $( () => {
 
         console.log('Generate cert result: ', generateCertResult);
         
-        // If successful, don't re-enable submit button to avoid multiple purchases, and leave details on screen (don't clean up)
-		// $('#buy_package_submit').prop('disabled', false).removeClass('disabled');
+        // If successful, don't re-enable submit button to avoid multiple / inadvertent purchases, and leave details on screen (don't clean up)
 		if (generateCertResult) {			
 			$submitButtonElement.val('DONE');
 		}
@@ -556,15 +678,12 @@ $( () => {
 			// Clean up here if successful?
 			// cleanUp($revealedElements);
 		} else {
-			// FUTURE - reveal datepicker and buy single class
-			// var buyClassResult = await buyClass();
 			console.log(`ERROR: Class is not a series`);
 			var message = { title: "ERROR", body: '<b>You can only book a class series. To book a single class, use "BOOK SINGLE CLASS".<br>Please try again.</b>' };
 			writeMessage('modal', message, $('#modal_output'));
 		}
 			
-		// If successful, don't re-enable submit button to avoid multiple purchases, and leave details on screen
-		// $('#buy_class_submit').prop('disabled', false).removeClass('disabled');
+		// If successful, don't re-enable submit button to avoid multiple / inadvertent purchases, and leave details on screen
 		if (buySeriesResult) {			
 			$submitButtonElement.val('DONE');
 		}
@@ -605,7 +724,7 @@ $( () => {
 			var apptsBooked = appointments.length;
 		}
 		catch (e) {
-			console.log('Error or no appointments booked: ', e)
+			console.error('Error or no appointments booked: ', e)
 			var apptsBooked = 0;
 		}
         
@@ -726,10 +845,7 @@ $( () => {
 
 		// Populate confirmation details
 		var event = e.currentTarget.id;
-		confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement);
-
-		// Re-enable final submit button and update text (in case it's visible)
-		$submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);
+		confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement, submitButtonText);
 	});
 	
 	// EVENT: Select package dropdown change - reveal payment method dropdown
@@ -739,7 +855,6 @@ $( () => {
 		console.log(e);
 
 		// Make payment method dropdown visible or single class submit button
-		var action = $('#search_student_div').data('action');
 		switch (action) {
 			case 'buy_class_top':
 			case 'buy_package_top':
@@ -748,12 +863,7 @@ $( () => {
 
 				// Populate confirmation details
 				var event = e.currentTarget.id;
-				var paymentDetailsOK = confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement);
-
-				// If all payment details are OK, enable (or re-enable) submit button and update text
-				if (paymentDetailsOK) {			
-					$submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);
-				}
+				confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement, submitButtonText);
 				break;
 			case 'buy_single_class_top':
 			case 'book_private_class_top':
@@ -764,14 +874,12 @@ $( () => {
 	});
 
 	// EVENT: Select payment method dropdown change - enable required options and reveal submit button
-	$('#payment_method_dropdown').change(async (e) => {
+	$('#payment_method_dropdown, #employee_commission_dropdown').change(async (e) => {
 		e.preventDefault();
 		console.log(`Event captured: ${e.currentTarget.id}`);
 		console.log(e);
 		
 		// Retrieve requested action (buy class or package) and store submit button element
-		var action = $('#search_student_div').data('action');
-		
 		var $dropdown = $('#payment_method_dropdown');
 		switch (action) {
 			case 'buy_class_top':
@@ -795,7 +903,7 @@ $( () => {
 		var $updatePriceFormElement = $('#updated_price');
 		var $createInvoiceElement = $('#create_invoice_checkbox');
 		var $applyPaymentElement = $('#apply_payment_checkbox');
-		var $paymentOptionsElement = $('#payment_options_div');		
+		var $paymentOptionsElement = $('#payment_options_div');
 
 		// Store selected payment method
 		var paymentMethod = $dropdown.val();
@@ -888,23 +996,9 @@ $( () => {
 
 		// Populate confirmation details box for user to see all purchase details before submitting
 		var event = e.currentTarget.id;
-		var paymentDetailsOK = confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement);
-
-		// Enable and reveal submit button unless payment method is 'Select One'
-		if (paymentMethod !== 'select') {
-			// Reveal submit button element
-			$revealedElements = revealElement($submitButtonElement, $revealedElements);
-			if (paymentDetailsOK) {
-				// Enable submit button
-				$submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);				
-			} else {
-				// Disable submit button
-				$submitButtonElement.prop('disabled', true).addClass('disabled').val(submitButtonText);
-			}
-		}
+		confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement, submitButtonText);
 	});
 
-	
 	// EVENT: Payment Received checkbox change - reveal or hide deposit input box
 	$('#apply_payment_checkbox').change( (e) => {
 		e.preventDefault();
@@ -927,12 +1021,7 @@ $( () => {
 		}
 
 		// Update payment confirmation box
-		var paymentDetailsOK = confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement);
-
-		// If all payment details are OK, enable (or re-enable) submit button and update text
-		if (paymentDetailsOK) {
-			$submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);
-		}
+		confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement, submitButtonText);
 	});
 
 	// EVENT: Dropdown or form change with NO additional dependencies - update relevant details in payment confirmation box
@@ -943,15 +1032,7 @@ $( () => {
 
 		// Populate event and update payment confirmation box
 		var event = e.currentTarget.id;
-		var paymentDetailsOK = confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement);
-
-		// If all payment details are OK, enable (or re-enable) submit button and update text
-		if (paymentDetailsOK) {
-			$submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);
-		} else {
-			// Disable submit button
-			$submitButtonElement.prop('disabled', true).addClass('disabled').val(submitButtonText);
-		}
+		confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement, submitButtonText);
 	});
 	
 	// EVENT: Generate check-in table dropdown change - reveal generate table button
@@ -996,7 +1077,7 @@ $( () => {
 		console.log('Selected class date is: ', classDate);
 		
 		// Make API call to retrieve selected day's classes and populate dropdown
-		action = 'pastDate';
+		var action = 'pastDate';
 		upcoming_classes = await retrieveUpcomingClasses(action, $revealedElements);
 		console.log('Upcoming Classes:', upcoming_classes);		
 	});
@@ -1143,8 +1224,11 @@ $( () => {
 		var result = await buildStudioMetricsCharts(selectedDateFrom, selectedDateTo);
 				
 		if (result) {
-			// Reveal studio metrics container and re-enable submit button
+			// Reveal studio metrics containers and re-enable submit button
 			var $element = $('#studio_metrics_data_div');
+			$revealedElements = revealElement($element, $revealedElements);
+
+			var $element = $('#studio_metrics_data_charts_div');
 			$revealedElements = revealElement($element, $revealedElements);
 
 			var $element = $('#studio_metrics_submit');

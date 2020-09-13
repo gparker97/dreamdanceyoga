@@ -100,6 +100,8 @@
     border: 1px solid lightgray;
     color: white;
     display: inline-block;
+    height: 150px;
+    width: 150px;
     margin: 5px;
     padding: 5px;
 }
@@ -114,6 +116,8 @@
 
 .ddy-card-maroon {
     background-color: maroon;
+    font-size: 115% !important;
+    width: 180px;
 }
 
 .ddy-card-heading {
@@ -147,6 +151,13 @@
     color: maroon;
     font-weight: bold;
     vertical-align: middle;
+}
+
+.ddy-member-cards {
+    display: block;
+    /*flex-wrap: wrap;*/
+    /*justify-content: center;*/
+    text-align: center;
 }
 
 .details {
@@ -314,6 +325,9 @@
 }
 
 .studio-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     overflow: hidden;
     text-align: center;
 }

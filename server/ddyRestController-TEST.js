@@ -32,7 +32,11 @@ const debug = false;
 const Acuity = require('acuityscheduling');
 const config = require('../config');
 
-// Xero SDK v4 OAuth2
+// Xero API
+// const XeroClient = require('xero-node').AccountingAPIClient;
+// const configXero = require('../config-xero');
+
+// Xero SDK v4 OAUTH2
 const XeroClient = require('xero-node').XeroClient;
 const configXero = require('../config-xero4');
 
@@ -131,7 +135,6 @@ function getUnauthorizedResponse(req) {
     return req.auth ? ('Credentials ' + req.auth.user + ':' + req.auth.password + ' rejected') : 'No credentials provided';
 }
 
-// Refresh the Xero OAuth2 tokenset if required
 async function refreshXeroTokenSet() {
     console.log('== XERO: OUATH2: Checking if necessary to refresh Xero token');
     
@@ -206,7 +209,6 @@ async function refreshXeroTokenSet() {
     }
 }
 
-// Unpack params URL from UI and set parameters for API calls
 async function initAcuityAPIcall(req) {
     // Store query details
     const requestedFunction = req.params.function;
@@ -516,7 +518,8 @@ async function createXeroInvoice(params, reqFunc) {
         // const invoiceStatus = 'DRAFT';
         const invoiceStatus = 'AUTHORISED';
         const tax = 'NoTax';
-        const ref = `${productName} ${acuityStudentInfo[studentIndex].firstName} ${acuityStudentInfo[studentIndex].lastName} (Added by Xero API)`;
+        // TEMP TO HIDE - REMOVE
+        const ref = `hide ${productName} ${acuityStudentInfo[studentIndex].firstName} ${acuityStudentInfo[studentIndex].lastName} (Added by Xero API)`;
         const accountCode = 200;
             
         // Calculate due date
@@ -538,6 +541,7 @@ async function createXeroInvoice(params, reqFunc) {
                     lineAmountTypes: eval(`'${tax}'`),
                     dueDate: eval(`'${dueDate}'`),
                     status: eval(`'${invoiceStatus}'`),
+                    // TEMP TO HIDE - REMOVE
                     reference: eval(`'${ref}'`),
                     lineItems: [
                         {                        
@@ -800,7 +804,11 @@ app.get('/api/ddy/:function', async (req, res) => {
         case 'pin':
             // If PIN request then return instructor PIN
             const instructorPin = '2468';
-            let buff = Buffer.from(instructorPin);
+            
+            // NEW FIX BUFF - TEST AND REMOVE IF TEACHER PIN WORKS
+            // let buff = new Buffer(instructorPin);
+            let buff = Buffer.alloc(instructorPin);
+
             let instructorPin64 = buff.toString('base64');
             return res.status(200).send(instructorPin64);
         case 'getXeroInvoice':

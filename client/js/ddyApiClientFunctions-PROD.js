@@ -1,10 +1,11 @@
 // Setup script
 const environment = 'PROD';
-const version = '1.8.8';
+const version = '2.0.0';
 var ddyToken = null;
 
 // Set API host
 // var apiHostUAT = 'https://greg-monster.dreamdanceyoga.com:3443/api/ddy'; // GREG computer
+// var apiHostUAT = 'https://localhost:3443/api/ddy'; // GREG computer localhost
 var apiHostUAT = 'https://api.dreamdanceyoga.com:3444/api/ddy'; // AWS UAT
 var apiHostPROD = 'https://api.dreamdanceyoga.com:3443/api/ddy'; // AWS PROD
 
@@ -91,6 +92,9 @@ async function initApiCall(func, activity, params) {
             var params = {};
             break;
         case 'appointment-types_get':
+            var params = {};
+            break;
+        case 'calendars_get':
             var params = {};
             break;
         case 'availability--classes_get':
@@ -451,7 +455,24 @@ async function initApiCall(func, activity, params) {
             console.log(`ERROR: Function not found: ${func}`);				
             return false;            
     }
-    
+
+    // Capture selected location from dropdown if it exists and parse down to location name to send to server
+    // REST controller will use location data to determine which Xero tenant to activate among other things
+    selectedLocation = $('#select_location_dropdown').val();
+    if (debug) {
+        console.log(`DEBUG: TYPE OF selectedLocation: ${typeof selectedLocation}`);
+    }
+    if ( typeof selectedLocation !== 'undefined' && selectedLocation !== 'location') {
+        selectedLocation = selectedLocation.split(',')[0].trim();
+        if (selectedLocation.includes('@')) {
+            selectedLocation = selectedLocation.split('@')[1].trim().toLowerCase().replace(' ', '-');
+        } else {
+            selectedLocation = 'tai-seng';
+        }
+        console.log(`Selected location for API call params: ${selectedLocation}`);
+        params.location = selectedLocation;
+    }
+
     // Make API call
     try {		
         if (debug) {			
@@ -471,7 +492,7 @@ async function initApiCall(func, activity, params) {
 
         var funcToCall = func.split('_')[0];
         console.log(`Starting API call: ${func}`);
-        console.log(params);
+        console.log('Params:', params);
         return await callAPI(funcToCall, params, ddyToken);
     } catch(e) {
         console.log(`ERROR: Error returned from callAPI function: ${func}`);
@@ -606,6 +627,11 @@ function populateDropdown($drop, data, func) {
                 $drop.append($('<option>').text(`${data[i].name} - ${datePretty}`).attr('value', `${data[i].name}-${datePretty}`));
             });            
             break;
+        case 'locations':
+            $.each(data, (i, val) => {				
+                    $drop.append($('<option>').text(data[i]).attr('value', data[i]));
+            });
+            break;
         default:
             console.error('ERROR: Unknown dropdown type');
     }
@@ -616,7 +642,63 @@ function populateDropdown($drop, data, func) {
     }
 }
 
-async function retrieveProductsClasses(action, $revealedElements) {
+// FUNCTION: retrieveLocations()
+// 1. Retrieve all Acuity calendars and filter for Location
+// 2. Create array of unique location values
+// 3. Populate Studio Location dropdown menu
+async function retrieveLocations($revealedElements) {
+    // Capture all calendars from Acuity
+    var funcType = 'calendars_get';
+    try {			
+        var ddyCalendars = await initApiCall(funcType);
+        console.log(`${funcType} result:`, ddyCalendars);
+    }
+    catch(e) {
+        console.error(`ERROR: Error detected in initApiCall: ${funcType}`);
+        console.error(e);
+        var message = { title: 'ERROR', body: `An error occured with ${funcType}, please check and try again.<hr><strong>Error Message:</strong> ${e.responseText}` };
+        writeMessage('modal', message);
+        return false;
+    }
+
+    // Capture unique location values to array for dropdown
+    var ddyLocations = [];
+    $.each(ddyCalendars, (i, cal) => {
+        ddyLocations.push(cal.location)
+    });
+    console.log(`DDY Locations (all):`, ddyLocations);
+    
+    // Filter for unique locations only and update text for display
+    var ddyLocationsUnique = ddyLocations.filter((val, index, self) => self.indexOf(val) === index );
+    $.each(ddyLocationsUnique, (i, loc) => {
+        if (ddyLocationsUnique[i].includes('@')) {
+            ddyLocationsUnique[i] = ddyLocationsUnique[i].replace('Dream Dance and Yoga', 'DDY');
+        }
+    });
+    // Sort array by location in order
+    ddyLocationsUnique.sort();
+    
+    // Find index of main studio in Tai Seng and place at top of array
+    var ddyIndex = ddyLocationsUnique.findIndex(x => x.includes('Tai Seng'));
+    var ddyVal = ddyLocationsUnique[ddyIndex];
+    ddyLocationsUnique.splice(ddyIndex, 1);
+    ddyLocationsUnique.unshift(ddyVal);
+    
+    console.log(`DDY Locations (unique):`, ddyLocationsUnique);
+
+    // Populate Studio Locations dropdown
+    var $dropdown = $('#select_location_dropdown');
+    var func = "locations";
+    populateDropdown($dropdown, ddyLocationsUnique, func);
+
+    // Reveal locations dropdown
+    $revealedElements = revealElement($('#select_location_div'), $revealedElements);
+}
+
+// FUNCTION: retrieveproductsClasses()
+// 1. Retrieve products or appointments based on action and return to calling function
+async function retrieveProductsClasses(action, products) {
+    // Capture action from top page
     switch (action) {
         case 'buy_single_class_top':
         case 'book_private_class_top':
@@ -628,60 +710,83 @@ async function retrieveProductsClasses(action, $revealedElements) {
             break;
     }
 
-    try {			
-        var result = await initApiCall(funcType);
-        console.log(`${funcType} result:`, result);        
-        
-        if (debug) {
-            writeMessage('debug', `<br>Completed initApicall: ${funcType}`);				
+    // If not populated already, retrieve products or appointments
+    if (products.length === 0) {
+        try {
+            var products = await initApiCall(funcType);
+            console.log(`${funcType} result:`, products);
+            
+            if (debug) {
+                writeMessage('debug', `<br>Completed initApicall: ${funcType}`);				
+            }
         }
-        
-        // If successful populate dropdown menu based on selected action
-        switch (action) {            
-            case 'buy_single_class_top':
-                // Filter classes result for SINGLE class types    
-                result = $(result).filter((i) => {
-                    return (result[i].type === 'class');
-                });
-                console.log('Result updated for single classes:', result);
-                break;
-            case 'book_private_class_top':
-                // Filter classes result for SERVICE class types (by selecting type "service")    
-                result = $(result).filter((i) => {
-                    return (result[i].type === 'service');
-                });
-                console.log('Result updated for private classes:', result);
-                break;
-            case 'buy_class_top':                
-                // Filter classes result for SERIES class types and for series associated with a calender ID ONLY
-                // This should be a way to return only ACTIVE class series, and discard anything inactive or from the past
-                // Have not validated this logic with Acuity
-                result = $(result).filter((i) => {
-                    return (result[i].type === 'series' && result[i].calendarIDs.length > 0);
-                });
-                console.log('Result updated for only ACTIVE class series:', result);
-                break;
+        catch(e) {
+            console.error(`ERROR: Error detected in initApiCall: ${funcType}`);
+            console.error(e);        
+            var message = { title: 'ERROR', body: `An error occured with ${funcType}, please check and try again.<hr><strong>Error Message:</strong> ${e.responseText}` };
+            writeMessage('modal', message);
+            return false;
         }
-        
-        // Populate products or classes dropdown with results
-        var $dropdown = $('#select_package_class_dropdown');
-        var func = "products";
-        populateDropdown($dropdown, result, func);
-        
-        // Reveal student search container, store action, give focus to the form			
-        $revealedElements = revealElement($('#search_student_div'), $revealedElements);
-        $('#search_student_form').focus();
-        $('#search_student_div').data('action', action);
-
-        return result;
+    } else {
+        console.log('RETRIEVE PRODUCTS: Products array already populated');
     }
-    catch(e) {
-        console.error(`ERROR: Error detected in initApiCall: ${funcType}`);
-        console.error(e);        
-        var message = { title: 'ERROR', body: `An error occured with ${funcType}, please check and try again.<hr><strong>Error Message:</strong> ${e.responseText}` };
-        writeMessage('modal', message);
-        return false;
-    }		
+
+    return products;
+}
+
+// FUNCTION: filterProductsClasses()
+// 1. Receive products or appointments array from calling function
+// 2. Filter based on selected action (i.e. Packages/Memberships, Group Classes, Single Classes, etc)
+// 3. Filter based on selected location
+// 4. Reveal the next div in the user flow based on action
+async function filterProductsClasses(action, location, products, $revealedElements) {
+    // Filter products array based on selected action
+    switch (action) {            
+        case 'buy_single_class_top':
+            // Filter classes result for SINGLE class types
+            products = $(products).filter((i) => {
+                return (products[i].type === 'class');
+            });
+            console.log('Result updated for single classes:', products);
+            break;
+        case 'book_private_class_top':
+            // Filter classes result for SERVICE class types (by selecting type "service")    
+            products = $(products).filter((i) => {
+                return (products[i].type === 'service');
+            });
+            console.log('Result updated for private classes:', products);
+            break;
+        case 'buy_class_top':                
+            // Filter classes result for SERIES class types and for series associated with a calender ID ONLY
+            // This should be a way to return only ACTIVE class series, and discard anything inactive or from the past
+            // Have not validated this logic with Acuity
+            products = $(products).filter((i) => {
+                return (products[i].type === 'series' && products[i].calendarIDs.length > 0);
+            });
+            console.log('Result updated for only ACTIVE class series:', products);
+            break;
+    }
+
+    // Filter products array for selected location
+    if (location === 'Dream Dance and Yoga') {
+        products = $(products).filter((i) => {
+            return (!products[i].name.includes('@'));
+        });
+    } else {
+        products = $(products).filter((i) => {
+            return (products[i].name.includes(location));
+        });
+    }
+    console.log(`Products / classes array updated for ${location}:`, products);
+
+    // Reveal appropriate div based on action selected
+    if (action === 'view_student_package_top') {
+        $revealedElements = revealElement($('#view_packages_submit'), $revealedElements);
+    } else {
+        $revealedElements = revealElement($('#select_package_class_div'), $revealedElements);
+    }
+
+return products;
 }
 
 // FUNCTION: retrieveUpcomingClasses()
@@ -691,7 +796,7 @@ async function retrieveUpcomingClasses(action, $revealedElements) {
     switch (action) {
         case 'checkin_table_top':
             var funcType = 'availability--classes_get';
-            var activity = 'getClassesByDate';            
+            var activity = 'getClassesByDate';
             // Get today's date for params to API call
             var classDate = new Date();
             // Format class date for display
@@ -739,6 +844,7 @@ async function retrieveUpcomingClasses(action, $revealedElements) {
     // Reveal dropdown and enable button to generate table
     var $element = $('#generate_checkin_table_div');
     $revealedElements = revealElement($element, $revealedElements);
+    $('#upcoming_classes_dropdown').focus();
 
     return result;
 }
@@ -780,7 +886,7 @@ async function retrieveStudents(checkIn) {
             }
             writeMessage('modal-cancel', message);
         } else {
-            // If successful populate dropdown menu			
+            // If successful populate dropdown menu
             var func = "clients";
             populateDropdown($dropdown, result, func);
             return result;
@@ -909,6 +1015,8 @@ async function addNewStudent() {
 // 3. Cancel the same class
 // 4. Return result to calling function
 async function bookCancelTempClass(studentData) {
+    // UPDATE: CHECK HERE IF STUDENT HAS EXISTING APPOINTMENTS, IF SO THEN DO NOT TRIGGER
+    
     // Retrieve list of upcoming classes and select first class
     try {
         var classList = await findClassByDate(false);
@@ -1050,10 +1158,15 @@ async function cancelAppointment(apptId, noEmail) {
 // FUNCTION: confirmPaymentDetails()
 // 1. Gather all details for upcoming payment
 // 2. Present details to user for confirmation
-function confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement) {
+function confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement, submitButtonText) {
+    // Initialize var to determine whether to enable submit button
+    var revealSubmit = false;
+    var enableSubmit = true;
+    
     // Populate confirmation details
     var $confirmElement = $('#confirm_details_div');
     var studentName = $('#search_student_dropdown option:selected').text();
+    var studioLocation = $('#select_location_dropdown').val();
     var productName = $('#select_package_class_dropdown option:selected').text();
     var paymentMethod = $('#payment_method_dropdown option:selected').text();
     var paymentMethodVal = $('#payment_method_dropdown').val();
@@ -1063,26 +1176,50 @@ function confirmPaymentDetails(event, products, $revealedElements, $submitButton
     var soldBy = $('#employee_commission_dropdown').val();
     // Set sold by value to none if no person is selected
     if (soldBy === 'select') { soldBy = 'None'; }
+
+    // If payment method is not NONE (free) and employee is not selected, disable submit button
+    if (soldBy === 'None' && paymentMethodVal !== 'none') {
+        enableSubmit = false;
+    }
+
+    // If studio location is not selected, disable submit button
+    if (studioLocation === 'Select One') {
+        enableSubmit = false;
+    }
+
+    // Reveal submit button as long as both Payment Method and Employee Commission have values, or when payment method is none
+    if (paymentMethodVal !== 'select' && soldBy !== 'None') {
+        revealSubmit = true;
+    } else if (paymentMethodVal === 'none') {
+        revealSubmit = true;
+    }
     
     // Find the array index of the selected product / package and extract price
     var selectedProductVal = $('#select_package_class_dropdown').val();
     var selectedProduct = $.grep(products, (i) => {
         return i.name === selectedProductVal;
-    });    
-    var price = updatedPrice || selectedProduct[0].price;
-    price = parseFloat(price).toFixed(2);
+    });
+    console.log(`Confirm payment details selected product: `, selectedProduct);
 
-    if (depositAmount !== 'FULLY PAID') {
+    // Set updated price if exists and format price var
+    var priceExists = false;
+    if (selectedProduct.length > 0) {
+        var price = updatedPrice || selectedProduct[0].price;
+        price = parseFloat(price).toFixed(2);
+        priceExists = true;
+    } else {
+        var price = 'No product selected';
+        enableSubmit = false;
+    }
+
+    if (priceExists && depositAmount !== 'FULLY PAID') {
         depositAmount = parseFloat(depositAmount).toFixed(2);
 
         // Check if deposit amount is more than the total price
         if (parseFloat(price) > 0 && parseFloat(depositAmount) >= parseFloat(price)) {
             var message = { title: 'ERROR', body: "<strong>Deposit is more than the total price. Please reduce deposit amount.</strong>" };
             writeMessage('modal', message);
-            
-            // Disable submit button
-            $submitButtonElement.prop('disabled', true).addClass('disabled');
-            return false;
+            enableSubmit = false;
         } else {
             // Calculate amount due
             amountDue = price - depositAmount;
@@ -1090,35 +1227,41 @@ function confirmPaymentDetails(event, products, $revealedElements, $submitButton
             // Set deposit amount for display
             depositAmount = `$${depositAmount}`;
         }
+        
+        // Format price string for display
+        price = `$${parseFloat(price).toFixed(2)}`;
     }
 
     var confirmDetails = `<div class="center confirm-title"><strong>CONFIRM DETAILS</strong></div>
                             <strong>Student Name:</strong> ${studentName}<br>
+                            <strong>Studio Location:</strong> ${studioLocation}<br>
                             <strong>Package / Class:</strong> ${productName}<br>
                             <strong>Payment Method:</strong> ${paymentMethod}<br>
-                            <strong>Price:</strong> $${price}<br>
+                            <strong>Price:</strong> ${price}<br>
                             <strong>Deposit:</strong> ${depositAmount}<br>
                             <font color="red"><strong>Amount Due:</strong> $${amountDue}</font><br>
                             <strong>Sold By:</strong> ${soldBy}<br><br>
                             <div class="confirm-final"><strong>SINGAPORE #1 CONFIRM?</strong></div>`;
     $confirmElement.html(confirmDetails);
     
-    // If payment method dropdown was changed, reveal confirm container, unless payment option is not selected
-    if (event === 'payment_method_dropdown' && paymentMethod !== 'Select One') {
-        $revealedElements = revealElement($confirmElement, $revealedElements);        
+    // Reveal CONFIRM DETAILS container when final element is changed (EMPLOYEE COMMISSION), unless payment option is not selected
+    if (paymentMethodVal === 'none' || event === 'employee_commission_dropdown' && paymentMethodVal !== 'select') {
+        $revealedElements = revealElement($confirmElement, $revealedElements);
     }
 
-    if (debug) {
-        console.log(`Sold by: ${soldBy}`);
-        console.log(`Payment method val: ${paymentMethodVal}`);
+    // Enable or disable submit button
+    if (enableSubmit) {
+        $submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);
+    } else{
+        $submitButtonElement.prop('disabled', true).addClass('disabled');
     }
 
-    // If employee is selected return true, otherwise return false
-    if (soldBy === 'None' && paymentMethodVal !== 'none') {
-        return false;
-    } else {
-        return true;
+    // Reveal submit button
+    if (revealSubmit) {
+        $revealedElements = revealElement($submitButtonElement, $revealedElements);
     }
+    
+    return enableSubmit;
 }
 
 // FUNCTION: weChatPay()
@@ -1293,7 +1436,7 @@ function stripePollForSourceStatus(stripePollParams) {
                     } else {
                         // Timer has run out - inform customer payment has timed out
                         // Note WeChat payment can technically still be made within an hour if QR code is saved,
-                        // but package purchase will not progress if user navigates way from page
+                        // but package purchase will not progress if user navigates away from page
                         console.log(`WeChat Pay timeout!  Source status is ${source.status}`);
 
                         // Update timer element with result
@@ -1477,7 +1620,8 @@ async function employeeCommissionNotes(selectedProduct, selectedClient) {
     console.log(`Notes with converted LB for ${firstName} ${lastName}: `, studentNotes);
 
     // Build DDY employee commission note
-    var timestamp = new Date().toLocaleString();
+    var options = { year: 'numeric', month: 'short', day: '2-digit', hour12: false, hour: 'numeric', minute: 'numeric' };
+    var timestamp = new Date().toLocaleString('en-US', options);
     var commissionNote = `%0A${timestamp}~${productName}~sold by ${soldBy}~$${updatedPrice}`;
     studentNotes += commissionNote;
     console.log(`FULL commission note with history: ${studentNotes}`);
@@ -2007,19 +2151,26 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
         var bellyCount = 0;
         var yogaCount = 0;
         var privateDuration = 0;
+        
+        // Populate arrays with strings to capture class names for categorization
+        var danceClassStr = ['Dance', 'dance', 'Ballet', 'ballet'];
+        var yogaClassStr = ['Yoga', 'yoga'];
+        var privateClassStr = ['Private', 'private'];
+
         msg += `<center><b>${name}</b></center>`;
         $.each(className, (className1, count) => {
             if (className1 === 'LATE') {
                 lateCount = count;
                 return true;
             }
-            if (className1.includes('Private')) {
+            // Match the class name with a string in a class array to increment counter for techers
+            if (privateClassStr.some(substring => className1.includes(substring))) {
                 privateDuration += count;
                 msg += `${className1} x ${count / 60} hour(s)<br>`;
-            } else if (className1.includes('dance') || className1.includes('Dance')) {
+            } else if (danceClassStr.some(substring => className1.includes(substring))) {
                 bellyCount = bellyCount + count;
                 msg += `${className1} x ${count}<br>`;
-            } else if (className1.includes('Yoga')) {
+            } else if (yogaClassStr.some(substring => className1.includes(substring))) {
                 yogaCount = yogaCount + count;
                 msg += `${className1} x ${count}<br>`;
             }
@@ -2162,17 +2313,21 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
             writeMessage('modal', message);
             return false;
         } else {
-            // If successful, create results array that excludes ONLINE classes
-            var appointmentsResultLiveClasses = $(appointmentsResult).filter((i) => {
-                return (!appointmentsResult[i].type.includes('ONLINE'));
+            // If successful, filter results array to remove DDY instructors
+            var appointmentsResult = $(appointmentsResult).filter((i) => {
+                return (appointmentsResult[i].certificate != 'DDYINSTRUCTOR');
             });
-            console.log('Appointments result updated to exclude ONLINE classes:', appointmentsResultLiveClasses);
+            console.log('Appointments result updated to exclude DDY instructors:', appointmentsResult);
         }
     }
     catch(e) {
-        console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
-        console.log (e);
-        var message = { title: 'ERROR', body: `Error caught retrieving appointments for ${minDate} - ${maxDate}.<hr><strong>Error Message:</strong> ${e.responseText}` };
+        console.error(`ERROR: Error detected in initApiCall: ${funcType}`);
+        console.error(e);
+        if (e.statusText === 'timeout') {
+            var message = { title: 'ERROR', body: `TIMEOUT retrieving appointments for ${minDate} - ${maxDate}.  Please select a shorter date range.<hr><strong>Error Message:</strong> ${e.statusText}` };
+        } else {
+            var message = { title: 'ERROR', body: `Error caught retrieving appointments for ${minDate} - ${maxDate}.<hr><strong>Error Message:</strong> ${e.responseText}` };
+        }
         writeMessage('modal', message);
         return false;
     }
@@ -2256,14 +2411,11 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
         return false;
     }
 
-    // NEW FUNCTION HERE
-    // FILTER APPOINTMENTS RESULT AND AVAILCLASSES RESULT TO EXCLUDE ONLINE CLASSES
     // Filter available classes result to exclude online classes
-    // var result = $(result).filter((i) => {
-        // return (result[i].type === 'series' && result[i].calendarIDs.length > 0);
-    // });
-    // console.log('Result updated for only ACTIVE class series:', result);
-
+    var availClassesResult = $(availClassesResult).filter((i) => {
+        return (availClassesResult[i].category != 'LIVE STREAM - Online Classes');
+    });
+    console.log('Classes availability result with ONLINE classes removed:', availClassesResult);
 
     // Parse and rollup appointments array by class day and certificate for class availability chart
     var weekday = ['Sun', 'Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat'];
@@ -2395,14 +2547,24 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
 
     // CHART #2 END
 
-    // CHART #3: APPOINTMENTS BOOKED BY STUDENT
+    // CHART #3: APPOINTMENTS BOOKED BY DDY MEMBERS
     // Parse appointments result using D3.JS grouping functions
+    // Filter appointments result out to only count appointment booked by DDY members
     var apptsByStudentCounts = d3.nest().key(function(i) {
-        return `${i.firstName} ${i.lastName}`;
+        if (i.certType === 'DDY MEMBER') {
+            return `${i.firstName} ${i.lastName}`;
+        } else { 
+            return 'Non-member';
+        }
     }).rollup(function(i) {
         return i.length;
     }).entries(appointmentsResult);
-    console.log('apptsByStudentCounts: ', apptsByStudentCounts);
+    
+    // Filter out NON-MEMBER appointsments from student counts array
+    apptsByStudentCounts = $(apptsByStudentCounts).filter((i) => {
+        return (apptsByStudentCounts[i].key != 'Non-member');
+    });
+    console.log('apptsByStudentCounts for DDY members ONLY: ', apptsByStudentCounts);
 
     // Push values to 2-dimensional array and sort from top to bottom
     var appointmentsByStudent = [];    
@@ -2414,7 +2576,7 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
     });    
 
     // Reduce to top XX students only
-    var numOfStudents = 20;
+    var numOfStudents = 150;
     appointmentsByStudent.length = numOfStudents;
     console.log('Appts by student sorted and reduced: ', appointmentsByStudent);
     // CHART #3 END
@@ -2487,7 +2649,7 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
             height: 900,
         },
         title: {
-            text: 'How full are my classes on average?'
+            text: 'How full are my classes?'
         },        
         xAxis: {            
             labels: {
@@ -2541,7 +2703,7 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
     var apptsChart = Highcharts.chart('metrics_data_chart_3', {
         chart: {
             type: 'bar',
-            height: 700
+            height: 2800
         },
         title: {
             text: 'Which students book the most appointments?'
@@ -2570,12 +2732,8 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
 function revealElement($elementId, $revealedElements) {
     // Reveal container or button and store ID in array for cleanup later        
     $elementId.show('drop');
-    // $elementId.removeClass('hide');
     $revealedElements.push($elementId);
-
-    if (debug) {
-        console.log('revealedElements after push:', $revealedElements);			
-    }    
+    // $elementId.removeClass('hide');
     
     return $revealedElements
 }
@@ -2596,6 +2754,7 @@ function cleanUp($revealedElements) {
 
     // Reset dropdown and checkboxes
     $('#payment_method_dropdown').val('select');
+    $('#employee_commission_dropdown').val('select');
     $('#create_invoice_checkbox').prop('checked', true);
     $('#apply_payment_checkbox').prop('checked', true);
 
@@ -2737,10 +2896,16 @@ async function populateDDYInfo() {
         var validCerts = 0;
         var expiredCerts = 0;
         var goldMembers = 0;
-        var silverMembers = 0;
-        var packageMembers = 0;
+        var silverBelly = 0;
+        var silverYoga = 0;
+        var packageYoga8 = 0;
+        var packageYoga16 = 0;
+        var packageBelly8 = 0;
+        var packageBelly16 = 0;
+        var otherCerts = [];
         var today = new Date();
 
+        // Iterate through all certificates to determine member type
         $.each(allCerts, (i, val) => {
             var certExpiryString = val.expiration;
             var certExpiry = new Date(certExpiryString);	
@@ -2751,15 +2916,27 @@ async function populateDDYInfo() {
                 var certType = allCerts[i].name;
                 if (certType.includes('GOLD')) {
                     goldMembers++;
-                } else if (certType.includes('Silver')) {
-                    silverMembers++;
-                } else if (certType.includes('Package')) {
-                    packageMembers++;
+                } else if (certType.includes('Silver') && certType.includes('Bellydance')) {
+                    silverBelly++;
+                } else if (certType.includes('Silver') && certType.includes('Yoga')) {
+                    silverYoga++;
+                } else if (certType.includes('Package') && certType.includes('Bellydance 8 Class')) {
+                    packageBelly8++;
+                } else if (certType.includes('Package') && (certType.includes('Bellydance 16 Class') || certType.includes('Bellydance 16+8 Class'))) {
+                    packageBelly16++;
+                } else if (certType.includes('Package') && certType.includes('Yoga 8 Class')) {
+                    packageYoga8++;
+                } else if (certType.includes('Package') && (certType.includes('Yoga 16 Class') || certType.includes('Yoga 16+8 Class'))) {
+                    packageYoga16++;
+                } else {
+                    otherCerts.push(val);
                 }
             }
         });
-        var subscribers = goldMembers + silverMembers;
-        var totalMembers = subscribers + packageMembers;
+        console.log('Valid OTHER certificates: ', otherCerts);
+
+        // Calculate total number of members in each category
+        var totalMembers = goldMembers + silverYoga + silverBelly;
         console.log(`Valid certs: ${validCerts}`);
         console.log(`Expired certs: ${expiredCerts}`);
 
@@ -2775,13 +2952,33 @@ async function populateDDYInfo() {
                         <div class="ddy-card-subtext">As of today</div>`);
 
         var $element = $('#ddy_card_3');
-        $element.html(`<div class="ddy-card-heading">SILVER MEMBERS</div>
-                        <div class="ddy-card-text">${silverMembers}</div>
+        $element.html(`<div class="ddy-card-heading">SILVER MEMBERS<br>BELLY DANCE</div>
+                        <div class="ddy-card-text">${silverBelly}</div>
                         <div class="ddy-card-subtext">As of today</div>`);
-
+        
         var $element = $('#ddy_card_4');
-        $element.html(`<div class="ddy-card-heading">PACKAGES</div>
-                        <div class="ddy-card-text">${packageMembers}</div>
+        $element.html(`<div class="ddy-card-heading">SILVER MEMBERS<br>YOGA</div>
+                        <div class="ddy-card-text">${silverYoga}</div>
+                        <div class="ddy-card-subtext">As of today</div>`);
+        
+        var $element = $('#ddy_card_5');
+        $element.html(`<div class="ddy-card-heading">PACKAGES<br>YOGA (8 CLASS)</div>
+                        <div class="ddy-card-text">${packageYoga8}</div>
+                        <div class="ddy-card-subtext">As of today</div>`);
+        
+        var $element = $('#ddy_card_6');
+        $element.html(`<div class="ddy-card-heading">PACKAGES<br>YOGA (16 CLASS)</div>
+                        <div class="ddy-card-text">${packageYoga16}</div>
+                        <div class="ddy-card-subtext">As of today</div>`);
+        
+        var $element = $('#ddy_card_7');
+        $element.html(`<div class="ddy-card-heading">PACKAGES<br>BELLY (8 CLASS)</div>
+                        <div class="ddy-card-text">${packageBelly8}</div>
+                        <div class="ddy-card-subtext">As of today</div>`);
+        
+        var $element = $('#ddy_card_8');
+        $element.html(`<div class="ddy-card-heading">PACKAGES<br>BELLY (16 CLASS)</div>
+                        <div class="ddy-card-text">${packageBelly16}</div>
                         <div class="ddy-card-subtext">As of today</div>`);
     }
     catch (e) {        
