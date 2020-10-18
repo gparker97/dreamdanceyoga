@@ -10,66 +10,66 @@
 	
 	<body>
 		<!-- TITLE AND DARK MODE -->
-		<div class="center margin-small" title="Toggle Dark Mode">
+		<div class="center margin-small">
 			<a id="toggle_dark_mode" class="float-right" href="#"><i class="fas fa-moon fa-2x"></i></a>
 			<h3>Dream Dance and Yoga</h3>
 			<h2><strong>MyStudio</strong></h2>			
-			<h3><strong>....What would you like to do today?..今天你想做什么？....</strong></h3>
+			<h3><strong>What would you like to do today?</strong></h3>
 		</div>
 		
 		<!-- TOP LEVEL CARDS -->
 		<div id="top_level_options" class="top-cards">
 			<a href="#">
 				<div id="buy_package_top" class="card">
-					<h3><strong><i class="fas fa-gift fa-3x margin-small"></i><br>....BUY PACKAGE / MEMBERSHIP..购买配套或会员卡....</strong></h3>
+					<h3><strong><i class="fas fa-gift fa-3x margin-small"></i><br>BUY PACKAGE / MEMBERSHIP</strong></h3>
 				</div>
 			</a>
 			
 			<a href="#">
 				<div id="buy_class_top" class="card">
-					<h3><strong><i class="fas fa-cubes fa-3x margin-small"></i><br>....BUY CLASS SERIES..购买成品系列课....</strong></h3>
+					<h3><strong><i class="fas fa-cubes fa-3x margin-small"></i><br>BUY CLASS SERIES</strong></h3>
 				</div>
 			</a>
 			
 			<a href="#">
 				<div id="buy_single_class_top" class="card">
-					<h3><strong><i class="fas fa-cube fa-3x margin-small"></i><br>....BOOK SINGLE CLASS..预定单节课 ....</strong></h3>
+					<h3><strong><i class="fas fa-cube fa-3x margin-small"></i><br>BOOK SINGLE CLASS</strong></h3>
 				</div>
 			</a>
 
 			<a href="#">
 				<div id="book_private_class_top" class="card">
-					<h3><strong><i class="fas fa-user-friends fa-3x margin-small"></i><br>....BOOK PRIVATE / GROUP CLASS..预定私教课....</strong></h3>
+					<h3><strong><i class="fas fa-user-friends fa-3x margin-small"></i><br>BOOK PRIVATE / GROUP CLASS</strong></h3>
 				</div>
 			</a>
 
 			<a href="#">
 				<div id="view_student_package_top" class="card">
-					<h3><strong><i class="fas fa-glasses fa-3x margin-small"></i><br>....VIEW STUDENT INFO..查看学生信息....</strong></h3>
+					<h3><strong><i class="fas fa-glasses fa-3x margin-small"></i><br>VIEW STUDENT INFO</strong></h3>
 				</div>
 			</a>
 			
 			<a href="#">
 				<div id="checkin_table_top" class="card">
-					<h3><strong><i class="fas fa-table fa-3x margin-small"></i><br>....CHECK-IN TABLE..签到表....</strong></h3>
+					<h3><strong><i class="fas fa-table fa-3x margin-small"></i><br>CHECK-IN TABLE</strong></h3>
 				</div>
 			</a>
 
 			<a href="#">
 				<div id="instructor_report_top" class="card">
-					<h3><strong><i class="fas fa-graduation-cap fa-3x margin-small"></i><br>....INSTRUCTOR REPORT..老师授课清单....</strong></h3>
+					<h3><strong><i class="fas fa-graduation-cap fa-3x margin-small"></i><br>INSTRUCTOR REPORT</strong></h3>
 				</div>
 			</a>
 
 			<a href="#">
 				<div id="member_report_top" class="card">
-					<h3><strong><i class="fas fa-users fa-3x margin-small"></i><br>....DDY MEMBER REPORT..会员人数清单....</strong></h3>
+					<h3><strong><i class="fas fa-users fa-3x margin-small"></i><br>DDY MEMBER REPORT</strong></h3>
 				</div>
 			</a>
 
 			<a href="#">
 				<div id="studio_metrics_top" class="card">
-					<h3><strong><i class="fas fa-chart-bar fa-3x margin-small"></i><br>....DDY STUDIO METRICS..会员出勤表....</strong></h3>
+					<h3><strong><i class="fas fa-chart-bar fa-3x margin-small"></i><br>DDY STUDIO METRICS</strong></h3>
 				</div>
 			</a>
 		</div>
@@ -83,57 +83,59 @@
 			<!-- SEARCH STUDENT -->
 			<div id="search_student_div" class="details-item hide">
 				<form id="search_student" action="" method="post">
-					<label for="search_student" class="form-label">....Student Name: ..会员姓名：.... </label>
+					<label for="search_student" class="form-label">Search Student Name: </label>
 					<input type="search" name="search_student_form" id="search_student_form" />
-					<input type="submit" name="search_submit" id="search_submit" value="....Search..查找...." />
+					<input type="submit" name="search_submit" id="search_submit" value="Search" />
 				</form>
 			</div>
 
 			<!-- SEARCH STUDENT DROPDOWN -->
 			<div id="search_student_dropdown_div" class="details-item hide">
-				<label for="search_student_dropdown" class="form-label">....Select Student: ..选择学生：....</label>
+				<label for="search_student_dropdown" class="form-label">Select Student: </label>
 				<select id="search_student_dropdown" name="search_student_dropdown" class="dropdown">
-					<option value="Select One">....Select One..选择一项....</option>	
+					<option value="Select One">Select One</option>	
 				</select>
 			</div>
 
 			<!-- SELECT LOCATION -->
 			<div id="select_location_div" class="details-item hide">
-				<label for="select_location_dropdown" class="form-label">....Select Studio Location: ..选择地址：....</label>
+				<label for="select_location_dropdown" class="form-label">Select Studio Location: </label>
 				<select id="select_location_dropdown" class="dropdown">
-					<option value="location">....Select One..选择一项....</option>
+					<option value="location">Select One</option>
 				</select>
 			</div>
 
 			<!-- SELECT PACKAGE/CLASS -->
 			<div id="select_package_class_div" class="details-item hide">
-				<label for="select_package_class_dropdown" class="form-label">....Select Package / Class: ..选择配套或课程：....</label>
+				<label for="select_package_class_dropdown" class="form-label">Select Package / Class: </label>
 				<select id="select_package_class_dropdown" class="dropdown">
-					<option value="package">....Select One..选择一项....</option>
+					<option value="package">Select One</option>
 				</select> 
 			</div>
 
 			<!-- PAYMENT METHOD -->
 			<div id="payment_method_div" class="details-item hide">
-				<label for="payment_method_dropdown" class="form-label">....Select Payment Method: ..选择支付方式：....</label>
+				<label for="payment_method_dropdown" class="form-label">Select Payment Method: </label>
 				<select id="payment_method_dropdown" class="select_dropdown">
-					<option value="select">....Select One..选择一项....</option>
-					<option value="none">....NONE (No Charge)..免费....</option>
-					<option value="cc-online">....Credit / Debit Card..银行卡....</option>
-					<option value="cashOrBankXfer">....Cash / Cheque / Bank Tranfer..现金或支票或银行转账....</option>
-					<option value="wechat-pay">....WeChat Pay..微信支付....</option>
+					<option value="select">Select One</option>
+					<option value="none">NONE (No Charge)</option>
+					<option value="cc-online">Credit/Debit Card</option>
+					<option value="cash">Cash</option>
+					<option value="bankXfer-DDY">Bank Transfer DDY</option>
+					<option value="bankXfer-Sophia">Bank Transfer Sophia POSB</option>
+					<option value="wechat-pay">WeChat Pay</option>
 				</select>
 				<!-- PAYMENT OPTIONS -->
 				<div id="payment_options_div" class="details-item hide">
 					<input type="checkbox" name="create_invoice" id="create_invoice_checkbox" value="create_invoice" checked>
-					<label for="create_invoice_checkbox">....Create Invoice..创建发票....</label>
+					<label for="create_invoice_checkbox">Create Invoice</label>
 					<br>
 					<input type="checkbox" name="apply_payment" id="apply_payment_checkbox" value="apply_payment" checked>
-					<label for="apply_payment_checkbox">....FULL Payment Received..收到全额付款....</label>
+					<label for="apply_payment_checkbox">FULL Payment Received (If DEPOSIT, uncheck this box)</label>		
 					
 					<!-- DEPOSIT -->
 					<div id="deposit_amount_div" class="details-item hide">
-						<label for="deposit_amount"><strong>....DEPOSIT Amount Received: ..收到定金：....</strong></label>
+						<label for="deposit_amount"><strong>DEPOSIT Amount Received: </strong></label>
 						<span class="currency-input">$ <input type="number" min="1" max="9999" step="1" id="deposit_amount" name="deposit_amount" value="0.00"></span>
 					</div>
 				
@@ -142,15 +144,15 @@
 
 			<!-- UPDATE PRICE -->
 			<div id="updated_price_div" class="details-item hide">
-				<label for="updated_price"><strong>....Discounted Price (Leave blank for original price): ..折扣后价格：....</strong></label>
+				<label for="updated_price"><strong>Updated / Discounted Price (Leave blank for original price): </strong></label>
 				<span class="currency-input">$ <input type="number" min="1" max="9999" step="1" id="updated_price" name="updated_price"></span>
 			</div>
 
 			<!-- DDY EMPLOYEE COMMISSION -->
 			<div id="employee_commission_div" class="details-item hide">
-				<label for="employee_commission_dropdown" class="form-label">....Sold by: ..售卡人：....</label>
+				<label for="employee_commission_dropdown" class="form-label">Sold by: </label>
 				<select id="employee_commission_dropdown" class="select_dropdown">
-					<option value="select"></option>
+					<option value="select">Select One</option>
 				</select>
 			</div>
 
@@ -161,40 +163,40 @@
 			<div id="generate_checkin_table_div" class="details-item hide">
 				<!-- Dropdown to hold upcoming classes to generate student check-in list -->
 				<div id="upcoming_classes_div">
-					<label for="upcoming_classes_dropdown" id="upcoming_classes_dropdown_label" class="form-label">....Today's classes: ..今日课程：....</label>
+					<label for="upcoming_classes_dropdown" id="upcoming_classes_dropdown_label" class="form-label">Today's classes: </label>
 					<select id="upcoming_classes_dropdown" class="dropdown">
-						<option value="class">....Select One..选择一项....</option>
+						<option value="class">Select One</option>
 					</select>
 				</div>
 				<div id="select_upcoming_class_date_div">
-					<p><strong>....OR..或....</strong>.... Select another date: ..选择其他日期：....<input type="text" id="checkin_datepicker" class="margin" /></p>
+					<p><strong>OR</strong> Select another date: <input type="text" id="checkin_datepicker" class="margin" /></p>
 				</div>
 			</div>
 
 			<!-- INSTRUCTOR REPORT -->
 			<div id="instructor_report_div" class="details-item hide">
 				<div id="select_instructor_report_date_div">
-					<p>....Select month: ..选择月份：....<input type="text" id="instructor_report_datepicker" class="margin" /></p>
+					<p>Select month: <input type="text" id="instructor_report_datepicker" class="margin" /></p>
 				</div>		
 			</div>
 
 			<!-- STUDIO METRICS -->
 			<div id="studio_metrics_div" class="inline-block hide">
-				....Start date: ..开始日期：....<input type="text" id="metrics_date_range_from" class="margin" />
-				....End date: ..结束日期：....<input type="text" id="metrics_date_range_to" class="margin" />
+				Start date: <input type="text" id="metrics_date_range_from" class="margin" />
+				End date: <input type="text" id="metrics_date_range_to" class="margin" />
 			</div>
 
 			<!-- JQUERY UI MODAL CONTAINER -->
 			<div id="modal_output"></div>
 
 			<!-- Submit buttons -->
-			<input type="submit" id="buy_package_submit" class="submit-button hide" value="....BUY PACKAGE..购买配套...." />
-			<input type="submit" id="buy_class_submit" class="submit-button hide" value="....BUY CLASS..购买课程...." />
-			<input type="submit" id="buy_single_class_submit" class="submit-button hide" value="....BOOK CLASS..订课...." />
-			<input type="submit" id="view_packages_submit" class="submit-button hide" value="....VIEW PACKAGES..查看信息...." />
-			<button type="button" id="generate_checkin_table_submit" class="submit-button hide" disabled>....GENERATE CHECK-IN TABLE..创建签到表....</button>
-			<button type="button" id="get_instructor_report_submit" class="submit-button hide" disabled>....GET INSTRUCTOR REPORT..创建老师授课清单....</button>
-			<input type="submit" id="studio_metrics_submit" class="submit-button hide" value="....GET STUDIO METRICS..创建会员出勤表...." />
+			<input type="submit" id="buy_package_submit" class="submit-button hide" value="BUY PACKAGE" />
+			<input type="submit" id="buy_class_submit" class="submit-button hide" value="BUY CLASS" />
+			<input type="submit" id="buy_single_class_submit" class="submit-button hide" value="BOOK CLASS" />
+			<input type="submit" id="view_packages_submit" class="submit-button hide" value="VIEW PACKAGES" />
+			<button type="button" id="generate_checkin_table_submit" class="submit-button hide" disabled>GENERATE CHECK-IN TABLE</button>
+			<button type="button" id="get_instructor_report_submit" class="submit-button hide" disabled>GET INSTRUCTOR REPORT</button>
+			<input type="submit" id="studio_metrics_submit" class="submit-button hide" value="GET STUDIO METRICS" />	
 			
 			<!-- INSTRUCTOR REPORT -->
 			<div id="instructor_report_container_div" class="instructor-container hide">
@@ -203,14 +205,14 @@
 				<div id="instructor_report_display_details_div" class="instructor-table">
 					<!-- Placeholder HTML table for instructor report details - populated by DataTable() -->    
 					<table id="instructor_report_details_table" class="display table">
-						<caption><h3 class="center"><strong>....Class Details..课程详情....<hr></h3></strong></caption>
+						<caption><h3 class="center"><strong>Class Details<hr></h3></strong></caption>
 						<thead>
 							<tr>
-								<th>....Name..姓名....</th>
-								<th>....Check-in Time..签到时间....</th>
-								<th>....Late Check-in..迟到签到....</th>
-								<th>....Class..课程....</th>
-								<th>....Date..日期....</th>
+								<th>Name</th>
+								<th>Check-in Time</th>
+								<th>Late Check-in</th>
+								<th>Class</th>
+								<th>Date</th>
 							</tr>
 						</thead>
 					</table>
@@ -344,55 +346,55 @@
 			
 			switch (action) {
 				case 'buy_class_top':
-					$detailsTop.html('<h2>....BUY A CLASS SERIES..购买成品系列课....</h2><hr/>');
+					$detailsTop.html('<h2>BUY A CLASS SERIES</h2><hr/>');
 					
 					// Set submit button element and text
 					$submitButtonElement = $('#buy_class_submit');
-					submitButtonText = '....BUY CLASS SERIES..购买成品系列课....';
+					submitButtonText = 'BUY CLASS SERIES';
 					
 					// Reveal student search form and focus
 					$revealedElements = revealElement($('#search_student_div'), $revealedElements);
 					$('#search_student_form').focus();
 					break;
 				case 'buy_single_class_top':
-					$detailsTop.html('<h2>....BOOK A SINGLE CLASS..预定单节课....</h2><hr/>');
+					$detailsTop.html('<h2>BOOK A SINGLE CLASS</h2><hr/>');
 					
 					// Set submit button element and text
 					$submitButtonElement = $('#buy_single_class_submit');
-					submitButtonText = '....BOOK CLASS..订课....';
+					submitButtonText = 'BOOK CLASS';
 
 					// Reveal student search form and focus
 					$revealedElements = revealElement($('#search_student_div'), $revealedElements);
 					$('#search_student_form').focus();
 					break;
 				case 'buy_package_top':
-					$detailsTop.html('<h2>....BUY A PACKAGE / MEMBERSHIP..购买配套或会员卡....</h2><hr/>');
+					$detailsTop.html('<h2>BUY A PACKAGE / MEMBERSHIP</h2><hr/>');
 					
 					// Set submit button element and text
 					$submitButtonElement = $('#buy_package_submit');
-					submitButtonText = '....BUY PACKAGE..现在购买....';
+					submitButtonText = 'BUY PACKAGE';
 					
 					// Reveal student search form and focus
 					$revealedElements = revealElement($('#search_student_div'), $revealedElements);
 					$('#search_student_form').focus();
 					break;
 				case 'book_private_class_top':
-					$detailsTop.html('<h2>....BOOK A PRIVATE / GROUP CLASS..预定私教课....</h2><hr/>');
+					$detailsTop.html('<h2>BOOK A PRIVATE / GROUP CLASS</h2><hr/>');
 					
 					// Set submit button element and text
 					$submitButtonElement = $('#buy_single_class_submit');
-					submitButtonText = '....BOOK CLASS..订课....';
+					submitButtonText = 'BOOK CLASS';
 
 					// Reveal student search form and focus
 					$revealedElements = revealElement($('#search_student_div'), $revealedElements);
 					$('#search_student_form').focus();
 					break;
 				case 'view_student_package_top':
-					$detailsTop.html('<h2>....VIEW STUDENT INFO..查看学生信息....</h2><hr/>');
+					$detailsTop.html('<h2>VIEW STUDENT INFO</h2><hr/>');
 					
 					// Set submit button element and text
 					$submitButtonElement = $('#view_packages_submit');
-					submitButtonText = '....VIEW STUDENT INFO..查看学生信息....';
+					submitButtonText = 'VIEW STUDENT INFO';
 					
 					// Reveal student search form and focus
 					$revealedElements = revealElement($('#search_student_div'), $revealedElements);
@@ -405,7 +407,7 @@
 					// END AUTOCOMPLETE TEST
 					break;
 				case 'checkin_table_top':
-					$detailsTop.html('<h2>....CLASS CHECK-IN TABLE..签到表....</h2><hr/>');
+					$detailsTop.html('<h2>CHECK-IN TABLE - SELECT CLASS</h2><hr/>');
 					
 					// Reveal dropdown table and store action
 					$('#generate_checkin_table_div').data('action', e.currentTarget.id);
@@ -427,7 +429,7 @@
 					});
 					break;
 				case 'instructor_report_top':
-					$detailsTop.html('<h2>....INSTRUCTOR REPORT..老师授课清单....</h2><hr/>');
+					$detailsTop.html('<h2>INSTRUCTOR REPORT</h2><hr/>');
 					var $element = $('#instructor_report_div');
 					$revealedElements = revealElement($element, $revealedElements);
 					
@@ -465,7 +467,7 @@
 					$datePickerElement.val('');
 					break;
 				case 'member_report_top':
-					$detailsTop.html('<h2>....DDY MEMBER REPORT..会员人数清单....<a href="#" id="ddy_member_report_title"><i class="fas fa-sync-alt fa-xs margin-small"></i></a></h2>');
+					$detailsTop.html('<h2>DDY MEMBER REPORT<a href="#" id="ddy_member_report_title"><i class="fas fa-sync-alt fa-xs margin-small"></i></a></h2>');
 					
 					// Reveal DDY member report div and put focus
 					var $element = $('#studio_metrics_data_div');
@@ -490,7 +492,7 @@
 
 					break;
 				case 'studio_metrics_top':
-					$detailsTop.html('<h2>....DDY STUDIO METRICS..会员出勤表....</h2><hr/>');
+					$detailsTop.html('<h2>DDY STUDIO METRICS</h2><hr/>');
 					
 					// Reveal datepicker
 					var $element = $('#studio_metrics_div');
@@ -605,7 +607,7 @@
 
 			// Update payment confirmation details
 			var event = e.currentTarget.id;
-			confirmPaymentDetails(event, action, products, $revealedElements, $submitButtonElement, submitButtonText);
+			confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement, submitButtonText);
 		});
 
 		// EVENT: LOCATION DROPDOWN CHANGE
@@ -640,7 +642,7 @@
 
 			// Update payment confirmation details
 			var event = e.currentTarget.id;
-			confirmPaymentDetails(event, action, products, $revealedElements, $submitButtonElement, submitButtonText);
+			confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement, submitButtonText);
 		});
 
 		// EVENT: BUY PACKAGE SUBMIT
@@ -757,24 +759,19 @@
 			// Populate output and display in modal
 			if (certificates) {
 				// Set single class prices to compute remaining value
-				// REMOVED - PLEASE DON'T HARDCODE CLASS PRICES ANYMORE GREG
-			    // var bdPrice = 32;
-			    // var yogaPrice = 39;
+				var bdPrice = 32;
+				var yogaPrice = 39;
 				
 				// Set var to hold student info for display in modal
 				var certificatesOutput = "";
-				for (var i=0; i < certificates.length; i++) {
-					/*
-                    // Determine single class price - no longer applicable since all classes have different prices, including private classes
-                    var certName = certificates[i].name;
-                    var classPrice = bdPrice;
-                    if (certName.includes('Yoga')) {
-                        classPrice = yogaPrice;
-                    }
-                    */
-                    
-                    // Store expiration and remaining values
-                    var expiry = certificates[i].expiration;
+				for (var i=0; i < certificates.length; i++) {				
+					// Store expiration and remaining values
+					var certName = certificates[i].name;				
+					var classPrice = bdPrice;
+					if (certName.includes('Yoga')) {					
+						classPrice = yogaPrice;
+					}
+					var expiry = certificates[i].expiration;
 					var expiryDate = new Date(expiry);
 					var today = new Date();
 					var expired = false;
@@ -784,9 +781,7 @@
 					var remainingType = 'Classes';
 					switch (certificates[i].type) {
 						case 'value':
-                            // remainingValue = (certificates[i].remainingValue / classPrice);
-                            remainingValue = `$${parseFloat(certificates[i].remainingValue).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-						    remainingType = '';
+							remainingValue = (certificates[i].remainingValue / classPrice);
 							break;
 						case 'count':
 							remainingValue = certificates[i].remainingCounts;
@@ -878,7 +873,7 @@
 
 			// Populate confirmation details
 			var event = e.currentTarget.id;
-			confirmPaymentDetails(event, action, products, $revealedElements, $submitButtonElement, submitButtonText);
+			confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement, submitButtonText);
 		});
 		
 		// EVENT: Select package dropdown change - reveal payment method dropdown
@@ -896,7 +891,7 @@
 
 					// Populate confirmation details
 					var event = e.currentTarget.id;
-					confirmPaymentDetails(event, action, products, $revealedElements, $submitButtonElement, submitButtonText);
+					confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement, submitButtonText);
 					break;
 				case 'buy_single_class_top':
 				case 'book_private_class_top':
@@ -924,11 +919,11 @@
 			switch (action) {
 				case 'buy_class_top':
 					$submitButtonElement = $('#buy_class_submit');
-					submitButtonText = '....BUY CLASS SERIES..购买成品系列课....';
+					submitButtonText = 'BUY CLASS SERIES';
 					break;
 				case 'buy_package_top':
 					$submitButtonElement = $('#buy_package_submit');
-					submitButtonText = '....BUY PACKAGE..现在购买....';
+					submitButtonText = 'BUY PACKAGE';
 					break;
 			}
 
@@ -988,7 +983,7 @@
 					// Reset price to default
 					$updatePriceFormElement.val('');
 					// Update submit button text
-					submitButtonText = '....ENTER CARD DETAILS..输入银行卡的详细....';
+					submitButtonText = 'ENTER CARD DETAILS';
 					// Reveal commission element
 					$revealedElements = revealElement($commissionElement, $revealedElements);
 					break;
@@ -1001,7 +996,7 @@
 					$revealedElements = revealElement($updatePriceElement, $revealedElements);				
 					$updatePriceFormElement.val('');
 					// Update submit button text
-					submitButtonText = '....SCAN QR CODE..扫二维码....';
+					submitButtonText = 'SCAN QR CODE';
 					// Reveal commission element
 					$revealedElements = revealElement($commissionElement, $revealedElements);
 					break;
@@ -1028,7 +1023,7 @@
 					populateDropdown($commissionDropdown, ddyInstructors, func);
 					
 					// Prepend "Select One" to top of dropdown
-					$commissionDropdown.prepend("<option value='select' selected='selected'>....Select One..选择一项....</option>");
+					$commissionDropdown.prepend("<option value='select' selected='selected'>Select One</option>");
 				} else {
 					console.log('PAYMENT METHOD CHANGE EVENT: DDY instructors array already populated, skipping API call.');
 				}
@@ -1036,7 +1031,7 @@
 
 			// Populate confirmation details box for user to see all purchase details before submitting
 			var event = e.currentTarget.id;
-			confirmPaymentDetails(event, action, products, $revealedElements, $submitButtonElement, submitButtonText);
+			confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement, submitButtonText);
 		});
 
 		// EVENT: Payment Received checkbox change - reveal or hide deposit input box
@@ -1061,7 +1056,7 @@
 			}
 
 			// Update payment confirmation box
-			confirmPaymentDetails(event, action, products, $revealedElements, $submitButtonElement, submitButtonText);
+			confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement, submitButtonText);
 		});
 
 		// EVENT: Dropdown or form change with NO additional dependencies - update relevant details in payment confirmation box
@@ -1072,7 +1067,7 @@
 
 			// Populate event and update payment confirmation box
 			var event = e.currentTarget.id;
-			confirmPaymentDetails(event, action, products, $revealedElements, $submitButtonElement, submitButtonText);
+			confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement, submitButtonText);
 		});
 		
 		// EVENT: Generate check-in table dropdown change - reveal generate table button

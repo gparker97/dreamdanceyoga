@@ -420,7 +420,9 @@ def deploy_ddy_rest_controller(ddy_file):
 
                 ## Copy PROD file to production
                 print('\nCopying PROD file to production...\nSource: {FULL_PATH_AWS_UAT}\nDestination: {FULL_PATH_AWS_PROD}'.format(**ddy_file), flush=True)
-                copy_uat_to_prod_cmd = 'cp {FULL_PATH_AWS_UAT} {FULL_PATH_AWS_PROD}'.format(**ddy_file)
+                
+                ## Copy UAT file to PROD and sed to update UAT vars to PROD
+                copy_uat_to_prod_cmd = "sed 's/const debug = true;/const debug = false; \/\/ UPDATED BY DEPLOY SCRIPT/' < {FULL_PATH_AWS_UAT} > {FULL_PATH_AWS_PROD}".format(**ddy_file)
                 copy_uat_to_prod = c.run(copy_uat_to_prod_cmd)
                 if not copy_uat_to_prod.failed:
                     print('New PROD file in place.')

@@ -175,63 +175,61 @@
 }
   
 .pricing-button {
-  background-color: #fff !important;
-  border: 1px solid #800000 !important;
-  border-radius: 10px !important;
-  color: #800000 !important;
-  display: inline-block !important;
-  margin: 5px 0 !important;
-  padding: 10px 20px !important;
-  text-decoration: none !important;
-  transition: all 150ms ease-in-out !important;
+  border: 1px solid #800000;
+  border-radius: 10px;
+  color: #800000;
+  display: inline-block;
+  margin: 5px 0;
+  padding: 10px 20px;
+  text-decoration: none;
+  transition: all 150ms ease-in-out;
 }
 
 .pricing-button:hover,
 .pricing-button:focus {
-  background-color: #800000 !important;
-  color: #fff !important;
+  background-color: #800000;
+  color: #fff;
 }
 
 .pricing-button-gold {
-  background-color: #fff !important;
-  border: 1px solid #800000 !important;
-  border-radius: 10px !important;
-  color: #800000 !important;
-  display: inline-block !important;
-  margin: 10px 0 !important;
-  padding: 10px 20px !important;
-  text-decoration: none !important;
-  transition: all 150ms ease-in-out !important;
+  border: 1px solid #800000;
+  border-radius: 10px;
+  color: #800000;
+  display: inline-block;
+  margin: 10px 0;
+  padding: 10px 20px;
+  text-decoration: none;
+  transition: all 150ms ease-in-out;
 }
 
 .pricing-button-gold:hover,
 .pricing-button-gold:focus {
-  background-color: goldenrod !important;
-  border: goldenrod !important;
-  color: #fff !important;
+  background-color: goldenrod;
+  border: goldenrod;
+  color: #fff;
 }  
   
 .pricing-button.is-featured {
-  background-color: #800000 !important;
-  color: #fff !important;
+  background-color: #800000;
+  color: #fff;
 }
 
 .pricing-button.is-featured-gold {
-  background-color: #800000 !important;
-  color: #fff !important;
+  background-color: #800000;
+  color: #fff;
 }
   
 .pricing-button.is-featured:hover,
 .pricing-button.is-featured:active {
-  background-color: #fff !important;
-  color: #800000 !important;
+  background-color: #fff;
+  color: #800000;
 }
  
 .pricing-button.is-featured-gold:hover,
 .pricing-button.is-featured-gold:active {
-  background-color: goldenrod !important;
-  border: goldenrod !important;
-  color: white !important;
+  background-color: goldenrod;
+  border: goldenrod;
+  color: white;
 }
 
 /* PRICING PLAN TOGGLE CSS */
@@ -373,71 +371,73 @@ hr {
         <img src="https://sophiadance.squarespace.com/s/ddy-silver-image-small.jpg" alt="" class="pricing-img">
         <h2 class="pricing-header">....Silver Member..银卡会员....</h2>
         <ul class="pricing-features">
-          <li class="pricing-features-item">....Enjoy up to 18 amazing Dance and Yoga Classes per month (Not including Aerial Yoga)..享受舞蹈和地面类瑜伽课多达18课（不包括空中瑜伽）....</li>
-          <li class="pricing-features-item">....Yearly discount available!..年卡特价折扣....</li>
+          <li class="pricing-features-item">....Choice of Unlimited Bellydance or Unlimited Yoga..肚皮舞类课程或瑜伽无限....</li>
+          <li class="pricing-features-item">....Yearly discount available!..年卡员特价折扣....</li>
         </ul>
         <!-- YEARLY PRICING -->
         <div class="pricing-price-block yearly-text">
           <div class="pricing-price-block">
-            <a class="pricing-price"><span class="fancy-strike">$199</span><br>$166<span class="pricing-price-small">.... / mo.. / 月....<br>....Total $1,999 billed annually..每年支付 $1,699....<br></span></a>
-            <a href="https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=905611" target="_blank" class="acuity-embed-button pricing-button is-featured">....Buy Now..购买年卡....</a>
+            <a class="pricing-price"><span class="fancy-strike">$169</span><br>$141<span class="pricing-price-small">.... / mo.. / 月....<br>....Total $1,699 billed annually..每年结算 $1,699....<br></span></a>          
+            <a href="https://dreamdanceyoga.com/buy-bellydance-yearly-package" class="pricing-button is-featured">....Bellydance..肚皮舞年卡....</a>
+            <a href="https://dreamdanceyoga.com/buy-yoga-yearly-package" class="pricing-button is-featured">....Yoga..瑜伽年卡....</a>
           </div>
         </div>
         <!-- MONTHLY PRICING -->
         <div class="monthly-text hide">
           <div class="pricing-price-block">
-            <a class="pricing-price">$199<span class="pricing-price-small">.... / mo.. / 月....<br>....6 Months Minimum Commitment..最少承诺6个月....<br></span></a>          
-            <a href="https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=905606" target="_blank" class="acuity-embed-button pricing-button">....Buy Now..购买年卡....</a>
+            <a class="pricing-price">$169<span class="pricing-price-small">.... / mo.. / 月....<br>....6 Months Minimum Commitment..最少承诺6个月....<br></span></a>          
+            <a href="https://dreamdanceyoga.com/buy-bellydance-monthly-package" class="pricing-button">....Bellydance..肚皮舞月卡....</a>
+            <a href="https://dreamdanceyoga.com/buy-yoga-monthly-package" class="pricing-button">....Yoga..瑜伽月卡....</a>
           </div>
         </div>
       </div>
 
-      <!-- GOLD PLAN -->
+      <!-- GOLD PLAN -->   
       <div class="pricing-plan">
         <img src="https://sophiadance.squarespace.com/s/ddy-gold-image-small.jpg" alt="" class="pricing-img">
         <h2 class="pricing-header-gold">....Gold Member..金卡会员....</h2>
         <ul class="pricing-features">
-          <li class="pricing-features-item">....Our Best Deal! Enjoy up to 25 amazing Dance, Yoga, and Aerial Classes per month!..最受欢迎的课程！每月最多可享受25堂舞蹈，包含所有舞蹈类和所有瑜伽类课程！....</li>
-          <li class="pricing-features-item">....Yearly discount available!..年卡特价折扣....</li>
+          <li class="pricing-features-item">....Our Best Deal! Unlimited bellydance and Yoga!..肚皮舞类和瑜伽类课程无限！....</li>
+          <li class="pricing-features-item">....Yearly discount available!..年卡员特价折扣....</li>
         </ul>
         <!-- YEARLY PRICING -->
         <div class="yearly-text">
           <div class="pricing-price-block">
-            <a class="pricing-price"><span class="fancy-strike">$239</span><br>$199<span class="pricing-price-small">.... / mo.. / 月....<br>....Total $2,399 billed annually..每年支付 $2,399....<br></span></a>
-            <a href="https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=905610" target="_blank" class="acuity-embed-button pricing-button is-featured-gold">....Buy Now..购买年卡....</a>
+            <a class="pricing-price"><span class="fancy-strike">$239</span><br>$199<span class="pricing-price-small">.... / mo.. / 月....<br>....Total $2,399 billed annually..每年结算 $2,399....<br></span></a>
+            <a href="https://dreamdanceyoga.com/buy-gold-yearly-package" class="pricing-button is-featured-gold">....Buy Now..购买年卡....</a>
           </div>
         </div>
         <!-- MONTHLY PRICING -->
         <div class="monthly-text hide">
           <div class="pricing-price-block">
             <a class="pricing-price">$239<span class="pricing-price-small">.... / mo.. / 月....<br>....6 Months Minimum Commitment..最少承诺6个月....<br></span></a>
-            <a href="https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=905608" target="_blank" class="acuity-embed-button pricing-button-gold">....Buy Now..购买年卡....</a>
+            <a href="https://dreamdanceyoga.com/buy-gold-monthly-package" class="pricing-button-gold">....Buy Now..购买月卡....</a>
           </div>          
         </div>
       </div>
 
-      <!-- PACKAGE -->
+      <!-- PACKAGE -->   
       <div class="pricing-plan">
         <img src="https://sophiadance.squarespace.com/s/ddy-dance-yoga-pkg-small.jpg" alt="" class="pricing-img">
-        <h2 class="pricing-header">....Dance and Yoga Package..舞蹈和瑜伽课程配套....</h2>
+        <h2 class="pricing-header">....Dance or Yoga Package..课程配套....</h2>
         <ul class="pricing-features">
-          <li class="pricing-features-item">....Enjoy our Dance, Yoga, and Aerial classes with no commitment!..肚皮舞，瑜伽和空中瑜伽课程....</li>
+          <li class="pricing-features-item">....Choice of Bellydance or Aerial Yoga!..肚皮舞或者空中瑜伽....</li>
           <li class="pricing-features-item">....Use anytime within the validity period..在有效期内随时使用....</li>
         </ul>
         <!-- 16 CLASS -->
         <div class="yearly-text">
           <div class="pricing-price-block">
-            <a class="pricing-price pricing-price-medium">....16 Classes $419..16节课程 $419....<br><span class="pricing-price-small">....Good for 4 months..4个月有效期....<br></span>....8 Classes $259..8节课程 $259....<br><span class="pricing-price-small">....Good for 2 months..2个月有效期....<br></span></a>
-            <a href="https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=905653" target="_blank" class="acuity-embed-button pricing-button is-featured">....16 Class..16课程....</a>
-            <a href="https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=905655" target="_blank" class="acuity-embed-button pricing-button is-featured">....8 Class..8课程....</a>
+            <a class="pricing-price">....16 Classes..16节课程....<br><span class="pricing-price-medium">....Bellydance $399..肚皮舞 $399....<br>....Yoga $419..空中瑜伽 $419....</span><span class="pricing-price-small"><br>....Good for 4 months..4个月有效期....<br></span></a>
+            <a href="https://dreamdanceyoga.com/buy-bellydance-16-class-package" class="pricing-button is-featured">....Bellydance..肚皮舞....</a>
+            <a href="https://dreamdanceyoga.com/buy-yoga-16-class-package" class="pricing-button is-featured">....Yoga..空中瑜伽....</a>
           </div>
         </div>
         <!-- 8 CLASS -->
         <div class="monthly-text hide">
           <div class="pricing-price-block">
-            <a class="pricing-price pricing-price-medium">....16 Classes $419..16节课程 $419....<br><span class="pricing-price-small">....Good for 4 months..4个月有效期....<br></span>....8 Classes $259..8节课程 $259....<br><span class="pricing-price-small">....Good for 2 months..2个月有效期....<br></span></a>
-            <a href="https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=905653" target="_blank" class="acuity-embed-button pricing-button">....16 Class..16课程....</a>
-            <a href="https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=905655" target="_blank" class="acuity-embed-button pricing-button">....8 Class..8课程....</a>
+            <a class="pricing-price">....8 Classes..8节课程....<br><span class="pricing-price-medium">....Bellydance $239..肚皮舞 $239....<br>....Yoga $259..空中瑜伽 $259....</span><span class="pricing-price-small"><br>....Good for 2 months..2个月有效期....<br></span></a>
+            <a href="https://dreamdanceyoga.com/buy-bellydance-8-class-package" class="pricing-button">....Bellydance..肚皮舞....</a>
+            <a href="https://dreamdanceyoga.com/buy-yoga-8-class-package" class="pricing-button">....Yoga..瑜伽....</a>
           </div>
         </div>
       </div>
@@ -475,4 +475,3 @@ hr {
     $yearlyText.toggleClass('hide');
   })
 </script>
-<script src="https://embed.acuityscheduling.com/embed/button/15731779.js" async></script>

@@ -13,6 +13,7 @@ cert/
 server/old_scripts
 server/test
 client/old_scripts
+client/test
 temp/
 utils/
 .git-rewrite

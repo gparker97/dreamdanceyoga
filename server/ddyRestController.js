@@ -23,10 +23,10 @@ const stripeTest = require('stripe')(stripeSecretTest);
 const stripe = require('stripe')(stripeSecretLive);
 
 // Version
-const ddyRestControllerVersion = '2.0.0';
+const ddyRestControllerVersion = '2.1.1';
 
 // DEBUG mode
-const debug = false;
+const debug = true;
 
 // Acuity API
 const Acuity = require('acuityscheduling');
@@ -163,6 +163,10 @@ async function refreshXeroTokenSet() {
             xeroTenants = await xero.updateTenants();
             console.log(`XERO: Xero token set is valid - skipping token refresh`);
             console.log(`XERO: Tenants: ${xeroTenants.length}`);
+            
+            if (debug) {
+                console.log(`XERO: DEBUG: Tenants Detail:\n`, xeroTenants);
+            }
 
             // Set true only once successfully retrieved tenant Ids
             tokenValid = true;
@@ -272,10 +276,8 @@ async function initAcuityAPIcall(req) {
         location = body.location;
         delete body.location;
 
-        // TEMP DEBUG
-        console.log(`STUDIO LOCATION: ${location}`);
-        console.log('ALL PARAMS:', body);
-        // END DEBUG
+        console.log(`DDY studio location selected: ${location}`);
+        console.log('Full request params:', body);
     }
 
     // Build Acuity API call URL with params from input URL
@@ -411,18 +413,20 @@ async function createXeroInvoice(params, reqFunc) {
         console.log(`ApplyPayment is ${params.xeroApplyPayment}`);
     }
 
-    // Set appropriate Xero tenant ID based on studio location received from UI
+    // SET STUDIO LOCATION
+    // Set appropriate Xero tenant ID for the studio location received from MyStudio UI
     switch (location) {
-        case 'peace-centre-2':
-            xeroActiveTenantId = 'XXXXXXXXXXXXXX';
+        case 'jurong-east':
+            xeroActiveTenantId = 'af44f83f-37d5-4099-b536-7dfb5cb96c9a';
             break;
         default:
             // Set to Tai Seng by default
-            // ID FOR NEW PTD LTD COMPANY: d6aa2084-d5d6-4224-a8f7-21d1cd9a7aa1
+            // ID FOR NEW TAI SENG PTE LTD COMPANY: d6aa2084-d5d6-4224-a8f7-21d1cd9a7aa1
+            // xeroActiveTenantId = 'd6aa2084-d5d6-4224-a8f7-21d1cd9a7aa1';
             xeroActiveTenantId = '179403c3-ae56-49d2-aead-0f5d9b309721';
             break
     }
-    console.log(`XERO: Xero active tenant for ${location}: ${xeroTenants[0].tenantName} / $${xeroActiveTenantId}`);
+    console.log(`XERO: Xero active tenant for ${location}: ${xeroActiveTenantId}`);
 
     if (reqFunc === 'getXeroInvoice') {
         // Request is to get Xero invoices, store required params
@@ -502,13 +506,52 @@ async function createXeroInvoice(params, reqFunc) {
                 console.log(`XERO WARNING: More than one contact with email ${email}. Selecting first contact to create invoice: ${xeroContact.response.body.Contacts[0].FirstName} ${xeroContact.response.body.Contacts[0].LastName}.`);
             }
             var xeroContactID = xeroContact.response.body.Contacts[0].ContactID
+            console.log(`XERO: Contact FOUND: ${xeroContactID}`);
 
             if (debug) {
                 console.log(`Xero contact ID: ${xeroContactID}`);
             }
         } catch (e) {
-            console.log('XERO ERROR: Error in XERO contacts API call:\n', e.response.body);
-            return { xeroInvoiceStatus: false, xeroInvoiceStatusMessage: "XERO: ERROR caught retrieving contact information" };
+            // Contact NOT found, create new Xero contact with student information
+            console.log(`XERO: Contact NOT FOUND.  Creating new Xero contact for ${location}...`);
+
+            // Capture student details from params
+            var firstName = params.firstName;
+            var lastName = params.lastName;
+            var phone = params.phone;
+
+            // Build Xero options for v4 SDK to create Xero contact
+            var xeroContactBody = { 
+                contacts: [
+                    {
+                        name: eval(`'${firstName} ${lastName}'`),
+                        emailAddress: eval(`'${email}'`),
+                        phones: [
+                            {
+                                phoneType: 'DEFAULT',
+                                phoneNumber: eval(`'${phone}'`)
+                            }
+                        ],
+                    }
+                ]
+            };
+
+            console.log('Ready to send Xero CONTACTS API call.  Xero body below:');
+            console.log(JSON.stringify(xeroContactBody, null, 2));
+
+            try {
+                // Create Xero Contact with Xero v4 SDK
+                var xeroResult = await xero.accountingApi.createContacts(xeroActiveTenantId, xeroContactBody, true);
+                var xeroContactID = xeroResult.response.body.Contacts[0].ContactID
+                
+                console.log('XERO: Contact creation SUCCESSFUL');
+                console.log(`XERO: Contact created:\n`, xeroResult.response.body);
+                console.log(`XERO: Contact ID: ${xeroContactID}`);
+            }
+            catch (e) {
+                console.error(`XERO ERROR: Error caught creating Xero contact:\n`, e);
+                return { xeroInvoiceStatus: false, xeroInvoiceStatusMessage: "XERO: ERROR caught retrieving contact information and failed to create new contact" };
+            }
         }
 
         // Capture required Xero parameters
@@ -587,7 +630,7 @@ async function createXeroInvoice(params, reqFunc) {
             xeroResult.xeroInvoiceStatusMessage = "XERO: Invoice created SUCCESSFULLY";
         }
     } catch (e) {
-        console.log('\nXERO ERROR: Error in XERO invoice retrieval / creation API call:\n', e);
+        console.error('\nXERO ERROR: Error in XERO invoice retrieval / creation API call:\n', e);
         console.error('\nXERO: API call result:\n', JSON.stringify(xeroResult, undefined, 2));
         return { xeroInvoiceStatus: false, xeroInvoiceStatusMessage: "XERO: ERROR caught retrieving / creating XERO invoice" };
     }
@@ -672,28 +715,67 @@ async function xeroApplyPayment(xeroInvoice, requestParams) {
         console.log(`Applying deposit to invoice: ${paymentAmount}`);
     }
     
-    // Translate payment method to XERO account ID to apply payment
-    // Accounts:
-    // DDY: 7BF68928-8142-4D96-BA10-89616DD5B514
+    // LEGACY: Capture Xero Account IDs for old accounts - most of these not used anymore
+    // Xero Accounts:
+    // DDY Bank: 7BF68928-8142-4D96-BA10-89616DD5B514
+    // DDY PTE LTD Bank: cafc3de3-14e3-4731-ba2c-1012d9c299c5
     // Sophia POSB: 6d788d69-f5dd-47ff-a143-f4f9ec3ea987
     // Sophia Cash: cdadb1ae-21ef-4a79-9102-384063283939
+    // DDY JE Bank: 62AC05CD-D128-4B70-BD09-1CD7CA8F68A6
+    var xeroAccountIDs = {
+        taiSengBank: '7BF68928-8142-4D96-BA10-89616DD5B514',
+        sophiaBank: '6d788d69-f5dd-47ff-a143-f4f9ec3ea987',
+        sophiaCash: 'cdadb1ae-21ef-4a79-9102-384063283939',
+        jurongEastBank: '62AC05CD-D128-4B70-BD09-1CD7CA8F68A6'
+    };
+
+    // NEW METHOD: Define Xero account IDs for each location (no DB, so hardcode them here) and set to var based on location
+    var xeroTaiSeng = {
+        mainBank: '7BF68928-8142-4D96-BA10-89616DD5B514'
+        // mainBank: 'cafc3de3-14e3-4731-ba2c-1012d9c299c5'
+    }
+
+    var xeroJurongEast = {
+        mainBank: '62AC05CD-D128-4B70-BD09-1CD7CA8F68A6'
+    }
+    
+    switch (location) {
+        case 'tai-seng':
+            var xeroAccounts = xeroTaiSeng;
+            break;
+        case 'jurong-east':
+            var xeroAccounts = xeroJurongEast;
+            break;
+        default:
+            console.log('ERROR: Studio location not defined');
+            return { xeroPaymentStatus: false, xeroPaymentStatusMessage: "ERROR: Studio location not defined" };
+    }
+    
+    // Translate payment method to XERO account ID to apply payment
     switch (requestParams.paymentMethod) {
+        case 'cashOrBankXfer':
+            var accountID = xeroAccounts.mainBank;
+            var ref = "Paid Cash / Bank Transfer (via DDY MyStudio)";
+            break;
         case 'cash':
-            var accountID = 'cdadb1ae-21ef-4a79-9102-384063283939';
-            var ref = "Paid CASH (Message added by XERO API)";
+            // LEGACY - no longer possible via front-end
+            var accountID = xeroAccountIDs.sophiaCash;
+            var ref = "Paid CASH (via DDY MyStudio)";
             break;
         case 'cc-terminal':
-            var accountID = '7BF68928-8142-4D96-BA10-89616DD5B514';
-            var ref = "Paid CC TERMINAL (Message added by XERO API)";
+            // FUTURE: Not possible via front-end today (we don't have a cc-terminal)
+            var accountID = xeroAccountIDs.taiSengBank;
+            var ref = "Paid CC TERMINAL (via DDY MyStudio)";
             break;
         case 'bankXfer-DDY':
-            // NEW ACCOUNT ID FOR PTE LTD: cafc3de3-14e3-4731-ba2c-1012d9c299c5
-            var accountID = '7BF68928-8142-4D96-BA10-89616DD5B514';
-            var ref = "Paid Bank Transfer to DDY Account (Message added by XERO API)";
+            // LEGACY - no longer possible via front-end
+            var accountID = xeroAccountIDs.taiSengBank;
+            var ref = "Paid Bank Transfer to DDY Account (via DDY MyStudio)";
             break;
         case 'bankXfer-Sophia':
-            var accountID = '6d788d69-f5dd-47ff-a143-f4f9ec3ea987';
-            var ref = "Paid Bank Transfer to Sophia (Message added by XERO API)";
+            // LEGACY - no longer possible via front-end
+            var accountID = xeroAccountIDs.sophiaBank;
+            var ref = "Paid Bank Transfer to Sophia (via DDY MyStudio)";
             break;
         default:
             console.log("XERO ERROR: Payment method not defined in Xero");
@@ -708,11 +790,9 @@ async function xeroApplyPayment(xeroInvoice, requestParams) {
         amount: eval(`'${paymentAmount}'`),
         reference: eval(`'${ref}'`)
     };
-
-    if (debug) {
-        console.log('Starting API call to apply Xero payment with below params:');
-        console.log(xeroBody);
-    }
+    
+    console.log('XERO: Starting API call to apply Xero payment with below params:');
+    console.log(xeroBody);
 
     try {
         let xeroPayment = await xero.accountingApi.createPayment(xeroActiveTenantId, xeroBody);
@@ -859,7 +939,7 @@ app.get('/api/ddy/:function', async (req, res) => {
                     }
                     console.log(`acuityAPIcall: COMPLETED SUCCESSFUL - returning 200 response to server: ${reqFunc}`);
                     if (debug) {
-                        console.log('acuityResult object below:');
+                        console.log('DEBUG: Acuity API call response:');
                         console.log(JSON.stringify(acuityResult, undefined, 2));
                     }
                     return res.status(200).send(acuityResult);

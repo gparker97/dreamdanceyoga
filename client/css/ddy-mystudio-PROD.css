@@ -91,6 +91,11 @@
     padding-bottom: 10px;
 }
 
+.dark-mode {
+    filter: invert(1) hue-rotate(180deg);
+    transition: color 300ms, background-color 300ms;
+}
+
 .dataTables_wrapper .dt-buttons {
     padding-top: 10px;
 }
@@ -236,10 +241,6 @@
     background-color: maroon !important;
     color: white;
     font-weight: bold;
-}
-
-.languagewrapper {
-    display: none;
 }
 
 .margin {

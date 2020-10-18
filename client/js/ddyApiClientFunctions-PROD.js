@@ -1,6 +1,6 @@
 // Setup script
 const environment = 'PROD';
-const version = '2.0.0';
+const version = '2.1.2';
 var ddyToken = null;
 
 // Set API host
@@ -9,15 +9,14 @@ var ddyToken = null;
 var apiHostUAT = 'https://api.dreamdanceyoga.com:3444/api/ddy'; // AWS UAT
 var apiHostPROD = 'https://api.dreamdanceyoga.com:3443/api/ddy'; // AWS PROD
 
-// Debug mode
-if (environment === 'UAT') {
-    var debug = true;
-} else {
-    var debug = false;
-}
+// Set DDY bank details for confirmation messages
+var ddyTSBankDetails = 'SCB 0103062440 / PayNow UEN 53381661X';
 
-// Override default debug settings
-// const debug = true;
+// Debug mode
+var debug = false;
+if (environment === 'UAT') {
+    debug = true;
+}
 
 async function initApiCall(func, activity, params) {
     if (debug) {
@@ -208,6 +207,7 @@ async function initApiCall(func, activity, params) {
                     var firstName = studentInfo.firstName;
                     var lastName = studentInfo.lastName;
                     var email = studentInfo.email;
+                    var phone = studentInfo.phone;
                     var certificate = studentInfo.certificate;
                     var calendarID = studentInfo.calendarID;
                     var OBJECT = 'labels_id';
@@ -221,6 +221,7 @@ async function initApiCall(func, activity, params) {
                         firstName,
                         lastName,
                         email,
+                        phone,
                         certificate,
                         calendarID,
                         OBJECT,
@@ -382,7 +383,13 @@ async function initApiCall(func, activity, params) {
                     var selectedProduct = params[0];
                     var selectedClient = params[1];
                     var productId = selectedProduct[0].id;
-                    var clientEmail = selectedClient[0].email;
+
+                    // Set client information
+                    var firstName = selectedClient[0].firstName;
+                    var lastName = selectedClient[0].lastName;
+                    var email = selectedClient[0].email;
+                    var phone = selectedClient[0].phone;
+
                     var createInvoice = true;
                     var paymentMethod = $('#payment_method_dropdown option:selected').val();
 
@@ -392,13 +399,9 @@ async function initApiCall(func, activity, params) {
                     }
 
                     if (debug) {
-                        console.log(`selectedProduct is ${selectedProduct}`);
-                        console.log(selectedProduct);				
-                        console.log(`productId is ${productId}`);
-                        console.log('selected client is:');
-                        console.log(selectedClient);
-                        console.log('selected client email is:');
-                        console.log(clientEmail);
+                        console.log(`selectedProduct:`, selectedProduct);
+                        console.log(`Product ID: ${productId}`);
+                        console.log('selectedClient:', selectedClient);
                         console.log(`Payment method: ${paymentMethod}`);
                     }                    
 
@@ -438,7 +441,10 @@ async function initApiCall(func, activity, params) {
                         xeroCreateInvoice: createInvoiceChecked,
                         xeroApplyPayment: applyPaymentChecked,
                         productID: productId,
-                        email: clientEmail,
+                        firstName,
+                        lastName,
+                        phone,
+                        email,
                         newPrice,
                         depositAmount
                     };
@@ -462,7 +468,7 @@ async function initApiCall(func, activity, params) {
     if (debug) {
         console.log(`DEBUG: TYPE OF selectedLocation: ${typeof selectedLocation}`);
     }
-    if ( typeof selectedLocation !== 'undefined' && selectedLocation !== 'location') {
+    if (typeof selectedLocation !== 'undefined' && selectedLocation !== 'location') {
         selectedLocation = selectedLocation.split(',')[0].trim();
         if (selectedLocation.includes('@')) {
             selectedLocation = selectedLocation.split('@')[1].trim().toLowerCase().replace(' ', '-');
@@ -606,8 +612,16 @@ function populateDropdown($drop, data, func) {
         case 'appointment-types':
             $.each(data, (i, val) => {
                 var value = data[i].name;
-                var engVal = $.trim(value.split('|')[1]) || value;					
-                $drop.append($('<option>').text(engVal).attr('value', data[i].name));
+                // var engVal = $.trim(value.split('|')[1]) || value;
+                // $drop.append($('<option>').text(engVal).attr('value', data[i].name));
+                
+                // Parse product or appointment name for Squarespace to display in ENG..CHINESE format for multilingualizer
+                var chineseVal = value.split('|')[0] || ' ';
+                var engVal = value.split('|')[1] || value;
+                chineseVal = chineseVal.trim();
+                engVal = engVal.trim();
+                var engChineseVal = `${engVal}..${chineseVal}`;
+                $drop.append($('<option>').text(engChineseVal).attr('value', value));
             });				
             // Sort items in dropdown list
             $drop.html($('option', $drop).sort(function(x,y) {
@@ -637,7 +651,7 @@ function populateDropdown($drop, data, func) {
     }
     if (func != 'clients') {
         // Prepend "Select One" to top of dropdown list and select top item
-        $drop.prepend($('<option>').text('Select One').attr('value', 'Select One'));
+        $drop.prepend($('<option>').text('....Select One..选择一项....').attr('value', 'Select One'));
         $drop.get(0).selectedIndex = 0;
     }
 }
@@ -713,7 +727,8 @@ async function retrieveProductsClasses(action, products) {
     // If not populated already, retrieve products or appointments
     if (products.length === 0) {
         try {
-            var products = await initApiCall(funcType);
+            // NOTE: Don't declare with var, this breaks stuff because of javascript variable hoisting
+            products = await initApiCall(funcType);
             console.log(`${funcType} result:`, products);
             
             if (debug) {
@@ -725,6 +740,7 @@ async function retrieveProductsClasses(action, products) {
             console.error(e);        
             var message = { title: 'ERROR', body: `An error occured with ${funcType}, please check and try again.<hr><strong>Error Message:</strong> ${e.responseText}` };
             writeMessage('modal', message);
+
             return false;
         }
     } else {
@@ -801,7 +817,7 @@ async function retrieveUpcomingClasses(action, $revealedElements) {
             var classDate = new Date();
             // Format class date for display
             var datePretty = $.datepicker.formatDate('yy/mm/dd', classDate);
-            var dropdownLabel = "Today's Classes: ";
+            var dropdownLabel = "....Today's Classes: ..今日课程：....";
             break;
         case 'pastDate':
             var funcType = 'availability--classes_get';
@@ -810,7 +826,7 @@ async function retrieveUpcomingClasses(action, $revealedElements) {
             classDate = $('#checkin_datepicker').datepicker('getDate');
             // Format class date for display
             var datePretty = $.datepicker.formatDate('yy/mm/dd', classDate);
-            var dropdownLabel = `Classes for ${datePretty}: `;
+            var dropdownLabel = `....Classes for ${datePretty}: .. 选择课程${datePretty}：....`;
             break;
     }    
     console.log('Selected class date is: ', datePretty);
@@ -980,8 +996,12 @@ async function addNewStudent() {
 
         // Next, book any upcoming appointment and delete the appointment
         // In order for new student data to be pushed to Xero, Acuity requires an appointment to be booked        
-        console.log('Booking/cancelling temporary class to trigger Xero contact synchronization...');
-        var tempClassResult = await bookCancelTempClass(params);
+        
+        // UPDATE: No longer needed - updated MyStudio to create Xero contact if it doesn't exist
+        // console.log('Booking/cancelling temporary class to trigger Xero contact synchronization...');
+        // var tempClassResult = await bookCancelTempClass(params);
+        console.log('Skipping temp class booking as MyStudio will create Xero contact if not found');
+        let tempClassResult = true;
 
         // If successful inform user
         if (tempClassResult) {
@@ -1015,13 +1035,11 @@ async function addNewStudent() {
 // 3. Cancel the same class
 // 4. Return result to calling function
 async function bookCancelTempClass(studentData) {
-    // UPDATE: CHECK HERE IF STUDENT HAS EXISTING APPOINTMENTS, IF SO THEN DO NOT TRIGGER
-    
     // Retrieve list of upcoming classes and select first class
     try {
         var classList = await findClassByDate(false);
     }
-    catch(e) {        
+    catch(e) {
         return false;
     }    
 
@@ -1158,95 +1176,100 @@ async function cancelAppointment(apptId, noEmail) {
 // FUNCTION: confirmPaymentDetails()
 // 1. Gather all details for upcoming payment
 // 2. Present details to user for confirmation
-function confirmPaymentDetails(event, products, $revealedElements, $submitButtonElement, submitButtonText) {
+function confirmPaymentDetails(event, action, products, $revealedElements, $submitButtonElement, submitButtonText) {
     // Initialize var to determine whether to enable submit button
     var revealSubmit = false;
     var enableSubmit = true;
     
-    // Populate confirmation details
-    var $confirmElement = $('#confirm_details_div');
-    var studentName = $('#search_student_dropdown option:selected').text();
-    var studioLocation = $('#select_location_dropdown').val();
-    var productName = $('#select_package_class_dropdown option:selected').text();
-    var paymentMethod = $('#payment_method_dropdown option:selected').text();
-    var paymentMethodVal = $('#payment_method_dropdown').val();
-    var updatedPrice = $('#updated_price').val() || false;
-    var depositAmount = $('#deposit_amount').val() || 'FULLY PAID';
-    var amountDue = 0;
-    var soldBy = $('#employee_commission_dropdown').val();
-    // Set sold by value to none if no person is selected
-    if (soldBy === 'select') { soldBy = 'None'; }
-
-    // If payment method is not NONE (free) and employee is not selected, disable submit button
-    if (soldBy === 'None' && paymentMethodVal !== 'none') {
-        enableSubmit = false;
-    }
-
-    // If studio location is not selected, disable submit button
-    if (studioLocation === 'Select One') {
-        enableSubmit = false;
-    }
-
-    // Reveal submit button as long as both Payment Method and Employee Commission have values, or when payment method is none
-    if (paymentMethodVal !== 'select' && soldBy !== 'None') {
-        revealSubmit = true;
-    } else if (paymentMethodVal === 'none') {
-        revealSubmit = true;
-    }
-    
-    // Find the array index of the selected product / package and extract price
-    var selectedProductVal = $('#select_package_class_dropdown').val();
-    var selectedProduct = $.grep(products, (i) => {
-        return i.name === selectedProductVal;
-    });
-    console.log(`Confirm payment details selected product: `, selectedProduct);
-
-    // Set updated price if exists and format price var
-    var priceExists = false;
-    if (selectedProduct.length > 0) {
-        var price = updatedPrice || selectedProduct[0].price;
-        price = parseFloat(price).toFixed(2);
-        priceExists = true;
+    // Always enable submit button when performing a non-purchase action i.e. booking class or viewing student info
+    if (action === 'buy_single_class_top' || action === 'view_student_package_top' || action === 'book_private_class_top') {
+        enableSubmit = true;
     } else {
-        var price = 'No product selected';
-        enableSubmit = false;
-    }
+        // Populate confirmation details
+        var $confirmElement = $('#confirm_details_div');
+        var studentName = $('#search_student_dropdown option:selected').text();
+        var studioLocation = $('#select_location_dropdown').val();
+        var productName = $('#select_package_class_dropdown option:selected').text();
+        var paymentMethod = $('#payment_method_dropdown option:selected').text();
+        var paymentMethodVal = $('#payment_method_dropdown').val();
+        var updatedPrice = $('#updated_price').val() || false;
+        var depositAmount = $('#deposit_amount').val() || 'FULLY PAID';
+        var amountDue = 0;
+        var soldBy = $('#employee_commission_dropdown').val();
+        // Set sold by value to none if no person is selected
+        if (soldBy === 'select') { soldBy = 'None'; }
 
-    if (priceExists && depositAmount !== 'FULLY PAID') {
-        depositAmount = parseFloat(depositAmount).toFixed(2);
-
-        // Check if deposit amount is more than the total price
-        if (parseFloat(price) > 0 && parseFloat(depositAmount) >= parseFloat(price)) {
-            var message = { title: 'ERROR', body: "<strong>Deposit is more than the total price. Please reduce deposit amount.</strong>" };
-            writeMessage('modal', message);
+        // If payment method is not NONE (free) and employee is not selected, disable submit button
+        if (soldBy === 'None' && paymentMethodVal !== 'none') {
             enableSubmit = false;
-        } else {
-            // Calculate amount due
-            amountDue = price - depositAmount;
-            amountDue = parseFloat(amountDue).toFixed(2);
-            // Set deposit amount for display
-            depositAmount = `$${depositAmount}`;
+        }
+
+        // If studio location is not selected, disable submit button
+        if (studioLocation === 'Select One') {
+            enableSubmit = false;
+        }
+
+        // Reveal submit button as long as both Payment Method and Employee Commission have values, or when payment method is none
+        if (paymentMethodVal !== 'select' && soldBy !== 'None') {
+            revealSubmit = true;
+        } else if (paymentMethodVal === 'none') {
+            revealSubmit = true;
         }
         
-        // Format price string for display
-        price = `$${parseFloat(price).toFixed(2)}`;
-    }
+        // Find the array index of the selected product / package and extract price
+        var selectedProductVal = $('#select_package_class_dropdown').val();
+        var selectedProduct = $.grep(products, (i) => {
+            return i.name === selectedProductVal;
+        });
+        console.log(`Confirm payment details selected product: `, selectedProduct);
 
-    var confirmDetails = `<div class="center confirm-title"><strong>CONFIRM DETAILS</strong></div>
-                            <strong>Student Name:</strong> ${studentName}<br>
-                            <strong>Studio Location:</strong> ${studioLocation}<br>
-                            <strong>Package / Class:</strong> ${productName}<br>
-                            <strong>Payment Method:</strong> ${paymentMethod}<br>
-                            <strong>Price:</strong> ${price}<br>
-                            <strong>Deposit:</strong> ${depositAmount}<br>
-                            <font color="red"><strong>Amount Due:</strong> $${amountDue}</font><br>
-                            <strong>Sold By:</strong> ${soldBy}<br><br>
-                            <div class="confirm-final"><strong>SINGAPORE #1 CONFIRM?</strong></div>`;
-    $confirmElement.html(confirmDetails);
-    
-    // Reveal CONFIRM DETAILS container when final element is changed (EMPLOYEE COMMISSION), unless payment option is not selected
-    if (paymentMethodVal === 'none' || event === 'employee_commission_dropdown' && paymentMethodVal !== 'select') {
-        $revealedElements = revealElement($confirmElement, $revealedElements);
+        // Set updated price if exists and format price var
+        var priceExists = false;
+        if (selectedProduct.length > 0) {
+            var price = updatedPrice || selectedProduct[0].price;
+            price = parseFloat(price).toFixed(2);
+            priceExists = true;
+        } else {
+            var price = '....No product selected..未选择配套....';
+            enableSubmit = false;
+        }
+
+        if (priceExists && depositAmount !== 'FULLY PAID') {
+            depositAmount = parseFloat(depositAmount).toFixed(2);
+
+            // Check if deposit amount is more than the total price
+            if (parseFloat(price) > 0 && parseFloat(depositAmount) >= parseFloat(price)) {
+                var message = { title: 'ERROR', body: "<strong>....Deposit is more than the total price. Please reduce deposit amount. ..定金大于总价。请减少定金数额。....</strong>" };
+                writeMessage('modal', message);
+                enableSubmit = false;
+            } else {
+                // Calculate amount due
+                amountDue = price - depositAmount;
+                amountDue = parseFloat(amountDue).toFixed(2);
+                // Set deposit amount for display
+                depositAmount = `$${depositAmount}`;
+            }
+            
+            // Format price string for display
+            price = `$${parseFloat(price).toFixed(2)}`;
+        }
+
+        var confirmDetails = `<div class="center confirm-title"><strong>....CONFIRM DETAILS..确认信息....</strong></div>
+                                <strong>....Student Name:..姓名：....</strong> ${studentName}<br>
+                                <strong>....Studio Location:..地址：....</strong> ${studioLocation}<br>
+                                <strong>....Package / Class:..配套或课程：....</strong> ${productName}<br>
+                                <strong>....Payment Method:..支付方式：....</strong> ${paymentMethod}<br>
+                                <strong>....Price:..价格：....</strong> ${price}<br>
+                                <strong>....Deposit:..定金：....</strong> ${depositAmount}<br>
+                                <font color="red"><strong>....Amount Due:..未付金额：....</strong> $${amountDue}</font><br>
+                                <strong>....Sold By:..售卡人：....</strong> ${soldBy}<br><br>
+                                <div class="confirm-final"><strong>....SINGAPORE #1 CONFIRM?..确定？....</strong></div>`;
+        $confirmElement.html(confirmDetails);
+        
+        // Reveal CONFIRM DETAILS container when final element is changed (EMPLOYEE COMMISSION), unless payment option is not selected
+        if (paymentMethodVal === 'none' || (event === 'employee_commission_dropdown' && paymentMethodVal !== 'select')) {
+            $revealedElements = revealElement($confirmElement, $revealedElements);
+        }
     }
 
     // Enable or disable submit button
@@ -1668,9 +1691,12 @@ async function buyPackage(selectedProduct, selectedClient) {
 
         // Before creating certificate, book and cancel temp appt for student to ensure Xero details are up to date
         // In order for new student data to be pushed to Xero, Acuity requires an appointment to be booked
-        // UPDATE: ONLY DO THIS IF IT IS A NEW STUDENT OTHERWISE SKIP (TAKES TOO MUCH TIME)
-        console.log('Booking/cancelling temporary class to trigger Xero contact synchronization...');
-        var tempClassResult = await bookCancelTempClass(selectedClient);
+        
+        // UPDATE: No longer needed - updated MyStudio to create Xero contact if it doesn't exist
+        // console.log('Booking/cancelling temporary class to trigger Xero contact synchronization...');
+        // var tempClassResult = await bookCancelTempClass(selectedClient);
+        console.log('Skipping temp class booking as MyStudio will create Xero contact if not found');
+        let tempClassResult = true;
 
         if (tempClassResult) {
             // If package then buy package
@@ -1706,15 +1732,17 @@ async function buyPackage(selectedProduct, selectedClient) {
             var clientEmail = selectedClient[0].email;
             var message = { 
                 title: 'PURCHASE SUCCESS',
-                body: `<b>Student Name:</b> ${clientName}<br>
-                        <b>Email:</b> ${clientEmail}<br>
-                        <b>Code:</b> ${result.certificate}<br>
-                        <b>Payment Method:</b> ${paymentMethod}<br>
-                        <b>Commission:</b> ${commissionResultString}<br>
+                body: `<strong>....Student Name:..姓名：....</strong> ${clientName}<br>
+                        <strong>....Email:..邮箱：....</strong> ${clientEmail}<br>
+                        <strong>....Code:..学生号：....</strong> ${result.certificate}<br>
+                        <strong>....Payment Method:..支付方式：....</strong> ${paymentMethod}<br>
+                        <strong>....Commission:..售卡人：....</strong> ${commissionResultString}<hr>
                         <strong>Xero Results</strong><br>
                         ${xeroInvoiceStatusMessage}<br>
                         ${xeroPaymentStatusMessage}<hr>
-                        <strong>Inform student to use email address to book classes</strong>`
+                        <strong>....Inform student to use email address to book classes..通知学生使用邮箱预订课程....<br>
+                        ....** NOTE: If cash payment, please transfer to bank ASAP **..** 注意：如果以现金付款，请尽快转帐至银行 **....</strong><br>
+                        <strong>DDY Bank Account:</strong> ${ddyTSBankDetails}<br>`
             };
             writeMessage('modal', message);
             return result;
@@ -1820,14 +1848,17 @@ async function buySeries(selectedClass, selectedClient) {
             
             // Write message that class series is booked
             var message = {
-                title: 'BOOKING SUCCESS',
-                body: `<strong>Student Name:</strong> ${clientName}<br>
-                        <strong>Class:</strong> ${bookClass[0].type}<br>
-                        <strong>First Class:</strong> ${firstClassDatePretty}<br>
-                        <strong># of Classes:</strong> ${bookClass.length}<br>
-                        <strong>Payment Method:</strong> ${paymentMethod}<hr>
+                title: '....BOOKING SUCCESS..课程预定成功....',
+                body: `<strong>....Student Name:..姓名:....</strong> ${clientName}<br>
+                        <strong>....Class:..课程：....</strong> ${bookClass[0].type}<br>
+                        <strong>....First Class:..第一的课程：....</strong> ${firstClassDatePretty}<br>
+                        <strong>....# of Classes:..几节课：....</strong> ${bookClass.length}<br>
+                        <strong>....Payment Method:..支付方式：....</strong> ${paymentMethod}<hr>
                         <strong>Xero Results</strong><br>
-                        ${xeroInvoiceStatusMessage}<br>${xeroPaymentStatusMessage}`
+                        ${xeroInvoiceStatusMessage}<br>
+                        ${xeroPaymentStatusMessage}<hr>
+                        <strong>....** NOTE: If cash payment, please transfer to bank ASAP **..** 注意：如果以现金付款，请尽快转帐至银行 **....</strong><br>
+                        <strong>DDY Bank Account:</strong> ${ddyTSBankDetails}<br>`
             };				
             writeMessage('modal', message);
             return bookClass;
@@ -2764,7 +2795,7 @@ function cleanUp($revealedElements) {
 function clearDropdown($drop) {
     // Empty dropdown menu if it exists	
     $drop.empty();
-    $drop.append($('<option>').text('Select One').attr('value', 'Select One'));
+    $drop.append($('<option>').text('....Select One..选择一项....').attr('value', 'Select One'));
 }
 
 function writeMessage(type, msg, $output) {    
