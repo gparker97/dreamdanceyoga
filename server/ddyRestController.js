@@ -23,7 +23,7 @@ const stripeTest = require('stripe')(stripeSecretTest);
 const stripe = require('stripe')(stripeSecretLive);
 
 // Version
-const ddyRestControllerVersion = '2.1.1';
+const ddyRestControllerVersion = '2.1.3';
 
 // DEBUG mode
 const debug = true;
@@ -50,6 +50,7 @@ var xeroActiveTenantId;
 
 // Declare var to hold studio location
 var location;
+var locationPretty;
 
 // List of supported DDY API call functions, anything else will return 400
 const supportedFunctions = [
@@ -274,9 +275,10 @@ async function initAcuityAPIcall(req) {
     // Capture and store studio location parameter
     if (typeof body.location !== 'undefined') {
         location = body.location;
+        locationPretty = location.replace(/-/g, ' ');
         delete body.location;
 
-        console.log(`DDY studio location selected: ${location}`);
+        console.log(`DDY studio location selected: ${locationPretty}`);
         console.log('Full request params:', body);
     }
 
@@ -550,7 +552,7 @@ async function createXeroInvoice(params, reqFunc) {
             }
             catch (e) {
                 console.error(`XERO ERROR: Error caught creating Xero contact:\n`, e);
-                return { xeroInvoiceStatus: false, xeroInvoiceStatusMessage: "XERO: ERROR caught retrieving contact information and failed to create new contact" };
+                return { xeroInvoiceStatus: false, xeroInvoiceStatusMessage: `XERO (${locationPretty}): ERROR caught retrieving contact information and failed to create new contact` };
             }
         }
 
@@ -612,27 +614,27 @@ async function createXeroInvoice(params, reqFunc) {
             // Get invoices with Xero v4 SDK
             var xeroResult = await xero.accountingApi.getInvoices(xeroActiveTenantId, null, xeroOptions);
             
-            console.log('XERO: Invoice retrieval SUCCESSFUL');
+            console.log(`XERO (${locationPretty}): Invoice retrieval SUCCESSFUL`);
             console.log(`Invoices returned: ${xeroResult.response.body.Invoices.length}`);
             
             xeroResult.xeroInvoiceStatus = true;
-            xeroResult.xeroInvoiceStatusMessage = "XERO: Invoices retrieved SUCCESSFULLY";
+            xeroResult.xeroInvoiceStatusMessage = `XERO (${locationPretty}): Invoices retrieved SUCCESSFULLY`;
             return xeroResult.response.body;
         } else {
             // Create Xero invoice with Xero v4 SDK
-            var xeroResult = await xero.accountingApi.createInvoices(xeroActiveTenantId, xeroBody, true);            
-            console.log('XERO: Invoice creation SUCCESSFUL');
+            var xeroResult = await xero.accountingApi.createInvoices(xeroActiveTenantId, xeroBody, true);
+            console.log(`XERO (${locationPretty}): Invoice creation SUCCESSFUL`);
 
             // Update Xero results object to remove unnecessary data
             xeroResult = xeroResult.response.body;
 
             xeroResult.xeroInvoiceStatus = true;
-            xeroResult.xeroInvoiceStatusMessage = "XERO: Invoice created SUCCESSFULLY";
+            xeroResult.xeroInvoiceStatusMessage = `XERO (${locationPretty}): Invoice created SUCCESSFULLY`;
         }
     } catch (e) {
         console.error('\nXERO ERROR: Error in XERO invoice retrieval / creation API call:\n', e);
         console.error('\nXERO: API call result:\n', JSON.stringify(xeroResult, undefined, 2));
-        return { xeroInvoiceStatus: false, xeroInvoiceStatusMessage: "XERO: ERROR caught retrieving / creating XERO invoice" };
+        return { xeroInvoiceStatus: false, xeroInvoiceStatusMessage: `XERO (${locationPretty}): ERROR caught retrieving / creating XERO invoice` };
     }
 
     // Apply payment to Xero invoice if required
@@ -656,7 +658,7 @@ async function createXeroInvoice(params, reqFunc) {
         } catch (e) {
             console.log('XERO ERROR: Error in XERO apply payment API call');
             xeroResult.xeroPaymentStatus = false;
-            xeroResult.xeroPaymentStatusMessage = "XERO: ERROR caught creating XERO payment";
+            xeroResult.xeroPaymentStatusMessage = `XERO (${locationPretty}): ERROR caught creating XERO payment`;
             return xeroResult;
         }
 
@@ -796,13 +798,13 @@ async function xeroApplyPayment(xeroInvoice, requestParams) {
 
     try {
         let xeroPayment = await xero.accountingApi.createPayment(xeroActiveTenantId, xeroBody);
-        console.log('XERO: Apply payment completed successfully');
+        console.log(`XERO (${locationPretty}): Apply payment completed successfully`);
 
         // Update Xero results object to remove unnecessary data
         xeroPayment = xeroPayment.response.body;
 
         xeroPayment.xeroPaymentStatus = true;
-        xeroPayment.xeroPaymentStatusMessage = "XERO: Payment applied SUCCESSFULLY";
+        xeroPayment.xeroPaymentStatusMessage = `XERO (${locationPretty}): Payment applied SUCCESSFULLY`;
 
         return xeroPayment;
     } catch (e) {
@@ -817,14 +819,19 @@ function parseXeroApiCall(xeroInvoice, acuityResult) {
 
     // Check if Xero invoice created - if so store response
     acuityResult.xeroInvoiceStatus = xeroInvoice.xeroInvoiceStatus;
-    acuityResult.xeroInvoiceStatusMessage = xeroInvoice.xeroInvoiceStatusMessage;
+    acuityResult.xeroInvoiceStatusMessage = xeroInvoice.xeroInvoiceStatusMessage;    
+
     if (acuityResult.xeroInvoiceStatus) {
         acuityResult.xeroInvoiceStatusString = xeroInvoice.Status;
         // Check for errors in invoice creation
         if (!xeroInvoice || !acuityResult.xeroInvoiceStatus || acuityResult.xeroInvoiceStatusString !== "OK") {
             // Is there a xero invoice validation errors array???
             console.log(`ERROR: Error in Xero Invoice creation.  Status: ${acuityResult.xeroInvoiceStatus} / ${acuityResult.xeroInvoiceStatusString}`);                        
-        }                                
+        }
+
+        // If no errors store Invoice ID to build Xero URL for front-end
+        acuityResult.xeroInvoiceId = xeroInvoice.Invoices[0].InvoiceID;
+        acuityResult.xeroInvoiceNumber = xeroInvoice.Invoices[0].InvoiceNumber;
         
         // Check if Xero payment applied - if so store response
         acuityResult.xeroPaymentStatus = xeroInvoice.xeroPaymentStatus;

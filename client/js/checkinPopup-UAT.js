@@ -116,9 +116,9 @@ $( async () => {
     
     // FUNCTION: addClassInfo()
     // 1) Take appointments as argument and populate the class name, time, available slots, and other info on the check-in page
-    function addClassInfo(upcoming_classes, selected_class_index, selectedAppointments) {
+    function addClassInfo(upcomingClasses, selected_class_index, selectedAppointments) {
         // Get class slots info and check if class is full    
-        var slotsAvail = upcoming_classes[selected_class_index].slotsAvailable;
+        var slotsAvail = upcomingClasses[selected_class_index].slotsAvailable;
         var classFull = false;
         if (slotsAvail < 1) {
             classFull = true;
@@ -133,7 +133,7 @@ $( async () => {
         var classDate = selectedAppointments[0].date;
         var classTime = selectedAppointments[0].time;
 
-        var classTitleHTML = `<h2><strong>Welcome to Dream Dance and Yoga!</strong></h2>`;
+        var classTitleHTML = `<h2><strong>Welcome to Dream Dance and Yoga @ ${selectedLocation}</strong></h2>`;
         $('#class_title_div').html(classTitleHTML);
         
         // OLD design with select another class button that closes window
@@ -142,7 +142,7 @@ $( async () => {
         var classInfoDetailsHTML = `<h3 class="inline-block"><strong>${className}</strong><br>${classDate} ${classTime}</h3>`;        
         $('#class_info_div').html(classInfoDetailsHTML);
 
-        // Store slots available info and populate slots_info HTML        
+        // Store slots available info and populate slots_info HTML
         if (classFull) {
             var slotsInfoHTML = `<h3><strong>CLASS FULL!</strong></h3>`;
             $('#slots_info_div').addClass('class-full');
@@ -154,14 +154,22 @@ $( async () => {
         return classFull;
     }
 
-    // FUNCTION: populateClasses(upcoming_classes)
+    // FUNCTION: populateClasses(upcomingClasses)
     // 1) Receive list of upcoming classes for the selected day
     // 2) Populate dropdown menu with list of upcoming classes
-    async function populateClasses(upcoming_classes) {
+    async function populateClasses(upcomingClasses, selectedLocation) {
+    // Filter upcoming classes array to only include classes from selected studio location
+    console.log(`POPULATE CLASSES POPUP: Upcoming classes:`, upcomingClasses);
+    console.log(`POPULATE CLASSES POPUP: Selected location:`, selectedLocation);
+
+    var action = 'select_another_class_dropdown';
+    var filteredClasses = await filterProductsClasses(action, selectedLocation, upcomingClasses, $revealedElements);
+    console.log(`POPULATE CLASSES POPUP: Filtered classes for ${selectedLocation}:`, filteredClasses);
+    
     // Populate select another class dropdown menu with upcoming classes
     var $dropdown = $('#select_another_class_dropdown');
     var func = "classes";
-    populateDropdown($dropdown, upcoming_classes, func);
+    populateDropdown($dropdown, filteredClasses, func);
     }
 
     // FUNCTION: prepareApptData()
@@ -488,6 +496,7 @@ $( async () => {
         var firstName = selectedClient[0].firstName;
         var lastName = selectedClient[0].lastName;
         var email = selectedClient[0].email;
+        var phone = selectedClient[0].phone;
         // var calendarID = upcoming_classes[selected_class_index].calendarID;
         var calendarID = selectedAppointments[0].calendarID;
         var params = {
@@ -496,6 +505,7 @@ $( async () => {
             firstName,
             lastName,
             email,
+            phone,
             certificate,
             calendarID,
             labelID
@@ -539,9 +549,9 @@ $( async () => {
     // 2) Build the datatable
     async function initializeAppointmentsTable(firstLoad, selected_class_index) {
         // Retrieve all appointments for selected class
-        
-        selectedAppointments = await retrieveAppointments(upcoming_classes, classDate, selected_class_index);
-        console.log('Appointments result: ', selectedAppointments);
+        selectedAppointments = await retrieveAppointments(upcomingClasses, classDate, selected_class_index);
+        console.log('INIT APPTS TABLE: Upcoming classes: ', upcomingClasses);
+        console.log('INIT APPTS TABLE: Appointments result: ', selectedAppointments);
         
         if (!selectedAppointments) {
             var message = { title: 'No Bookings!', body: `No bookings for this class!` };
@@ -562,7 +572,7 @@ $( async () => {
         }
 
         // Populate dropdown list of other classes
-        populateClasses(upcoming_classes);
+        populateClasses(upcomingClasses, selectedLocation);
 
         // Enable instructor check-in button
         $('#teacher_checkin_submit').val('Instructor Check-in');
@@ -582,7 +592,7 @@ $( async () => {
         }
 
         // Add class detail to webpage
-        classFull = addClassInfo(upcoming_classes, selected_class_index, selectedAppointments);
+        classFull = addClassInfo(upcomingClasses, selected_class_index, selectedAppointments);
 
         // Apply colors to the table rows as required
         initRowStyles();
@@ -594,9 +604,10 @@ $( async () => {
     // Pass vars from parent window
     var debug = window.opener.debug;
     var environment = window.opener.environment;
-    var upcoming_classes = window.opener.upcoming_classes;
+    var upcomingClasses = window.opener.upcomingClasses;
     var classDate = window.opener.classDate;
     var selected_class_index = window.opener.selected_class_index;
+    var selectedLocation = window.opener.selectedLocation;
 
     // Declare vars
     var selectedAppointments = [];
@@ -615,7 +626,7 @@ $( async () => {
 
         // Log passed vars
         console.log('Upcoming classes: ');
-        console.log(upcoming_classes);
+        console.log(upcomingClasses);
     }    
 
     // Gather data and build the table
@@ -1004,11 +1015,18 @@ $( async () => {
         if (debug) {
             writeMessage('debug', '<br><b>SELECT ANOTHER CLASS dropdown menu change...</b>');
         }
-
-        var selected_class = $('#select_another_class_dropdown').prop('selectedIndex');
         
         // Update global selected_class_index var with new class index
-        selected_class_index = selected_class - 1;
+        // Capture selected class name and date to find class index
+        var selectedClass = $('#select_another_class_dropdown').val();
+        var selectedClassName = selectedClass.split('-')[0].trim();
+        var selectedClassDate = selectedClass.split('-')[1].trim();
+        var selectedClassDateObj = new Date(selectedClassDate);
+        
+        // Search through array and match class name and time to retrieve selected class index to pass to child window
+        selected_class_index = upcomingClasses.findIndex(x => x.name === selectedClassName && new Date(x.time).getTime() === selectedClassDateObj.getTime());
+        console.log(`SELECT ANOTHER CLASS: Selected class: ${selectedClass}`);
+        console.log(`SELECT ANOTHER CLASS: Selected class index: ${selected_class_index}\n`, upcomingClasses[selected_class_index]);
         
         console.log('Reloading table with new class selection...!');
         initializeAppointmentsTable(false, selected_class_index);

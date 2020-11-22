@@ -267,9 +267,12 @@
 		var clients = [];
 		var locations = [];
 		var products = [];
+		var productsArrayContains = null;
 		var certificates = [];
-		var upcoming_classes = [];
+		var upcomingClasses = [];
 		var ddyInstructors = [];
+
+		console.log('*** DEBUG - STARTING DDY SCRIPT - PRODUCTS: ', products);
 
 		// Var to hold selected action from top cards
 		var action = '';
@@ -330,9 +333,6 @@
 			
 			// On any top level card click clean up and remove existing containers, buttons, etc
 			cleanUp($revealedElements);
-
-			// Reset products array to force reload of products / classes
-			products = [];
 			
 			// Reveal details div and append action type
 			var $detailsContainer = $('#details');
@@ -407,6 +407,9 @@
 				case 'checkin_table_top':
 					$detailsTop.html('<h2>....CLASS CHECK-IN TABLE..签到表....</h2><hr/>');
 					
+					// Retreive locations and reveal locations dropdown
+					locations = await retrieveLocations(locations, $revealedElements);
+									
 					// Reveal dropdown table and store action
 					$('#generate_checkin_table_div').data('action', e.currentTarget.id);
 					
@@ -414,9 +417,10 @@
 					var selectedDate = $('#checkin_datepicker').val();
 					if (selectedDate) { $('#checkin_datepicker').val(''); }
 					
-					// Make API call to retrieve today's classes
-					upcoming_classes = await retrieveUpcomingClasses(action, $revealedElements);
-					console.log('Upcoming Classes:', upcoming_classes);
+					// Reset location var to force user to select location
+					selectedLocation = '';
+					upcomingClasses = await retrieveUpcomingClasses(action, selectedLocation, upcomingClasses, $revealedElements);
+					console.log('Upcoming Classes:', upcomingClasses);
 					
 					// Show datepicker to select past class if required
 					$("#checkin_datepicker").datepicker({
@@ -587,10 +591,10 @@
 					case 'buy_package_top':
 					case 'buy_single_class_top':
 					case 'book_private_class_top':
-						locations = await retrieveLocations($revealedElements);
+					locations = await retrieveLocations(locations, $revealedElements);
 						break;
 					case 'view_student_package_top':
-						$revealedElements = revealElement($('#view_packages_submit'), $revealedElements);					
+						$revealedElements = revealElement($('#view_packages_submit'), $revealedElements);
 						break;
 				}
 			}
@@ -609,7 +613,6 @@
 		});
 
 		// EVENT: LOCATION DROPDOWN CHANGE
-		// $('#select_location_dropdown').on('change', async (e) => {
 		$('#select_location_dropdown').change(async (e) => {
 			e.preventDefault();
 			console.log(`Event captured: ${e.currentTarget.id}`);
@@ -622,25 +625,40 @@
 			selectedLocation = selectedLocation.split(',')[0].trim();
 			if (selectedLocation.includes('@')) {
 				selectedLocation = selectedLocation.split('@')[1].trim();
+			} else {
+				selectedLocation = 'Tai Seng';
 			}
 			console.log(`Selected location: ${selectedLocation}`);
 
-			// Populate products / classes array if not populated already
-			products = await retrieveProductsClasses(action, products);
+			// Take appropriate action based on user action (Buy package, check-in table, etc)
+			switch (action) {
+				case 'checkin_table_top':
+				case 'pastDate':
+					// Populate upcoming classes dropdown
+					upcomingClasses = await retrieveUpcomingClasses(action, selectedLocation, upcomingClasses, $revealedElements);
+					break;
+				default:
+					// Populate products / classes array if not populated already
+					products = await retrieveProductsClasses(action, products, productsArrayContains);
 
-			// If successful, filter for selected action and location and populate dropdown
-			if (products) {
-				var filteredProducts = await filterProductsClasses(action, selectedLocation, products, $revealedElements);
-				var $dropdown = $('#select_package_class_dropdown');
-				var func = "products";
-				populateDropdown($dropdown, filteredProducts, func);
-			} else {
-				console.error('ERROR: Products / classes API call failed!');
+					// Update value of contents of products array
+					productsArrayContains = 'products';	
+					if (action === 'buy_class_top') { productsArrayContains = 'classes'; }
+
+					// If successful, filter for selected action and location and populate dropdown
+					if (products) {
+						var filteredProducts = await filterProductsClasses(action, selectedLocation, products, $revealedElements);
+						var $dropdown = $('#select_package_class_dropdown');
+						var func = "products";
+						populateDropdown($dropdown, filteredProducts, func);
+					} else {
+						console.error('ERROR: Products / classes API call failed!');
+					}
+
+					// Update payment confirmation details
+					var event = e.currentTarget.id;
+					confirmPaymentDetails(event, action, products, $revealedElements, $submitButtonElement, submitButtonText);
 			}
-
-			// Update payment confirmation details
-			var event = e.currentTarget.id;
-			confirmPaymentDetails(event, action, products, $revealedElements, $submitButtonElement, submitButtonText);
 		});
 
 		// EVENT: BUY PACKAGE SUBMIT
@@ -1117,9 +1135,9 @@
 			console.log('Selected class date is: ', classDate);
 			
 			// Make API call to retrieve selected day's classes and populate dropdown
-			var action = 'pastDate';
-			upcoming_classes = await retrieveUpcomingClasses(action, $revealedElements);
-			console.log('Upcoming Classes:', upcoming_classes);		
+			action = 'pastDate';
+			upcomingClasses = await retrieveUpcomingClasses(action, selectedLocation, upcomingClasses, $revealedElements);
+			console.log('Upcoming Classes:', upcomingClasses);
 		});
 
 		// EVENT: GENERATE CHECK-IN TABLE button click
@@ -1135,18 +1153,26 @@
 			}
 
 			try {
-				// Retrieve all appointments for selected class
-				// Capture selected class index and class date from parent page to pass to child window
+				// Capture selected class name and date to find class index				
+				var selectedClass = $('#upcoming_classes_dropdown').val();
+				var selectedClassName = selectedClass.split('-')[0].trim();
+				var selectedClassDate = selectedClass.split('-')[1].trim();
+				var selectedClassDateObj = new Date(selectedClassDate);
+				
+				// Search through array and match class name and time to retrieve selected class index to pass to child window
+				var selected_class_index = upcomingClasses.findIndex(x => x.name === selectedClassName && new Date(x.time).getTime() === selectedClassDateObj.getTime());
+				console.log(`GENERATE CHECK-IN TABLE: Selected class: ${selectedClass}`);
+				console.log(`GENERATE CHECK-IN TABLE: Selected class index: ${selected_class_index}\n`, upcomingClasses[selected_class_index]);
+				
+				// Capture class date from datepicker to pass to child window
 				var classDate = $('#checkin_datepicker').datepicker('getDate');
-				
-				var selected_class = $('#upcoming_classes_dropdown').prop('selectedIndex');
-				var selected_class_index = selected_class - 1;
-				
-				var selectedAppointments = await retrieveAppointments(upcoming_classes, classDate, selected_class_index);
+
+				// Retrieve all appointments for selected class
+				var selectedAppointments = await retrieveAppointments(upcomingClasses, classDate, selected_class_index);
 				console.log('Appointments result: ', selectedAppointments);
 
 				// IF successful and students are scheduled, open a new window to build the student check-in table
-				if (selectedAppointments !== 'None') {				
+				if (selectedAppointments !== 'None') {
 					// Open new window
 					if (environment === 'UAT') {
 						var winName = 'checkin-window-uat';
@@ -1165,13 +1191,14 @@
 					win = window.open(winName, '_blank', 'fullscreen=yes, width=828, height=1200');
 
 					if (win) {
-						win.focus();					
+						win.focus();
 						// Pass local vars to child window
 						window.debug = debug;
 						window.environment = environment;
-						window.upcoming_classes = upcoming_classes;
+						window.upcomingClasses = upcomingClasses;
 						window.classDate = classDate;
 						window.selected_class_index = selected_class_index;
+						window.selectedLocation = selectedLocation;
 						
 						// Clear date value from label - causing bug when selecting new class after closing window
 						// $('#checkin_datepicker').val('');

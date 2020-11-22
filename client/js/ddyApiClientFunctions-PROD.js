@@ -1,6 +1,6 @@
 // Setup script
 const environment = 'PROD';
-const version = '2.1.2';
+const version = '2.1.5';
 var ddyToken = null;
 
 // Set API host
@@ -10,7 +10,11 @@ var apiHostUAT = 'https://api.dreamdanceyoga.com:3444/api/ddy'; // AWS UAT
 var apiHostPROD = 'https://api.dreamdanceyoga.com:3443/api/ddy'; // AWS PROD
 
 // Set DDY bank details for confirmation messages
-var ddyTSBankDetails = 'SCB 0103062440 / PayNow UEN 53381661X';
+var ddyTSBankDetails = 'Standard Chartered 0103062440 / PayNow UEN 53381661X';
+var ddyJEBankDetails = 'DBS 0720281675 / PayNow UEN 202027826G';
+var ddyCashPaymentXferMsg = `<hr><span class="confirm-final"><strong>....** NOTE: If cash payment, please transfer to bank ASAP **..** 注意：如果以现金付款，请尽快转帐至银行 **....</strong></span><br>
+                            <strong>DDY Tai Seng Bank:</strong> ${ddyTSBankDetails}<br>
+                            <strong>DDY Jurong East Bank:</strong> ${ddyJEBankDetails}`
 
 // Debug mode
 var debug = false;
@@ -464,7 +468,7 @@ async function initApiCall(func, activity, params) {
 
     // Capture selected location from dropdown if it exists and parse down to location name to send to server
     // REST controller will use location data to determine which Xero tenant to activate among other things
-    selectedLocation = $('#select_location_dropdown').val();
+    var selectedLocation = $('#select_location_dropdown').val();
     if (debug) {
         console.log(`DEBUG: TYPE OF selectedLocation: ${typeof selectedLocation}`);
     }
@@ -629,7 +633,7 @@ function populateDropdown($drop, data, func) {
             }));
             break;		
         case 'certificates':
-            $.each(data, (i, val) => {				
+            $.each(data, (i, val) => {
                     $drop.append($('<option>').text(`${data[i].name} Code: ${data[i].certificate}`).attr('value', data[i].certificate));
             });
             break;
@@ -642,7 +646,7 @@ function populateDropdown($drop, data, func) {
             });            
             break;
         case 'locations':
-            $.each(data, (i, val) => {				
+            $.each(data, (i, val) => {
                     $drop.append($('<option>').text(data[i]).attr('value', data[i]));
             });
             break;
@@ -660,66 +664,83 @@ function populateDropdown($drop, data, func) {
 // 1. Retrieve all Acuity calendars and filter for Location
 // 2. Create array of unique location values
 // 3. Populate Studio Location dropdown menu
-async function retrieveLocations($revealedElements) {
-    // Capture all calendars from Acuity
-    var funcType = 'calendars_get';
-    try {			
-        var ddyCalendars = await initApiCall(funcType);
-        console.log(`${funcType} result:`, ddyCalendars);
-    }
-    catch(e) {
-        console.error(`ERROR: Error detected in initApiCall: ${funcType}`);
-        console.error(e);
-        var message = { title: 'ERROR', body: `An error occured with ${funcType}, please check and try again.<hr><strong>Error Message:</strong> ${e.responseText}` };
-        writeMessage('modal', message);
-        return false;
-    }
-
-    // Capture unique location values to array for dropdown
-    var ddyLocations = [];
-    $.each(ddyCalendars, (i, cal) => {
-        ddyLocations.push(cal.location)
-    });
-    console.log(`DDY Locations (all):`, ddyLocations);
-    
-    // Filter for unique locations only and update text for display
-    var ddyLocationsUnique = ddyLocations.filter((val, index, self) => self.indexOf(val) === index );
-    $.each(ddyLocationsUnique, (i, loc) => {
-        if (ddyLocationsUnique[i].includes('@')) {
-            ddyLocationsUnique[i] = ddyLocationsUnique[i].replace('Dream Dance and Yoga', 'DDY');
+async function retrieveLocations(locations, $revealedElements) {
+    // Capture all calendars from Acuity if locations not populated already
+    var ddyLocations = locations;
+    if (ddyLocations.length === 0) {
+        var funcType = 'calendars_get';
+        try {
+            var ddyCalendars = await initApiCall(funcType);
+            console.log(`${funcType} result:`, ddyCalendars);
         }
-    });
-    // Sort array by location in order
-    ddyLocationsUnique.sort();
+        catch(e) {
+            console.error(`ERROR: Error detected in initApiCall: ${funcType}`);
+            console.error(e);
+            var message = { title: 'ERROR', body: `An error occured with ${funcType}, please check and try again.<hr><strong>Error Message:</strong> ${e.responseText}` };
+            writeMessage('modal', message);
+            return false;
+        }
+
+        // Capture unique location values to array for dropdown
+        var ddyLocationsALL = [];
+        $.each(ddyCalendars, (i, cal) => {
+            ddyLocationsALL.push(cal.location)
+        });
+        console.log(`DDY Locations (all):`, ddyLocationsALL);
+        
+        // Filter for unique locations only and update text for display
+        ddyLocations = ddyLocationsALL.filter((val, index, self) => self.indexOf(val) === index );
+        $.each(ddyLocations, (i, loc) => {
+            if (ddyLocations[i].includes('@')) {
+                ddyLocations[i] = ddyLocations[i].replace('Dream Dance and Yoga', 'DDY');
+            }
+        });
+        // Sort array by location in order
+        ddyLocations.sort();
+        
+        // Find index of main studio in Tai Seng and place at top of array
+        var ddyIndex = ddyLocations.findIndex(x => x.includes('Tai Seng'));
+        var ddyVal = ddyLocations[ddyIndex];
+        ddyLocations.splice(ddyIndex, 1);
+        ddyLocations.unshift(ddyVal);
+    } else {
+        console.log('RETRIEVE LOCATIONS: DDY locations array already populated');
+    }
     
-    // Find index of main studio in Tai Seng and place at top of array
-    var ddyIndex = ddyLocationsUnique.findIndex(x => x.includes('Tai Seng'));
-    var ddyVal = ddyLocationsUnique[ddyIndex];
-    ddyLocationsUnique.splice(ddyIndex, 1);
-    ddyLocationsUnique.unshift(ddyVal);
-    
-    console.log(`DDY Locations (unique):`, ddyLocationsUnique);
+    console.log(`DDY Locations (unique):`, ddyLocations);
 
     // Populate Studio Locations dropdown
     var $dropdown = $('#select_location_dropdown');
     var func = "locations";
-    populateDropdown($dropdown, ddyLocationsUnique, func);
+    populateDropdown($dropdown, ddyLocations, func);
 
     // Reveal locations dropdown
     $revealedElements = revealElement($('#select_location_div'), $revealedElements);
+
+    return ddyLocations;
 }
 
-// FUNCTION: retrieveproductsClasses()
+// FUNCTION: retrieveProductsClasses()
 // 1. Retrieve products or appointments based on action and return to calling function
-async function retrieveProductsClasses(action, products) {
+async function retrieveProductsClasses(action, products, productsArrayContains) {
     // Capture action from top page
     switch (action) {
         case 'buy_single_class_top':
         case 'book_private_class_top':
         case 'buy_class_top':
+            // Check the contents of products array and clear array if necessary to re-populate with products or classes
+            if (productsArrayContains === 'products') {
+                console.log('RETRIVE PRODUCTS/CLASSES: Product array contains PRODUCTS, resetting...');
+                products = [];
+            }
             var funcType = "appointment-types_get";
             break;
         case 'buy_package_top':
+            // Check the contents of products array and clear array if necessary to re-populate with products or classes
+            if (productsArrayContains === 'classes') {
+                console.log('RETRIVE PRODUCTS/CLASSES: Product array contains CLASSES, resetting...');
+                products = [];
+            }
             var funcType = "products_get";
             break;
     }
@@ -751,64 +772,80 @@ async function retrieveProductsClasses(action, products) {
 }
 
 // FUNCTION: filterProductsClasses()
-// 1. Receive products or appointments array from calling function
-// 2. Filter based on selected action (i.e. Packages/Memberships, Group Classes, Single Classes, etc)
+// 1. Receive array from calling function containing products, appointments, classes, etc
+// 2. Filter based on selected action if necessary (i.e. Packages/Memberships, Group Classes, Single Classes, etc)
 // 3. Filter based on selected location
-// 4. Reveal the next div in the user flow based on action
+// 4. Reveal the next div in the user flow based on action (if required)
 async function filterProductsClasses(action, location, products, $revealedElements) {
-    // Filter products array based on selected action
-    switch (action) {            
+    // Filter array based on selected action
+    var filteredProducts = products;
+    switch (action) {
         case 'buy_single_class_top':
             // Filter classes result for SINGLE class types
-            products = $(products).filter((i) => {
-                return (products[i].type === 'class');
+            filteredProducts = $(filteredProducts).filter((i) => {
+                return (filteredProducts[i].type === 'class');
             });
-            console.log('Result updated for single classes:', products);
+            console.log('Result updated for single classes:', filteredProducts);
             break;
         case 'book_private_class_top':
             // Filter classes result for SERVICE class types (by selecting type "service")    
-            products = $(products).filter((i) => {
-                return (products[i].type === 'service');
+            filteredProducts = $(filteredProducts).filter((i) => {
+                return (filteredProducts[i].type === 'service');
             });
-            console.log('Result updated for private classes:', products);
+            console.log('Result updated for private classes:', filteredProducts);
             break;
         case 'buy_class_top':                
-            // Filter classes result for SERIES class types and for series associated with a calender ID ONLY
+            // Filter classes result for SERIES class types and for series associated with a calendar ID ONLY
             // This should be a way to return only ACTIVE class series, and discard anything inactive or from the past
-            // Have not validated this logic with Acuity
-            products = $(products).filter((i) => {
-                return (products[i].type === 'series' && products[i].calendarIDs.length > 0);
+            // Have not validated this logic with Acuity (but it seems to work)
+            filteredProducts = $(filteredProducts).filter((i) => {
+                return (filteredProducts[i].type === 'series' && products[i].calendarIDs.length > 0);
             });
-            console.log('Result updated for only ACTIVE class series:', products);
+            console.log('Result updated for only ACTIVE class series:', filteredProducts);
             break;
     }
 
-    // Filter products array for selected location
-    if (location === 'Dream Dance and Yoga') {
-        products = $(products).filter((i) => {
-            return (!products[i].name.includes('@'));
+    // Filter array for selected location
+    if (location === 'Tai Seng') {
+        filteredProducts = $(filteredProducts).filter((i) => {
+            // return (!products[i].name.includes('@') || products[i].name.includes(location));
+            return (!filteredProducts[i].name.includes('@'));
         });
     } else {
-        products = $(products).filter((i) => {
-            return (products[i].name.includes(location));
+        filteredProducts = $(filteredProducts).filter((i) => {
+            return (filteredProducts[i].name.includes(location));
         });
     }
-    console.log(`Products / classes array updated for ${location}:`, products);
+    console.log(`Filtered array updated for ${location}:`, filteredProducts);
 
     // Reveal appropriate div based on action selected
+    switch (action) {
+        case 'view_student_package_top':
+            $revealedElements = revealElement($('#view_packages_submit'), $revealedElements);
+            break;
+        case 'checkin_table_top':
+        case 'select_another_class_dropdown':
+        case 'pastDate':
+            // do nothing
+            break;
+        default:
+            $revealedElements = revealElement($('#select_package_class_div'), $revealedElements);
+    }
+
+    /*
     if (action === 'view_student_package_top') {
         $revealedElements = revealElement($('#view_packages_submit'), $revealedElements);
     } else {
         $revealedElements = revealElement($('#select_package_class_div'), $revealedElements);
-    }
+    } */
 
-return products;
+return filteredProducts;
 }
 
 // FUNCTION: retrieveUpcomingClasses()
 // 1. Retrieve the list of classes available either for today or the selected date
 // 2. Populate the appropriate dropdown with the list of classes
-async function retrieveUpcomingClasses(action, $revealedElements) {
+async function retrieveUpcomingClasses(action, selectedLocation, classes, $revealedElements) {
     switch (action) {
         case 'checkin_table_top':
             var funcType = 'availability--classes_get';
@@ -820,6 +857,8 @@ async function retrieveUpcomingClasses(action, $revealedElements) {
             var dropdownLabel = "....Today's Classes: ..今日课程：....";
             break;
         case 'pastDate':
+            // User selected another date for check-in table - clear upcoming classes array to force reload
+            classes = [];
             var funcType = 'availability--classes_get';
             var activity = 'getClassesByDate';            
             // Grab selected date from datepicker
@@ -829,32 +868,43 @@ async function retrieveUpcomingClasses(action, $revealedElements) {
             var dropdownLabel = `....Classes for ${datePretty}: .. 选择课程${datePretty}：....`;
             break;
     }    
-    console.log('Selected class date is: ', datePretty);
+    console.log('RETRIEVE UPCOMING CLASSES: Selected class date: ', datePretty);
+    console.log('RETRIEVE UPCOMING CLASSES: Selected location: ', selectedLocation);
+    console.log('RETRIEVE UPCOMING CLASSES: Upcoming classes: ', classes);
 
-    // API call to retrieve today's classes
-    try {
-        var result = await initApiCall(funcType, activity, classDate);
-        console.log(`${funcType} result:`, result);
-        
-        if (result === "No records returned") {
-            var message = { title: 'ERROR', body: `No classes scheduled on ${datePretty}.  Please try another date!` };
-            writeMessage('modal', message);
-            // Reveal dropdown and enable button to generate table
-            var $element = $('#generate_checkin_table_div');
-            $revealedElements = revealElement($element, $revealedElements);
-        } else {
-            // Classes found - populate dropdown table with classes and update label text
-            $('#upcoming_classes_dropdown_label').text(dropdownLabel);
-            var $dropdown = $('#upcoming_classes_dropdown');
-            var func = "classes";
-            populateDropdown($dropdown, result, func);            
+    // Retrieve today's classes if not populated already, as long as a location is selected    
+    var result = classes;
+    if (classes.length === 0) {
+        if (selectedLocation) {
+            try {
+                result = await initApiCall(funcType, activity, classDate);
+                console.log(`${funcType} result:`, result);
+            }
+            catch(e) {
+                console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
+                console.log(e);
+                var message = { title: 'ERROR', body: `Error while retrieving upcoming classes.  Please try again!<hr><strong>Error Message:</strong> ${e.responseText}` };
+                writeMessage('modal', message);
+            }
         }
     }
-    catch(e) {
-        console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
-        console.log(e);        
-        var message = { title: 'ERROR', body: `Error while retrieving upcoming classes.  Please try again!<hr><strong>Error Message:</strong> ${e.responseText}` };
+
+    // Populate upcoming classes dropdown or show error message if no classes
+    if (result === "No records returned") {
+        var message = { title: 'ERROR', body: `No classes scheduled on ${datePretty}.  Please try another date!` };
         writeMessage('modal', message);
+        // Reveal dropdown and enable button to generate table
+        var $element = $('#generate_checkin_table_div');
+        $revealedElements = revealElement($element, $revealedElements);
+    } else {
+        // Classes found - filter array for selected location
+        var filteredClasses = await filterProductsClasses(action, selectedLocation, result, $revealedElements);
+        
+        // Populate dropdown table with classes and update label text
+        $('#upcoming_classes_dropdown_label').text(dropdownLabel);
+        var $dropdown = $('#upcoming_classes_dropdown');
+        var func = "classes";
+        populateDropdown($dropdown, filteredClasses, func);
     }
     
     // Reveal dropdown and enable button to generate table
@@ -1717,6 +1767,16 @@ async function buyPackage(selectedProduct, selectedClient) {
                 commissionResultString = `Sold by ${soldBy}`;
             }
 
+            // Capture Xero Details
+            var xeroInvoiceID = null;
+            var xeroInvoiceNumber = null;
+            var xeroInvoiceURL = null;
+            if (typeof result.xeroInvoiceId !== 'undefined' && typeof result.xeroInvoiceNumber !== 'undefined') {
+                xeroInvoiceID = result.xeroInvoiceId;
+                xeroInvoiceNumber = result.xeroInvoiceNumber;
+                xeroInvoiceURL = `https://go.xero.com/AccountsReceivable/View.aspx?InvoiceID=${xeroInvoiceID}`;
+            }
+
             var xeroInvoiceResult = result.xeroInvoiceStatus;
             var xeroInvoiceStatusMessage = result.xeroInvoiceStatusMessage;
             var xeroInvoiceStatusString = result.xeroInvoiceStatusString;
@@ -1738,11 +1798,10 @@ async function buyPackage(selectedProduct, selectedClient) {
                         <strong>....Payment Method:..支付方式：....</strong> ${paymentMethod}<br>
                         <strong>....Commission:..售卡人：....</strong> ${commissionResultString}<hr>
                         <strong>Xero Results</strong><br>
-                        ${xeroInvoiceStatusMessage}<br>
-                        ${xeroPaymentStatusMessage}<hr>
-                        <strong>....Inform student to use email address to book classes..通知学生使用邮箱预订课程....<br>
-                        ....** NOTE: If cash payment, please transfer to bank ASAP **..** 注意：如果以现金付款，请尽快转帐至银行 **....</strong><br>
-                        <strong>DDY Bank Account:</strong> ${ddyTSBankDetails}<br>`
+                        <span class="capitalize">${xeroInvoiceStatusMessage}</span> (Invoice ID: <a href=${xeroInvoiceURL} target="_blank">${xeroInvoiceNumber}</a>)<br>
+                        <span class="capitalize">${xeroPaymentStatusMessage}</span><hr>
+                        <strong>....Inform student to use email address to book classes..通知学生使用邮箱预订课程....</strong><br>
+                        ${ddyCashPaymentXferMsg}`
             };
             writeMessage('modal', message);
             return result;
@@ -1826,7 +1885,16 @@ async function buySeries(selectedClass, selectedClient) {
             }
             
             // Store results of acuity and Xero API calls
-            result = bookClass[classTimes.length-1];
+            var result = bookClass[classTimes.length-1];
+            var xeroInvoiceID = null;
+            var xeroInvoiceNumber = null;
+            var xeroInvoiceURL = null;
+            if (typeof result.xeroInvoiceId !== 'undefined' && typeof result.xeroInvoiceNumber !== 'undefined') {
+                var xeroInvoiceId = result.xeroInvoiceId;
+                var xeroInvoiceNumber = result.xeroInvoiceNumber;
+                xeroInvoiceURL = `https://go.xero.com/AccountsReceivable/View.aspx?InvoiceID=${xeroInvoiceID}`;
+            }
+            
             var xeroInvoiceResult = result.xeroInvoiceStatus;
             var xeroInvoiceStatusMessage = result.xeroInvoiceStatusMessage;
             var xeroInvoiceStatusString = result.xeroInvoiceStatusString;
@@ -1855,10 +1923,9 @@ async function buySeries(selectedClass, selectedClient) {
                         <strong>....# of Classes:..几节课：....</strong> ${bookClass.length}<br>
                         <strong>....Payment Method:..支付方式：....</strong> ${paymentMethod}<hr>
                         <strong>Xero Results</strong><br>
-                        ${xeroInvoiceStatusMessage}<br>
-                        ${xeroPaymentStatusMessage}<hr>
-                        <strong>....** NOTE: If cash payment, please transfer to bank ASAP **..** 注意：如果以现金付款，请尽快转帐至银行 **....</strong><br>
-                        <strong>DDY Bank Account:</strong> ${ddyTSBankDetails}<br>`
+                        <span class="capitalize">${xeroInvoiceStatusMessage}</span> (Invoice ID: <a href=${xeroInvoiceURL} "target=_blank">${xeroInvoiceNumber}</a>)<br>
+                        <span class="capitalize">${xeroPaymentStatusMessage}</span><hr>
+                        ${ddyCashPaymentXferMsg}`
             };				
             writeMessage('modal', message);
             return bookClass;
@@ -1913,7 +1980,7 @@ async function retrieveCertificates(clients) {
 // FUNCTION: retrieveAppointments()
 // 1. Receive the list of classes scheduled on the day selected
 // 2. Retrieve all appointments for the class selected in the dropdown menu
-async function retrieveAppointments(upcoming_classes, classDate, selected_class_index) {
+async function retrieveAppointments(upcomingClasses, classDate, selected_class_index) {
     // If datepicker date is selected store date, otherwise get classes for today		
     // var classDate = $('#checkin_datepicker').datepicker('getDate');    
     if (!classDate) { classDate = new Date() }
@@ -1922,7 +1989,7 @@ async function retrieveAppointments(upcoming_classes, classDate, selected_class_
     // API call to get list of students (for next / selected class)
     try {
         // Retrieve selected class and send to API call function        
-        var classId = upcoming_classes[selected_class_index].appointmentTypeID;
+        var classId = upcomingClasses[selected_class_index].appointmentTypeID;
 
         // Make API call
         var funcType = 'appointments_get';
@@ -1932,10 +1999,10 @@ async function retrieveAppointments(upcoming_classes, classDate, selected_class_
         console.log('appointmentsResult is:', appointmentsResult);
         
         // Filter appointmentsResult for only the selected class
-        var selectedClassDatetime = upcoming_classes[selected_class_index].time;			
+        var selectedClassDatetime = upcomingClasses[selected_class_index].time;			
         if (debug) {
             console.log('SelectedClassDatetime is:', selectedClassDatetime);
-            console.log('Upcoming classes datetime:', upcoming_classes[selected_class_index].time);
+            console.log('Upcoming classes datetime:', upcomingClasses[selected_class_index].time);
         }
         var selectedAppointments = $(appointmentsResult).filter((i) => {
             return appointmentsResult[i].datetime === selectedClassDatetime;
