@@ -1,0 +1,251 @@
+// HEADER
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-120611406-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-120611406-1');
+</script>
+
+<!-- Global site tag (gtag.js) - Google Ads: 607178515 -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-607178515"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'AW-607178515');
+</script>
+
+<script>
+  document.addEventListener('click',function(e){
+  if(e.target.textContent.indexOf('BOOK A TRIAL CLASS')>-1){
+      gtag('event', 'conversion', {'send_to': 'AW-607178515/vnxFCPr5mNsBEJOew6EC'});
+  }
+  })
+</script>
+
+<!-- Facebook Pixel Code -->
+<script>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '567258290456683');
+  fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=567258290456683&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Facebook Pixel Code -->
+
+<!-- Facebook like button script -->
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s); js.id = id;
+  js.src = 'https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v3.0';
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+<!-- Multilingualizer -->
+<!-- Copyright Matiogi Ltd 2016, author Dave Hilditch -->
+<!-- License: GPL 3 -->
+
+<!-- script type="text/javascript" src="//www.multilingualizer.com/mlcode/jquery-3.2.1.min.js"></script -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script>var mllanguages = []; mllanguages["English"] = 0; mllanguages["Chinese"] = 1; 	
+</script>
+<script type="text/javascript" src="//www.multilingualizer.com/mlcode/multilingualizer4.21.js"></script>
+<script>
+var mltextblockboundary = '....';
+var forcenonburger = true;
+// Perf option: when this next setting is 0, the Multilingualizer will watch the HTML on page to check for changes and translate them. With some themes, e.g. with parallax, this can slow down scrolling. In those cases, you can set this to 500 and instead of observing changes to the doc, the multilingualizer will run every 500 milliseconds.
+var recheckfrequency = 0; 
+</script>
+<style>
+  #multilingualizerloadingscreen {
+    position:fixed;
+    width:100%;
+      height:100%;
+    background-color:white;
+    background-repeat:no-repeat;
+    background-position:center, bottom right;
+    z-index:99999999;
+	top:0px;
+	left:0px;
+  }
+  #multilingualizerloadingscreen.loaded {
+    display:none;
+  }	
+</style>
+<!-- MULTILINGUALIZER END -->
+
+<!-- REUSABLE BLOCKS INIT START -->
+<style>
+  /* Non-rendered Newsletter Blocks are hidden by default. Fix.*/
+  .vp-reusable-content .newsletter-block:not(.rendered) {
+  opacity:1 !important;
+  }
+</style>
+
+<script>
+function reusableBlock(fetchUrl) {
+
+  // in case there are several on page, get the last / latest div.vp-reusable-content as we want to only work on that
+  var thisReusableBlock = $(".vp-reusable-content:last");  
+   
+   
+  //JS-fetch location: http/https + domain + page url + SQS json format
+  var fetchUrl = window.location.protocol + "//" + window.location.hostname + "/" + fetchUrl + "?format=json-pretty";
+   
+    
+    fetch(fetchUrl, {credentials: 'include'})
+    .then(response => {
+    return response.json();
+  })
+    .then(data => {
+      thisReusableBlock.html(data.mainContent);
+      thisReusableBlock.find('.sqs-layout').removeClass('sqs-layout');
+      
+      // loop images and set data-src as src
+      thisReusableBlock.find( ".image-block" ).each(function(i) {
+        var reusableImg = $( this ).find( "img" );
+        reusableImg.attr("src", reusableImg.attr("data-src"));
+    });
+
+    //remove double paddings
+    thisReusableBlock.closest(".sqs-block.code-block")
+        .addClass("vp-reusable-parent-codeblock")
+        .css("padding", "0px");
+    
+  })
+    .catch(err => {
+    // Fetch Erorr
+      console.log("REUSABLE BLOCKS ERROR: Error fetching content. Check fetchUrl. Might also be caused by an older browser. Please update to new Chrome, Firefox, Safari or Microsoft Edge");
+  });
+}
+ </script>
+ <!-- REUSABLE BLOCKS INIT END -->
+
+//  FOOTER
+
+<div class="languagewrapper">
+  <div class="language"><a href="#" onclick="languageClicked(0);">English</a></div>
+  <div class="language"><a href="#" onclick="languageClicked(1);">中文</a></div>
+</div>
+<style>
+	.languagewrapper {
+	  position:fixed;
+	  top:0;
+      right:40px;
+	  z-index:9999999999;
+	  /*background-color: gray;*/
+      background-color: rgba(128,128,128,0.75);
+	  padding: 2px;      
+	}
+	.languagewrapper .language {
+	  float:left;
+	}
+  .languagewrapper .language {
+    display:block;
+  }
+  .languagewrapper .language.active {
+    display:block;
+  }
+  .languagewrapper {
+   font-family:Futura-PT;
+   font-size:15px;
+   text-align: right;
+  }	
+  .languagewrapper .language.active a {
+	  color: maroon;
+	  font-weight:bold;      
+	}
+	.languagewrapper .language a {
+	  padding:2px 4px;      
+	  text-decoration:none;
+	  color:white;          
+	}
+  .languagewrapper .language img {
+    height: 20px;
+    width: 25px;
+  }
+</style>
+
+<!-- TEST FLAGS
+<ul class="languagepicker roundborders">
+	<a href="#" onclick="languageClicked(0);"><li><img src="http://i64.tinypic.com/fd60km.png"/>English</li></a>	
+  	<a href="#" onclick="languageClicked(1);"><li><img src="http://oi50.tinypic.com/9a6cch.jpg"/>中文</li></a>    
+</ul>
+<style>
+.languagepicker {
+	background-color: maroon;    
+	display: inline-block;
+	padding: 0;
+	height: 40px;    
+	overflow: hidden;
+	transition: all .3s ease;
+	margin: 0 15px 10px 0;
+	vertical-align: top;
+	float: left;
+    position: fixed;
+  	top:0;
+    left:0;
+	z-index:999999;
+}
+
+.languagepicker:hover {
+	/* don't forget the 1px border */
+	height: 81px;
+}
+
+.languagepicker a{
+	color: white;
+	text-decoration: none;
+}
+
+.languagepicker li {
+	display: block;
+	padding: 0px 10px;
+	line-height: 40px;
+	border-top: 1px solid #EEE;
+}
+
+.languagepicker li:hover{
+	background-color: #EEE;
+}
+
+.languagepicker a:first-child li {
+	border: none;
+	background: maroon !important;
+}
+
+.languagepicker li img {
+	margin-right: 5px;
+    height: 20px;
+    width: 25px;
+}
+
+.roundborders {
+	border-radius: 5px;
+}
+
+.large:hover {
+	/* 
+	don't forget the 1px border!
+	The first language is 40px heigh, 
+	the others are 41px
+	*/
+	height: 245px;
+}
+</style>
+<!-- END TEST -->

@@ -1,6 +1,6 @@
 // Setup script
-const environment = 'UAT';
-const version = '2.1.5';
+const environment = 'PROD';
+const version = '2.2.8';
 var ddyToken = null;
 
 // Set API host
@@ -10,11 +10,13 @@ var apiHostUAT = 'https://api.dreamdanceyoga.com:3444/api/ddy'; // AWS UAT
 var apiHostPROD = 'https://api.dreamdanceyoga.com:3443/api/ddy'; // AWS PROD
 
 // Set DDY bank details for confirmation messages
-var ddyTSBankDetails = 'Standard Chartered 0103062440 / PayNow UEN 53381661X';
+var ddyTSBankDetails = 'Standard Chartered 0103356754 / PayNow UEN 202020660H';
 var ddyJEBankDetails = 'DBS 0720281675 / PayNow UEN 202027826G';
+var ddyTGBankDetails = 'UOB 4283759347 (Sun Dandan) / PayNow Phone: 9616-7189';
 var ddyCashPaymentXferMsg = `<hr><span class="confirm-final"><strong>....** NOTE: If cash payment, please transfer to bank ASAP **..** 注意：如果以现金付款，请尽快转帐至银行 **....</strong></span><br>
-                            <strong>DDY Tai Seng Bank:</strong> ${ddyTSBankDetails}<br>
-                            <strong>DDY Jurong East Bank:</strong> ${ddyJEBankDetails}`
+                            <strong>DDY Tai Seng / Peace Centre Bank:</strong> ${ddyTSBankDetails}<br>
+                            <strong>DDY Jurong East / Commonwealth Bank:</strong> ${ddyJEBankDetails}<br>
+                            <strong>DDY Tanjong Pagar Bank:</strong> ${ddyTGBankDetails}`
 
 // Debug mode
 var debug = false;
@@ -22,16 +24,14 @@ if (environment === 'UAT') {
     debug = true;
 }
 
-async function initApiCall(func, activity, params) {
+async function initApiCall(func, activity, reqParams) {
     if (debug) {
         writeMessage("debug", `<br>Starting initApiCall: ${func} - ${activity}`);        
-        if (params) {
-            console.log('InitApiCall params:');
-            console.log(params);
-        }
+        if (reqParams) { console.log('INIT API CALL: Requested params from function:', reqParams); }
     }
 
     // Initialize parameters for API call
+    var params = {};
     switch (func) {
         case 'clients_search':
             switch (activity) {
@@ -39,7 +39,7 @@ async function initApiCall(func, activity, params) {
                     var searchTerm = '';
                     break;
                 case 'retrieveClientInfo':
-                    var searchTerm = params.searchTerm;                    
+                    var searchTerm = reqParams.searchTerm;                    
                     break;
                 default:            
                     var searchTerm = $('#search_student_form').val();
@@ -47,19 +47,19 @@ async function initApiCall(func, activity, params) {
                     break;
             }
             // Set search parameters
-            var params = {
+            params = {
                 search: searchTerm
             };
             break;
         case 'clients_add':
             switch (activity) {
                 case 'addStudent':
-                    var firstName = params.firstName;
-                    var lastName = params.lastName;
-                    var email = params.email;
-                    var phone = params.phone;
-                    var notes = params.notes;
-                    var params = {
+                    var firstName = reqParams.firstName;
+                    var lastName = reqParams.lastName;
+                    var email = reqParams.email;
+                    var phone = reqParams.phone;
+                    var notes = reqParams.notes;
+                    params = {
                         method: 'POST',
                         firstName,
                         lastName,
@@ -75,11 +75,11 @@ async function initApiCall(func, activity, params) {
         case 'clients_update':
         switch (activity) {
             case 'addClientNotes':
-                var firstName = params.firstName;
-                var lastName = params.lastName;
-                var phone = params.phone;
-                var notes = params.notes;
-                var params = {
+                var firstName = reqParams.firstName;
+                var lastName = reqParams.lastName;
+                var phone = reqParams.phone;
+                var notes = reqParams.notes;
+                params = {
                     method: 'PUT',
                     firstName,
                     lastName,
@@ -92,21 +92,18 @@ async function initApiCall(func, activity, params) {
         }
         break;
         case 'products_get':
-            var params = {};
             break;
         case 'appointment-types_get':
-            var params = {};
             break;
         case 'calendars_get':
-            var params = {};
             break;
         case 'availability--classes_get':
             switch (activity) {
                 case 'getClassesByDate':
                     // Find all classes scheduled for given date
-                    var classDateMin = params[0] || params;
+                    var classDateMin = reqParams[0] || reqParams;
                     var minDate = $.datepicker.formatDate('yy/mm/dd', classDateMin);
-                    var classDateMax = params[1] || params;
+                    var classDateMax = reqParams[1] || reqParams;
                     var maxDate = classDateMax;
                     if (classDateMin === classDateMax) {
                         // Get availability for single date - set maxDate to date + 1                        
@@ -117,7 +114,7 @@ async function initApiCall(func, activity, params) {
                         maxDate.setDate(classDateMax.getDate() + 1);
                         maxDate = $.datepicker.formatDate('yy/mm/dd', classDateMax);
                     }
-                    var params = {		
+                    params = {		
                         minDate,
                         maxDate,
                         includeUnavailable: true,
@@ -129,14 +126,14 @@ async function initApiCall(func, activity, params) {
                     // 
                     // UPDATE HERE - pass selectedClass object DIRECTLY - no need to loop through array again
                     // 
-                    var products = params;
-                    // var selectedClass = params; NEW
+                    var products = reqParams;
+                    // var selectedClass = reqParams; NEW
                     var selectedClassVal = $('#select_package_class_dropdown').val();
                     var selectedClass = $.grep(products, (i) => {
                         return i.name === selectedClassVal;
                     });				
                     var classId = selectedClass[0].id;
-                    var params = {		
+                    params = {		
                         appointmentTypeID: classId,
                         includeUnavailable: true
                     };
@@ -146,10 +143,10 @@ async function initApiCall(func, activity, params) {
                     // 
                     // UPDATE HERE - pass selectedClass object DIRECTLY - no need to loop through array again
                     // 
-                    var selectedClass = params;                    
+                    var selectedClass = reqParams;                    
                     var classId = selectedClass[0].id;
 
-                    var params = {
+                    params = {
                         appointmentTypeID: classId,
                         includeUnavailable: true
                     };
@@ -161,13 +158,13 @@ async function initApiCall(func, activity, params) {
         case 'appointments_get':
             switch (activity) {
                 case 'getApptsForClass':
-                    var classId = params[0];
-                    var classDate = params[1];
+                    var classId = reqParams[0];
+                    var classDate = reqParams[1];
                     var classDate = $.datepicker.formatDate('yy/mm/dd', classDate);
                     var minDate = classDate;
                     var maxDate = classDate;
                     var maxResults = 200;
-                    var params = {
+                    params = {
                         appointmentTypeID: classId,
                         minDate,
                         maxDate,
@@ -175,24 +172,24 @@ async function initApiCall(func, activity, params) {
                     };
                     break;
                 case 'getApptsByDateRange':                    
-                    var minDate = params[0];
-                    var maxDate = params[1];
+                    var minDate = reqParams[0];
+                    var maxDate = reqParams[1];
                     minDate = $.datepicker.formatDate('mm/dd/yy', minDate);
                     maxDate = $.datepicker.formatDate('mm/dd/yy', maxDate);
-                    var params = {
+                    params = {
                         minDate,
                         maxDate,
                         max: 9999
                     };
                     break;
                 case 'getApptsByEmail':
-                    var clients = params;
+                    var clients = reqParams;
                     var selectedClientVal = $('#search_student_dropdown').val();
                     var selected_client = $.grep(clients, (i) => {
                         return `${i.firstName} ${i.lastName}` === selectedClientVal;
                     });
                     var clientEmail = selected_client[0].email;
-                    var params = {
+                    params = {
                         email: clientEmail,
                         max: 9999
                     };
@@ -205,7 +202,7 @@ async function initApiCall(func, activity, params) {
             // BOOK A SINGLE APPOINTMENT
             switch (activity) {
                 case 'addToClass':
-                    var studentInfo = params;
+                    var studentInfo = reqParams;
                     var classId = studentInfo.classId;
                     var datetime = studentInfo.datetime;
                     var firstName = studentInfo.firstName;
@@ -217,7 +214,7 @@ async function initApiCall(func, activity, params) {
                     var OBJECT = 'labels_id';
                     var labels_id = studentInfo.labelID;
                     var noEmail = studentInfo.noEmail || false;
-                    var params = {
+                    params = {
                         method: "POST",
                         noEmail,
                         datetime,
@@ -235,8 +232,8 @@ async function initApiCall(func, activity, params) {
                 case 'addToClassSeries':
                     // BOOK A CLASS SERIES AND CREATE INVOICE
                     // Create an appointment in an Acuity class series for selected student
-                    var classTimes = params[0];
-                    var selectedClient = params[1];
+                    var classTimes = reqParams[0];
+                    var selectedClient = reqParams[1];
                     
                     // Set client information
                     var client_firstName = selectedClient[0].firstName;
@@ -245,7 +242,7 @@ async function initApiCall(func, activity, params) {
                     var client_phone = selectedClient[0].phone;
 
                     // Set createInvoice to determine whether to create an invoice in Xero - only 1 invoice created for each class series
-                    var createInvoice = params[2];
+                    var createInvoice = reqParams[2];
                     console.log('classTimes is: ', classTimes);
 
                     var classTime = $('#buy_class_submit').data('classTime');
@@ -285,7 +282,7 @@ async function initApiCall(func, activity, params) {
                         console.log(`applyPaymentChecked is ${applyPaymentChecked}`);
                     }
                     
-                    var params = {
+                    params = {
                         method: "POST",
                         paymentMethod: paymentMethod,
                         xeroCreateInvoice: createInvoiceChecked,
@@ -308,30 +305,30 @@ async function initApiCall(func, activity, params) {
         case 'appointments_put':
             switch (activity) {
                 case 'updateStudentNotes':
-                    var apptId = params.id;
-                    var checkInNote = params.checkInNote;
-                    var noEmail = params.noEmail || false;
+                    var apptId = reqParams.id;
+                    var checkInNote = reqParams.checkInNote;
+                    var noEmail = reqParams.noEmail || false;
                     if (debug) {
                         console.log('Appt ID is: ', apptId);
                         console.log('Check-in note is: ', checkInNote);
                     }
-                    var params = {
+                    params = {
                         method: "PUT",                        
                         id: apptId,
                         notes: `${checkInNote}`
                     };
                     break;
                 case 'cancelAppointment':
-                    var apptId = params.apptId;
-                    var cancelNote = params.cancelNote;
-                    var noEmail = params.noEmail || false;
+                    var apptId = reqParams.apptId;
+                    var cancelNote = reqParams.cancelNote;
+                    var noEmail = reqParams.noEmail || false;
                     if (debug) {
                         console.log('Appt ID is: ', apptId);                        
                     }
                     // Update func to send proper URL
                     func = `appointments--${apptId}--cancel`;
                     console.log('func is: ', func);
-                    var params = {
+                    params = {
                         method: "PUT",
                         noEmail,
                         cancelNote
@@ -345,7 +342,7 @@ async function initApiCall(func, activity, params) {
             switch (activity) {
                 case 'retrieveCertificates':
                     // var selected_client = $('#search_student_dropdown').prop('selectedIndex');	
-                    var clients = params;
+                    var clients = reqParams;
                     var selectedClientVal = $('#search_student_dropdown').val();
                     var selected_client = $.grep(clients, (i) => {
                         return `${i.firstName} ${i.lastName}` === selectedClientVal;
@@ -357,35 +354,34 @@ async function initApiCall(func, activity, params) {
                         console.log(selected_client);
                         console.log(`client email is ${client_email}`);
                     }				
-                    var params = {		
+                    params = {		
                         email: client_email
                     };
                     break;
                 case 'retrieveCertificatesByEmail':
-                    var client_email = params;                    	
-                    var params = {		
+                    var client_email = reqParams;                    	
+                    params = {		
                         email: client_email
                     };
                     break;
-                case 'retrieveAllCertificates':                    
+                case 'retrieveAllCertificates':
                     break;
                 default:
                     return 'Activity not defined';
                 }                
             break;
         case 'certificates_del':
-            var selected_cert = $('#select_code_del').prop('selectedIndex');
-            var certId = certificates[selected_cert].id;			
-            var params = {
-                method: "DELETE",
-                id: certId
+            let codeToDelete = reqParams;
+            params = {
+                method: 'DELETE',
+                id: codeToDelete
             };
             break;
         case 'certificates_create':
             switch (activity) {
                 case 'createCertificate':
-                    var selectedProduct = params[0];
-                    var selectedClient = params[1];
+                    var selectedProduct = reqParams[0];
+                    var selectedClient = reqParams[1];
                     var productId = selectedProduct[0].id;
 
                     // Set client information
@@ -439,7 +435,7 @@ async function initApiCall(func, activity, params) {
                     }
 
                     // Additional params for XERO                    
-                    var params = {
+                    params = {
                         method: "POST",
                         paymentMethod: paymentMethod,
                         xeroCreateInvoice: createInvoiceChecked,
@@ -459,28 +455,27 @@ async function initApiCall(func, activity, params) {
             break;
         case 'version':
         case 'pin':
-            var params = {};
             break;
         default:
             console.log(`ERROR: Function not found: ${func}`);				
             return false;            
     }
 
-    // Capture selected location from dropdown if it exists and parse down to location name to send to server
-    // REST controller will use location data to determine which Xero tenant to activate among other things
-    var selectedLocation = $('#select_location_dropdown').val();
-    if (debug) {
-        console.log(`DEBUG: TYPE OF selectedLocation: ${typeof selectedLocation}`);
-    }
-    if (typeof selectedLocation !== 'undefined' && selectedLocation !== 'location') {
-        selectedLocation = selectedLocation.split(',')[0].trim();
-        if (selectedLocation.includes('@')) {
-            selectedLocation = selectedLocation.split('@')[1].trim().toLowerCase().replace(' ', '-');
-        } else {
-            selectedLocation = 'tai-seng';
-        }
-        console.log(`Selected location for API call params: ${selectedLocation}`);
+    // Capture selected location for API call and add to params object
+    var selectedLocation = retrieveSelectedLocation();
+    
+    console.log(`INIT API CALL: Type of params: ${typeof params}`);
+
+    if (selectedLocation && params) {
+        // Format selected location for API call
+        selectedLocation = String(selectedLocation).toLowerCase().replace(' ', '-');
         params.location = selectedLocation;
+    }
+
+    // If server-side processing is requested, add to params
+    if (typeof reqParams !== 'undefined' && reqParams.ssp) {
+        console.log(`INIT API CALL: Adding server-side processing request:`, reqParams.ssp);
+        params.ssp = reqParams.ssp;
     }
 
     // Make API call
@@ -501,8 +496,9 @@ async function initApiCall(func, activity, params) {
         }
 
         var funcToCall = func.split('_')[0];
-        console.log(`Starting API call: ${func}`);
-        console.log('Params:', params);
+        console.log(`INIT API CALL: Starting API call: ${func}`);
+        console.log(`INIT API CALL: Selected location: ${selectedLocation}`);
+        console.log('INIT API CALL: Params:', params);
         return await callAPI(funcToCall, params, ddyToken);
     } catch(e) {
         console.log(`ERROR: Error returned from callAPI function: ${func}`);
@@ -590,7 +586,7 @@ async function callAPI(func, params, ddyToken) {
                     writeMessage('debug', `<br><b>API CALL COMPLETE</b><br>Function: ${func}`);						
                 }
             },
-            timeout: 45000
+            timeout: 120000
         });
         return result;
     } catch (e) {
@@ -603,7 +599,7 @@ async function callAPI(func, params, ddyToken) {
 
 function populateDropdown($drop, data, func) {
     // Empty items from the dropdown
-    $drop.empty();		
+    $drop.empty();
     
     // Populate dropdown with values from data array
     switch(func) {
@@ -681,10 +677,10 @@ async function retrieveLocations(locations, $revealedElements) {
             return false;
         }
 
-        // Capture unique location values to array for dropdown
+        // Capture unique location values to array for dropdown, ignore blanks where calendar is null due to no location assigned
         var ddyLocationsALL = [];
         $.each(ddyCalendars, (i, cal) => {
-            ddyLocationsALL.push(cal.location)
+            if (cal.location) { ddyLocationsALL.push(cal.location) }
         });
         console.log(`DDY Locations (all):`, ddyLocationsALL);
         
@@ -718,6 +714,34 @@ async function retrieveLocations(locations, $revealedElements) {
     $revealedElements = revealElement($('#select_location_div'), $revealedElements);
 
     return ddyLocations;
+}
+
+// FUNCTION: retrieveSelectedLocation()
+// 1. Retrieve selected location from location dropdown
+// 2. Apply business logic to capture proper location
+// 3. Set formatting and return to calling function
+function retrieveSelectedLocation() {
+    // Capture selected location from dropdown if it exists and parse down to location name to send to server
+    // REST controller will use location data to determine which Xero tenant to activate among other things
+    selectedLocation = $('#select_location_dropdown').val();
+    if (debug) {
+        console.log(`DEBUG: Selected location: ${selectedLocation}`);
+        console.log(`DEBUG: Type of selected location: ${typeof selectedLocation}`);
+    }
+
+    // Set location to Tai Seng by default
+    var myLocation = 'Tai Seng';
+    if (typeof selectedLocation !== 'undefined' && selectedLocation === 'all_locations') {
+        myLocation = 'all';
+    } else if (typeof selectedLocation !== 'undefined' && selectedLocation !== 'Select One') {
+        myLocation = selectedLocation.split(',')[0].trim();
+        if (myLocation.includes('@')) {
+            myLocation = myLocation.split('@')[1].trim();
+        }
+    }
+
+    console.log(`RETRIEVE SELECTED LOCATION: Returning ${myLocation}`);
+    return myLocation;
 }
 
 // FUNCTION: retrieveProductsClasses()
@@ -777,8 +801,11 @@ async function retrieveProductsClasses(action, products, productsArrayContains) 
 // 3. Filter based on selected location
 // 4. Reveal the next div in the user flow based on action (if required)
 async function filterProductsClasses(action, location, products, $revealedElements) {
-    // Filter array based on selected action
+    console.log(`FILTER PRODUCTS CLASSES: Original array to be filtered for action ${action} and ${location}:`, products);
+    
     var filteredProducts = products;
+    
+    // Filter classes array based on selected action
     switch (action) {
         case 'buy_single_class_top':
             // Filter classes result for SINGLE class types
@@ -798,46 +825,57 @@ async function filterProductsClasses(action, location, products, $revealedElemen
             // Filter classes result for SERIES class types and for series associated with a calendar ID ONLY
             // This should be a way to return only ACTIVE class series, and discard anything inactive or from the past
             // Have not validated this logic with Acuity (but it seems to work)
+
+            // Capture UI checkbox to determine whether to include OLD classes
+            var $element = $('#include_old_classes_checkbox');
+			var includeOldClasses = $element.is(':checked');
+            
             filteredProducts = $(filteredProducts).filter((i) => {
-                return (filteredProducts[i].type === 'series' && products[i].calendarIDs.length > 0);
+                if (includeOldClasses) {
+                    return (filteredProducts[i].type === 'series');
+                } else {
+                    return (filteredProducts[i].type === 'series' && products[i].calendarIDs.length > 0);
+                }
             });
-            console.log('Result updated for only ACTIVE class series:', filteredProducts);
+            console.log(`Result updated for class series based on active classes = ${includeOldClasses}:`, filteredProducts);
             break;
     }
 
     // Filter array for selected location
     if (location === 'Tai Seng') {
         filteredProducts = $(filteredProducts).filter((i) => {
-            // return (!products[i].name.includes('@') || products[i].name.includes(location));
-            return (!filteredProducts[i].name.includes('@'));
+            if (action === 'filterAppointments') {
+                return (!filteredProducts[i].type.includes('@') || filteredProducts[i].type.includes(location));
+            } else {
+                return (!filteredProducts[i].name.includes('@') || filteredProducts[i].name.includes(location));
+            }
         });
     } else {
         filteredProducts = $(filteredProducts).filter((i) => {
-            return (filteredProducts[i].name.includes(location));
+            if (action === 'filterAppointments') {
+                return (filteredProducts[i].type.includes(location));
+            } else {
+                return (filteredProducts[i].name.includes(location));
+            }
         });
     }
-    console.log(`Filtered array updated for ${location}:`, filteredProducts);
+    console.log(`FILTER PRODUCTS CLASSES: Filtered array updated for action ${action} and ${location}:`, filteredProducts);
 
     // Reveal appropriate div based on action selected
     switch (action) {
         case 'view_student_package_top':
             $revealedElements = revealElement($('#view_packages_submit'), $revealedElements);
             break;
-        case 'checkin_table_top':
-        case 'select_another_class_dropdown':
-        case 'pastDate':
-            // do nothing
+        case 'buy_package_top':
+        case 'buy_class_top':
+        case 'buy_single_class_top':
+        case 'book_private_class_top':
+            $revealedElements = revealElement($('#select_package_class_div'), $revealedElements);
             break;
         default:
-            $revealedElements = revealElement($('#select_package_class_div'), $revealedElements);
+            // do nothing
+            break;
     }
-
-    /*
-    if (action === 'view_student_package_top') {
-        $revealedElements = revealElement($('#view_packages_submit'), $revealedElements);
-    } else {
-        $revealedElements = revealElement($('#select_package_class_div'), $revealedElements);
-    } */
 
 return filteredProducts;
 }
@@ -907,10 +945,12 @@ async function retrieveUpcomingClasses(action, selectedLocation, classes, $revea
         populateDropdown($dropdown, filteredClasses, func);
     }
     
-    // Reveal dropdown and enable button to generate table
+    /*
+    // Reveal class check-in table dropdown and enable button to generate table
     var $element = $('#generate_checkin_table_div');
     $revealedElements = revealElement($element, $revealedElements);
     $('#upcoming_classes_dropdown').focus();
+    */
 
     return result;
 }
@@ -1044,31 +1084,18 @@ async function addNewStudent() {
             writeMessage('debug', `<br>Completed initApicall: ${funcType}`);				
         }
 
-        // Next, book any upcoming appointment and delete the appointment
-        // In order for new student data to be pushed to Xero, Acuity requires an appointment to be booked        
-        
-        // UPDATE: No longer needed - updated MyStudio to create Xero contact if it doesn't exist
-        // console.log('Booking/cancelling temporary class to trigger Xero contact synchronization...');
-        // var tempClassResult = await bookCancelTempClass(params);
-        console.log('Skipping temp class booking as MyStudio will create Xero contact if not found');
-        let tempClassResult = true;
-
         // If successful inform user
-        if (tempClassResult) {
-            var message = {
-                title: 'Student Created!',
-                body: `<strong>New student created successfully!</strong><br><br>
-                        <strong>Name:</strong> ${firstName} ${lastName}<br>
-                        <strong>Phone:</strong> ${phone}<br>
-                        <strong>Email:</strong> ${email}<br>
-                        <strong>Preferred Language:</strong> ${language}<br>
-                        <strong>English Level:</strong> ${englishLevel}`
-            };
-            writeMessage('modal', message);
-            return result;
-        } else {
-            throw 'ERROR CREATING NEW STUDENT - TEMP CLASS BOOKING ERROR!';
-        }
+        var message = {
+            title: 'Student Created!',
+            body: `<strong>New student created successfully!</strong><br><br>
+                    <strong>Name:</strong> ${firstName} ${lastName}<br>
+                    <strong>Phone:</strong> ${phone}<br>
+                    <strong>Email:</strong> ${email}<br>
+                    <strong>Preferred Language:</strong> ${language}<br>
+                    <strong>English Level:</strong> ${englishLevel}`
+        };
+        writeMessage('modal', message);
+        return result;
     }
     catch(e) {
         console.log(`ERROR: Error detected in initApiCall: ${funcType}`);
@@ -1223,6 +1250,26 @@ async function cancelAppointment(apptId, noEmail) {
     }
 }
 
+// FUNCTION: deleteCode()
+// 1. Retrieve a student code to delete from Acuity
+// 2. Call API and delete code
+// 3. Return result to caller
+async function deleteCode(codeToDelete) {
+    var funcType = "certificates_del";
+    var params = codeToDelete;
+    try {
+        deleteCodeResult = await initApiCall(funcType, undefined, params);
+        console.log('DELETE CODE: Delete code result:', deleteCodeResult);
+        return deleteCodeResult;
+    }
+    catch (e) {
+        console.error(`ERROR: Error deleting student code!`);
+        console.error(`Error response: ${e.responseText}`);
+        console.error(e);
+        return false;
+    }
+}
+
 // FUNCTION: confirmPaymentDetails()
 // 1. Gather all details for upcoming payment
 // 2. Present details to user for confirmation
@@ -1325,7 +1372,7 @@ function confirmPaymentDetails(event, action, products, $revealedElements, $subm
     // Enable or disable submit button
     if (enableSubmit) {
         $submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);
-    } else{
+    } else {
         $submitButtonElement.prop('disabled', true).addClass('disabled');
     }
 
@@ -1731,6 +1778,7 @@ async function employeeCommissionNotes(selectedProduct, selectedClient) {
 async function buyPackage(selectedProduct, selectedClient) {
     try {
         console.log('BUY PACKAGE - Selected Product is:', selectedProduct);
+
         // Check if product is a package or a subscription, if subscription then payment method must be CC
         var productExpiry = selectedProduct[0].expires;
         if (productExpiry == null) {
@@ -1739,75 +1787,71 @@ async function buyPackage(selectedProduct, selectedClient) {
             return false;
         }
 
-        // Before creating certificate, book and cancel temp appt for student to ensure Xero details are up to date
-        // In order for new student data to be pushed to Xero, Acuity requires an appointment to be booked
+        // If package then buy package
+        var funcType = 'certificates_create';
+        var activity = 'createCertificate';
+        var params = [ selectedProduct, selectedClient ];        
+        var result = await initApiCall(funcType, activity, params);
+        console.log('buyPackage result:');
+        console.log(result);
+
+        // If successful, call function to update student notes to record DDY employee commission details
+        var commissionResult = await employeeCommissionNotes(selectedProduct, selectedClient);
         
-        // UPDATE: No longer needed - updated MyStudio to create Xero contact if it doesn't exist
-        // console.log('Booking/cancelling temporary class to trigger Xero contact synchronization...');
-        // var tempClassResult = await bookCancelTempClass(selectedClient);
-        console.log('Skipping temp class booking as MyStudio will create Xero contact if not found');
-        let tempClassResult = true;
-
-        if (tempClassResult) {
-            // If package then buy package
-            var funcType = 'certificates_create';
-            var activity = 'createCertificate';
-            var params = [ selectedProduct, selectedClient ];        
-            var result = await initApiCall(funcType, activity, params);
-            console.log('buyPackage result:');
-            console.log(result);
-
-            // If successful, call function to update student notes to record DDY employee commission details
-            var commissionResult = await employeeCommissionNotes(selectedProduct, selectedClient);
-            
-            // Successful - display details in modal window        
-            var commissionResultString = 'NONE';
-            if (commissionResult) {
-                var soldBy = $('#employee_commission_dropdown option:selected').text();
-                commissionResultString = `Sold by ${soldBy}`;
-            }
-
-            // Capture Xero Details
-            var xeroInvoiceID = null;
-            var xeroInvoiceNumber = null;
-            var xeroInvoiceURL = null;
-            if (typeof result.xeroInvoiceId !== 'undefined' && typeof result.xeroInvoiceNumber !== 'undefined') {
-                xeroInvoiceID = result.xeroInvoiceId;
-                xeroInvoiceNumber = result.xeroInvoiceNumber;
-                xeroInvoiceURL = `https://go.xero.com/AccountsReceivable/View.aspx?InvoiceID=${xeroInvoiceID}`;
-            }
-
-            var xeroInvoiceResult = result.xeroInvoiceStatus;
-            var xeroInvoiceStatusMessage = result.xeroInvoiceStatusMessage;
-            var xeroInvoiceStatusString = result.xeroInvoiceStatusString;
-            var xeroPaymentResult = result.xeroPaymentStatus;
-            var xeroPaymentStatusMessage = result.xeroPaymentStatusMessage || "XERO: Payment not applied";
-            if (debug) {				
-                writeMessage('debug', `<br>Xero Invoice Status: ${xeroInvoiceResult}`);
-                writeMessage('debug', `<br>Xero Invoice Status String: ${xeroInvoiceStatusString}`);
-                writeMessage('debug', `<br>Xero Payment Status: ${xeroPaymentResult}`);
-            }
-            var paymentMethod = $('#payment_method_dropdown').find(':selected').text();
-            var clientName = `${selectedClient[0].firstName} ${selectedClient[0].lastName}`;
-            var clientEmail = selectedClient[0].email;
-            var message = { 
-                title: 'PURCHASE SUCCESS',
-                body: `<strong>....Student Name:..姓名：....</strong> ${clientName}<br>
-                        <strong>....Email:..邮箱：....</strong> ${clientEmail}<br>
-                        <strong>....Code:..学生号：....</strong> ${result.certificate}<br>
-                        <strong>....Payment Method:..支付方式：....</strong> ${paymentMethod}<br>
-                        <strong>....Commission:..售卡人：....</strong> ${commissionResultString}<hr>
-                        <strong>Xero Results</strong><br>
-                        <span class="capitalize">${xeroInvoiceStatusMessage}</span> (Invoice ID: <a href=${xeroInvoiceURL} target="_blank">${xeroInvoiceNumber}</a>)<br>
-                        <span class="capitalize">${xeroPaymentStatusMessage}</span><hr>
-                        <strong>....Inform student to use email address to book classes..通知学生使用邮箱预订课程....</strong><br>
-                        ${ddyCashPaymentXferMsg}`
-            };
-            writeMessage('modal', message);
-            return result;
-        } else {
-            throw 'ERROR IN BUY PACKAGE - TEMP CLASS BOOKING ERROR';
+        // Successful - display details in modal window        
+        var soldBy = 'UNKNOWN';
+        if (commissionResult) {
+            var soldBy = $('#employee_commission_dropdown option:selected').text();
         }
+
+        // Capture Xero Details
+        var xeroInvoiceID = null;
+        var xeroInvoiceNumber = null;
+        var xeroInvoiceURL = null;
+        if (typeof result.xeroInvoiceId !== 'undefined' && typeof result.xeroInvoiceNumber !== 'undefined') {
+            xeroInvoiceID = result.xeroInvoiceId;
+            xeroInvoiceNumber = result.xeroInvoiceNumber;
+            xeroInvoiceURL = `https://go.xero.com/AccountsReceivable/View.aspx?InvoiceID=${xeroInvoiceID}`;
+        }
+
+        var xeroInvoiceResult = result.xeroInvoiceStatus;
+        var xeroInvoiceStatusMessage = result.xeroInvoiceStatusMessage;
+        var xeroInvoiceStatusString = result.xeroInvoiceStatusString;
+        var xeroPaymentResult = result.xeroPaymentStatus;
+        var xeroPaymentStatusMessage = result.xeroPaymentStatusMessage || "XERO: Payment not applied";
+        if (debug) {				
+            writeMessage('debug', `<br>Xero Invoice Status: ${xeroInvoiceResult}`);
+            writeMessage('debug', `<br>Xero Invoice Status String: ${xeroInvoiceStatusString}`);
+            writeMessage('debug', `<br>Xero Payment Status: ${xeroPaymentResult}`);
+        }
+
+        // Check Xero results for errors
+        let purchaseSuccess = true;
+        if (xeroInvoiceStatusMessage.includes('ERROR') || xeroPaymentStatusMessage.includes('ERROR')) {
+            purchaseSuccess = false;
+        }
+
+        let title = '....PURCHASE SUCCESS..购买成功....';
+        if (!purchaseSuccess) { title = '....PURCHASE ERROR - PLEASE CONTACT IT SUPPORT!..购买错误 - 请联系支持！....' }
+
+        var paymentMethod = $('#payment_method_dropdown').find(':selected').text();
+        var clientName = `${selectedClient[0].firstName} ${selectedClient[0].lastName}`;
+        var clientEmail = selectedClient[0].email;
+        var message = { 
+            title,
+            body: `<strong>....Student Name:..姓名：....</strong> ${clientName}<br>
+                    <strong>....Email:..邮箱：....</strong> ${clientEmail}<br>
+                    <strong>....Code:..学生号：....</strong> ${result.certificate}<br>
+                    <strong>....Payment Method:..支付方式：....</strong> ${paymentMethod}<br>
+                    <strong>....Sold By:..售卡人：....</strong> ${soldBy}<hr>
+                    <strong>Xero Results</strong><br>
+                    <span class="capitalize">${xeroInvoiceStatusMessage}</span> (Invoice ID: <a href=${xeroInvoiceURL} target="_blank">${xeroInvoiceNumber}</a>)<br>
+                    <span class="capitalize">${xeroPaymentStatusMessage}</span><hr>
+                    <strong>....Inform student to use email address to book classes..通知学生使用邮箱预订课程....</strong><br>
+                    ${ddyCashPaymentXferMsg}`
+        };
+        writeMessage('modal', message);
+        return result;
     }
     catch(e) {
         console.error(`ERROR: Error detected in initApiCall: ${funcType}`);
@@ -1914,9 +1958,18 @@ async function buySeries(selectedClass, selectedClient) {
             var options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour12: true, hour: 'numeric', minute: 'numeric' };
             var firstClassDatePretty = new Date(bookClass[0].datetime).toLocaleString('en-US', options);
             
+            // Check Xero results for errors
+            let purchaseSuccess = true;
+            if (xeroInvoiceStatusMessage.includes('ERROR') || xeroPaymentStatusMessage.includes('ERROR')) {
+                purchaseSuccess = false;
+            }
+
+            let title = '....BOOKING SUCCESS..课程预定成功....';
+            if (!purchaseSuccess) { title = '....BOOKING ERROR - PLEASE CONTACT IT SUPPORT!..课程预定错误 - 请联系支持！....' }
+
             // Write message that class series is booked
             var message = {
-                title: '....BOOKING SUCCESS..课程预定成功....',
+                title,
                 body: `<strong>....Student Name:..姓名:....</strong> ${clientName}<br>
                         <strong>....Class:..课程：....</strong> ${bookClass[0].type}<br>
                         <strong>....First Class:..第一的课程：....</strong> ${firstClassDatePretty}<br>
@@ -1955,19 +2008,8 @@ async function retrieveCertificates(clients) {
         result = await initApiCall('certificates_get', activity, params);
         if (result === "No records returned") {
             console.log('No certificates found');
-            
-            // Clear delete codes dropdown - LATER?
-            // var $dropdown = $('#select_code_del');
-            // clearDropdown($dropdown);
         }
         return result;
-        
-        // If successful populate dropdown menu for deletion - LATER?
-        // var $dropdown = $('#select_code_del');
-        // var func = "certificates";
-        // populateDropdown($dropdown, certificates, func);
-        // Enable DELETE CODE button - LATER
-        // $('#delete_code').prop('disabled', false);
     }
     catch(e) {
         console.error(`ERROR: Error detected in initApiCall: ${funcType}`);
@@ -2034,6 +2076,10 @@ async function retrieveAppointments(upcomingClasses, classDate, selected_class_i
 // 5. Display instructor report for user
 // 6. Provide option to generate a pay run in Xero
 async function generateInstructorReport(reportMonth, $revealedElements) {
+    // Retrieve selected location
+    var selectedLocation = retrieveSelectedLocation();
+    console.log(`DDY INSTRUCTOR REPORT: Generating instructor report for location: ${selectedLocation}`);
+    
     // Get first and last day of report month
     var minDate = new Date(reportMonth.getFullYear(), reportMonth.getMonth(), 1);
     var maxDate = new Date(reportMonth.getFullYear(), reportMonth.getMonth() + 1, 0);
@@ -2042,6 +2088,7 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
 
     // EMPLOYEE COMMISSION
     // Retrieve all clients from Acuity and gather student notes to determine commission
+    let instReport_Commissiont0 = performance.now();
     var funcType = 'clients_search';
     var activity = 'retrieveAllClients';
     var clientsResult = await initApiCall(funcType, activity);
@@ -2070,16 +2117,33 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
             
             // Store commission details if entry is within date range, otherwise move on
             if (timeSoldDate >= minDate && timeSoldDate <= maxDateNext) {
+                // Capture product sold and determine if it matches the selected location, otherwise move on
+                var productSoldRaw = notesByLine[i].split('~')[1].trim();
+                // Reduce to english
+                var productSold = productSoldRaw.split('|');
+                productSold = productSold.length > 1 ? productSold[1].trim() : productSold[0].trim();
+
+                var productSoldLocation = 'Tai Seng';
+                if (productSold.includes('@')) {
+                    productSoldLocation = productSold.split('@')[1].trim();
+                }
+
+                // Skip to next item if product not sold at selected location
+                if (!productSoldLocation.includes(selectedLocation)) { 
+                    console.log(`DDY INSTRUCTOR REPORT: Product ${productSold} for ${clientFirstName} ${clientLastName} not sold at ${selectedLocation}, skipping..`);
+                    continue;
+                }
+
                 var options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
                 var timeSoldDatePretty = timeSoldDate.toLocaleString('en-US', options);
                 var clientName = `${clientFirstName} ${clientLastName}`;
-                var productSold = notesByLine[i].split('~')[1].trim();
+                
                 var employeeNameTemp = notesByLine[i].split('sold by')[1];
                 var employeeName = employeeNameTemp.split('~')[0].trim();
                 var productPrice = notesByLine[i].split('$')[1];
                                 
                 console.log(`${clientFirstName} ${clientLastName} notes line ${i}: ${notesByLine[i]}`);                
-                console.log(`Package sold details: ${productSold} by ${employeeName} for $${productPrice} at ${timeSoldDate}`);
+                console.log(`DDY INSTRUCTOR REPORT: Package sold details: ${productSold} at ${productSoldLocation} by ${employeeName} for $${productPrice} at ${timeSoldDate}`);
 
                 // Add commission details to object
                 employeeCommissionDetails[count] = {
@@ -2092,32 +2156,41 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
                 };
                 count++;
             } else {
-                console.log(`Commission for ${clientFirstName} ${clientLastName} sold on ${timeSoldDate}: Not in range of mindate ${minDate} and maxdate ${maxDateNext}, skipping...`);
-            }            
-        }        
+                console.log(`DDY INSTRUCTOR REPORT: Commission for ${clientFirstName} ${clientLastName} sold on ${timeSoldDate}: Not in date range, skipping..`);
+            }
+        }
     });
 
-    console.log(`Employee commission details:`, employeeCommissionDetails);
+    let instReport_Commissiont1 = performance.now();
+    console.log(`DDY INSTRUCTOR REPORT: Employee commission details:`, employeeCommissionDetails);
+    console.log('DDY INSTRUCTOR REPORT: Commission API call and processing took', (instReport_Commissiont1 - instReport_Commissiont0) / 1000, ' seconds');
     
     // DDY INSTRUCTOR CLASS COUNT
     // Retrieve appointments for selected month
+    let instReport_Apptst0 = performance.now();
     var func = 'appointments_get';
     var activity = 'getApptsByDateRange';
     var params = [minDate, maxDate];
     appointmentsResult = await initApiCall(func, activity, params);
-    console.log('Instructor report appointments result:', appointmentsResult);
+    let instReport_Apptst1 = performance.now();
+    console.log('DDY INSTRUCTOR REPORT: Instructor report appointments result:', appointmentsResult);
+    console.log('DDY INSTRUCTOR REPORT: Appts API call ONLY took', (instReport_Apptst1 - instReport_Apptst0) / 1000, ' seconds');
+
+    // Filter appointments result for selected location
+    var apptsForLoc = await filterProductsClasses('filterAppointments', selectedLocation, appointmentsResult);
+    console.log(`DDY INSTRUCTOR REPORT: Appointments array filtered for ${selectedLocation}:`, apptsForLoc);
     
     // Rollup appointments array by class and notes    
     var apptsByType = d3.nest().key(function(i) {
         return `${i.type} ${i.datetime}`;
-    }).entries(appointmentsResult);
+    }).entries(apptsForLoc);
     console.log('Appointments by Class Type: ', apptsByType);
 
     // Filter out ONLINE classes from array as they do not have any instructor check-in
     var apptsByType = $(apptsByType).filter((i) => {
         return (!apptsByType[i].key.includes('ONLINE'));
     });
-    console.log('Appointments by type updated to exclude ONLINE classes:', apptsByType);
+    console.log('DDY INSTRUCTOR REPORT: Appointments by type updated to exclude ONLINE classes:', apptsByType);
 
     // Loop through data and store instructor info
     var instructorData = [];
@@ -2235,9 +2308,11 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
         }
         instructorData.push(data);
     });
-    console.log('Instructor data: ', instructorData);
-    console.log('Instructor counts: ', instructorCounts);
-    console.log('Appointments by Class Type with teacher names and check-in data: ', apptsByType);
+    let instReport_Apptst2 = performance.now();
+    console.log('DDY INSTRUCTOR REPORT: Instructor data: ', instructorData);
+    console.log('DDY INSTRUCTOR REPORT: Instructor counts: ', instructorCounts);
+    console.log('DDY INSTRUCTOR REPORT: Appointments by Class Type with teacher names and check-in data: ', apptsByType);    
+    console.log('DDY INSTRUCTOR REPORT: Appts API call and class count processing took', (instReport_Apptst2 - instReport_Apptst0) / 1000, ' seconds');
 
     // Iterate through object and output report
     var selectedMonthVal = $('#instructor_report_datepicker').val();
@@ -2246,12 +2321,11 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
     // Iterate through instructorCounts array and prepare message to display instructor report summary on screen
     $.each(instructorCounts, (name, className) => {
         var lateCount = 0;
-        var bellyCount = 0;
+        var danceCount = 0;
         var yogaCount = 0;
         var privateDuration = 0;
         
         // Populate arrays with strings to capture class names for categorization
-        var danceClassStr = ['Dance', 'dance', 'Ballet', 'ballet'];
         var yogaClassStr = ['Yoga', 'yoga'];
         var privateClassStr = ['Private', 'private'];
 
@@ -2261,21 +2335,21 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
                 lateCount = count;
                 return true;
             }
-            // Match the class name with a string in a class array to increment counter for techers
+            // Match the class name with a string in a class array to increment counter for teachers
             if (privateClassStr.some(substring => className1.includes(substring))) {
                 privateDuration += count;
                 msg += `${className1} x ${count / 60} hour(s)<br>`;
-            } else if (danceClassStr.some(substring => className1.includes(substring))) {
-                bellyCount = bellyCount + count;
-                msg += `${className1} x ${count}<br>`;
             } else if (yogaClassStr.some(substring => className1.includes(substring))) {
                 yogaCount = yogaCount + count;
+                msg += `${className1} x ${count}<br>`;
+            } else {
+                danceCount = danceCount + count;
                 msg += `${className1} x ${count}<br>`;
             }
         });
         
         // Display totals
-        msg += `<strong>TOTAL DANCE:</strong> ${bellyCount}<br>`;
+        msg += `<strong>TOTAL DANCE / FITNESS:</strong> ${danceCount}<br>`;
         msg += `<strong>TOTAL YOGA:</strong> ${yogaCount}<br>`;
         msg += `<strong>TOTAL PRIVATE:</strong> ${privateDuration / 60} hour(s)<br>`;
         
@@ -2304,7 +2378,7 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
         msg += `<font color="red"><strong>LATE:</strong> ${lateCount}</font><br><hr>`;
     });
 
-    console.log(`Employee commission details AFTER message iteration: `, employeeCommissionDetails);
+    console.log(`DDY INSTRUCTOR REPORT: Employee commission details AFTER message iteration: `, employeeCommissionDetails);
 
     // Add additional commission lines if applicable
     var addlCommissionTempMsg = '<center><strong>Additional Sales - No Commission</strong></center>';
@@ -2392,11 +2466,15 @@ async function generateInstructorReport(reportMonth, $revealedElements) {
 // 2. Retrieve the relevant appointment and appointment type data
 // 3. Build relevant charts for display
 async function buildStudioMetricsCharts(fromDate, toDate) {
+    // Retrieve selected location
+    var selectedLocation = retrieveSelectedLocation();
+    console.log(`BUILD METRICS: Building metrics chart for location: ${selectedLocation}`);
+    
     // Get appointment data for selected date range
     // Get first and last day of report month
     var minDate = fromDate;
     var maxDate = toDate;
-    console.log(`minDate: ${minDate}, maxDate: ${maxDate}`);
+    console.log(`BUILD METRICS: minDate: ${minDate}, maxDate: ${maxDate}`);
 
     // Retrieve appointments for selected month
     var funcType = 'appointments_get';
@@ -2404,7 +2482,7 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
     var params = [minDate, maxDate];
     try {
         var appointmentsResult = await initApiCall(funcType, activity, params);
-        console.log('Appointments result:', appointmentsResult);
+        console.log('BUILD METRICS: Appointments result:', appointmentsResult);
 
         if (appointmentsResult === "No records returned") {
             var message = { title: 'ERROR', body: `No appointments on ${minDate} - ${maxDate}.  Please try another date!<hr><strong>Error Message:</strong> ${e.responseText}` };
@@ -2415,7 +2493,7 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
             var appointmentsResult = $(appointmentsResult).filter((i) => {
                 return (appointmentsResult[i].certificate != 'DDYINSTRUCTOR');
             });
-            console.log('Appointments result updated to exclude DDY instructors:', appointmentsResult);
+            console.log('BUILD METRICS: Appointments result updated to exclude DDY instructors:', appointmentsResult);
         }
     }
     catch(e) {
@@ -2430,6 +2508,13 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
         return false;
     }
 
+    // If specific location was selected, filter appointments result for selected location
+    var apptsForLoc = appointmentsResult;
+    if (selectedLocation !== 'all') {
+        var apptsForLoc = await filterProductsClasses('filterAppointments', selectedLocation, appointmentsResult);
+    }
+    console.log(`BUILD METRICS: Appointments array filtered for ${selectedLocation}:`, apptsForLoc);
+
     // CHART #1: APPOINTMENTS BY DATE
     // Parse appointments result using D3.JS grouping functions to group by day / week / month
     var apptsByDayCounts = d3.nest().key(function(i) {
@@ -2441,8 +2526,8 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
         return `${apptMonth} Week ${apptWeek}`;
     }).rollup(function(i) {
         return i.length;
-    }).entries(appointmentsResult);
-    console.log('apptsByDayCounts: ', apptsByDayCounts);
+    }).entries(apptsForLoc);
+    console.log('BUILD METRICS: apptsByDayCounts: ', apptsByDayCounts);
 
     var apptsByCert = d3.nest().key(function(i) {
         var apptDate = new Date(i.date);
@@ -2451,31 +2536,38 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
         return `${apptMonth} Week ${apptWeek}`;
     }).key(function(i) {
         if (i.certificate === 'CLASSPASS') {
-            return i.certificate
-        } else {
-            return 'DDY'
+            return i.certificate;
+        } else if (i.certificate && i.certificate.includes('TRIAL')) {
+            return 'TRIALCLASS';
+        } else  {
+            return 'DDY';
         }        
     }).rollup(function(i) {
         return i.length;        
-    }).entries(appointmentsResult);
-    console.log('apptsByCert: ', apptsByCert);
+    }).entries(apptsForLoc);
+    console.log('BUILD METRICS: apptsByCert: ', apptsByCert);
 
     // Push cert values to 2-dimensional array and reverse order for chronological chart display
     var apptsByCertCP = [];
+    var apptsByCertTRIAL = [];
     var apptsByCertDDY = [];
     $.each(apptsByCert, (i, val) => {        
         $.each(val.values, (i2, certType) => {            
             if (certType.key === 'CLASSPASS') {
                 apptsByCertCP.push([val.key, certType.value]);
+            } else if (certType.key === 'TRIALCLASS') {
+                apptsByCertTRIAL.push([val.key, certType.value]);
             } else {
                 apptsByCertDDY.push([val.key, certType.value]);
             }
         });        
     });    
     apptsByCertCP.reverse();
+    apptsByCertTRIAL.reverse();
     apptsByCertDDY.reverse();
-    console.log('appts by cert CP: ', apptsByCertCP);
-    console.log('appts by cert DDY: ', apptsByCertDDY);
+    console.log('BUILD METRICS: Appts by cert CP: ', apptsByCertCP);
+    console.log('BUILD METRICS: Appts by cert TRIAL CLASS: ', apptsByCertTRIAL);
+    console.log('BUILD METRICS: Appts by cert DDY: ', apptsByCertDDY);
 
     // Push total appt values to 2-dimensional array and reverse order for chronological chart display
     var appointmentsByDay = [];    
@@ -2483,7 +2575,7 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
         appointmentsByDay.push([val.key, val.value]);        
     });    
     appointmentsByDay.reverse();    
-    console.log('appts by day: ', appointmentsByDay);
+    console.log('BUILD METRICS: Appts by day: ', appointmentsByDay);
     // CHART #1 END
 
     // CHART #2: AVERAGE CLASS FULL PERCENTAGE
@@ -2493,7 +2585,7 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
     var params = [minDate, maxDate];
     try {
         availClassesResult = await initApiCall(funcType, activity, params);
-        console.log('Classes availability result:', availClassesResult);
+        console.log('BUILD METRICS: Classes availability result:', availClassesResult);
         
         if (availClassesResult === "No records returned") {
             var message = { title: 'ERROR', body: `No classes scheduled on ${minDate} - ${maxDate}.  Please try another date!` };
@@ -2509,15 +2601,22 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
         return false;
     }
 
-    // Filter available classes result to exclude online classes
+    // If specific location is selected, filter available classes result for classes held at the selected location and also exclude online classes
     var availClassesResult = $(availClassesResult).filter((i) => {
+        if (selectedLocation !== 'all') {
+            let classLocation = 'Tai Seng';
+            if (availClassesResult[i].calendar.includes('@')) {
+                classLocation = availClassesResult[i].calendar.split('@')[1].trim();
+            }
+            return (availClassesResult[i].category != 'LIVE STREAM - Online Classes' && classLocation.includes(selectedLocation));
+        }
         return (availClassesResult[i].category != 'LIVE STREAM - Online Classes');
     });
-    console.log('Classes availability result with ONLINE classes removed:', availClassesResult);
+    console.log(`BUILD METRICS: Classes availability result for location ${selectedLocation} with ONLINE classes removed:`, availClassesResult);
 
     // Parse and rollup appointments array by class day and certificate for class availability chart
     var weekday = ['Sun', 'Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat'];
-    $.each(appointmentsResult, (i, val) => {
+    $.each(apptsForLoc, (i, val) => {
         // Create value for day of week + class name + time
         var engClassName = val.type.split('|')[1] || val.type;
         engClassName = engClassName.trim();
@@ -2546,7 +2645,7 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
                 break;
         }        
     });
-    console.log('NEW appts result: ', appointmentsResult);
+    console.log('BUILD METRICS: Appts result after parse and rollout by class day and cert: ', apptsForLoc);
 
     // Rollup appointments array by day of week to generate cert type numbers
     var appointmentsGrouped = d3.nest().key(function(i) {
@@ -2556,8 +2655,8 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
     }).rollup(function(i2) { return {
         count: i2.length,        
         };
-    }).object(appointmentsResult);
-    console.log('Appointments GROUPED: ', appointmentsGrouped);
+    }).object(apptsForLoc);
+    console.log('BUILD METRICS: Appointments GROUPED: ', appointmentsGrouped);
 
     // Parse and rollup appointments availability    
     $.each(availClassesResult, (i, val) => {
@@ -2569,7 +2668,7 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
         var classDay = weekday[classDate.getDay()];
         val.dayOfWeek = `${engClassName} - ${classDay} ${classTime}`;
     });
-    console.log('NEW class avail: ', availClassesResult);
+    console.log('BUILD METRICS: Class avail after parse and rollup: ', availClassesResult);
 
     // Rollup class availabilty by day of week and time in order to calculate average class size
     var classAvailGrouped = d3.nest().key(function(i) {
@@ -2590,7 +2689,7 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
         });        
         val.avgPercentFull = ((val.totalSlots - val.totalSlotsAvail) / val.totalSlots) * 100;        
     });
-    console.log('Class avail grouped: ', classAvailGrouped);
+    console.log('BUILD METRICS: Class avail grouped: ', classAvailGrouped);
 
     // Push data points to 2-dimensional array for charting
     // var classesFull = [];
@@ -2609,39 +2708,44 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
             // Find index of cert type and push class full data to array
             // Also push total class full percentage to sort by total later
             index = classFullByCert.findIndex(obj => obj.name === i2);            
-            classFullByCert[index].data.push([i, val2, val.avgPercentFull]);            
+            classFullByCert[index].data.push([i, val2, val.avgPercentFull]);
         });
     });
-    console.log('Class full BY CERT: ', classFullByCert);
+    console.log('BUILD METRICS: Class full BY CERT: ', classFullByCert);
+    
+    // Loop through each cert in classes full by certs array and sort all values by TOTAL in index 2
+    // This still doesn't quite get a perfectly sorted stacked bar but it's close
+    for (let i = 0; i < classFullByCert.length; i++) {
+        classFullByCert[i].data.sort(function(a, b) {
+            var aName = a[0].toLowerCase();
+            var bName = b[0].toLowerCase();
+            var aTotal = a[2];
+            var bTotal = b[2];
+            
+            if (aTotal === bTotal) {
+                return ((aName < bName) ? -1 : ((aName > bName) ? 1 : 0));
+            } else {
+                return ((aTotal > bTotal) ? -1 : ((aTotal < bTotal) ? 1 : 0));
+            }
+        });
+    }
 
-    // Sort array by class full percentage for chart display
-    // classesFull.sort(function(a, b) {
-        // return b[1] - a[1];
-    // }); 
-    // console.log('Classes full: ', classesFull);
-
-    // Sort classes full by cert array by array at index 0 for chart display
-    // Looks at 3rd position of array, which contains the total pct full for each type of class
-    // This will only sort for the cert types present in the first cert, which is typically DDY MEMBER
-    classFullByCert[0].data.sort(function(a, b) {        
-        return b[2] - a[2];
-    });
-    console.log('Class full BY CERT SORTED: ', classFullByCert);
+    console.log('BUILD METRICS: Class full BY CERT SORTED: ', classFullByCert);
     
     // Calculate average percent full for average line
-    totalAppts = appointmentsResult.length;
+    totalAppts = apptsForLoc.length;
 
     // Rollup class availabilty by day of week and time in order to calculate average class size
-    var totalSlots = d3.nest().rollup(function(i) { return {        
+    var totalSlots = d3.nest().rollup(function(i) { return {
         slots: d3.sum(i, function(i) { return i.slots; }),
         };
     }).object(availClassesResult);
 
     var totalPctFull = ((totalAppts / totalSlots.slots) * 100).toFixed(1);
 
-    console.log('total appts: ', totalAppts);
-    console.log('total slots: ', totalSlots.slots);
-    console.log(`Avg percent avail: ${totalPctFull}%`);
+    console.log('BUILD METRICS: Total appts: ', totalAppts);
+    console.log('BUILD METRICS: Total slots: ', totalSlots.slots);
+    console.log(`BUILD METRICS: Avg percent avail: ${totalPctFull}%`);
 
     // CHART #2 END
 
@@ -2656,13 +2760,13 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
         }
     }).rollup(function(i) {
         return i.length;
-    }).entries(appointmentsResult);
+    }).entries(apptsForLoc);
     
     // Filter out NON-MEMBER appointsments from student counts array
     apptsByStudentCounts = $(apptsByStudentCounts).filter((i) => {
         return (apptsByStudentCounts[i].key != 'Non-member');
     });
-    console.log('apptsByStudentCounts for DDY members ONLY: ', apptsByStudentCounts);
+    console.log('BUILD METRICS: apptsByStudentCounts for DDY members ONLY: ', apptsByStudentCounts);
 
     // Push values to 2-dimensional array and sort from top to bottom
     var appointmentsByStudent = [];    
@@ -2676,7 +2780,7 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
     // Reduce to top XX students only
     var numOfStudents = 150;
     appointmentsByStudent.length = numOfStudents;
-    console.log('Appts by student sorted and reduced: ', appointmentsByStudent);
+    console.log('BUILD METRICS: Appts by student sorted and reduced: ', appointmentsByStudent);
     // CHART #3 END
 
     // Build appointments chart
@@ -2706,6 +2810,10 @@ async function buildStudioMetricsCharts(fromDate, toDate) {
         }, {
             name: 'DDY Appointments',
             data: apptsByCertDDY,
+            dashStyle: 'dash'
+        }, {
+            name: 'Trial Class Appointments',
+            data: apptsByCertTRIAL,
             dashStyle: 'dash'
         }, {       
             name: 'ClassPass Appointments',
@@ -2978,113 +3086,276 @@ function validateEmail(email) {
     return re.test(String(email).toLowerCase());
 }
 
-// FUNCTION: populateDDYInfo()
+// FUNCTION: getDdyMembers()
 // 1) Retrieve certificates
 // 2) Iterate through and store info on memberships, etc
 // 3) Populate the DDY information div with relevant info
-async function populateDDYInfo() {
-    try {
-        // Retrieve all certificates
-        var funcType = "certificates_get";
-        var activity = "retrieveAllCertificates"	
-        var allCerts = await initApiCall(funcType, activity);
-        console.log('All certificates: ', allCerts);
-        
-        // Initialize vars to hold DDY info numbers
-        var validCerts = 0;
-        var expiredCerts = 0;
-        var goldMembers = 0;
-        var silverBelly = 0;
-        var silverYoga = 0;
-        var packageYoga8 = 0;
-        var packageYoga16 = 0;
-        var packageBelly8 = 0;
-        var packageBelly16 = 0;
-        var otherCerts = [];
-        var today = new Date();
+async function getDdyMembers(allCertificates, $revealedElements) {
+    let ddyMemberReport_t0 = performance.now();
+    var allCerts = allCertificates;
+    if (allCerts.length === 0) {
+        try {
+            // Retrieve all certificates
+            var funcType = "certificates_get";
+            var activity = "retrieveAllCertificates";
+            var params = { ssp: 'getDdyMembersTEST' }; // Remove TEST when ready to go live with SSP
+            allCerts = await initApiCall(funcType, activity, params);
+            console.log('All certificates: ', allCerts);
+        }
+        catch (e) {        
+            console.error('ERROR: Error caught populating DDY info!');
+            console.error(e);
+            var $element = $('#studio_metrics_data_div');
+            $element.html(`Error caught populating DDY member information.  Could not retrieve certificates.`);
+        }
+    } else {
+        console.log('POPULATE DDY INFO: Skipping certificate retrieval, certs already populated.');
+    }
+    let ddyMemberReport_t1 = performance.now();
+    console.log('DDY Member Report certs API call took: ', (ddyMemberReport_t1 - ddyMemberReport_t0) / 1000, ' seconds');
+    
+    var selectedLocation = retrieveSelectedLocation();
+    console.log(`POPULATE DDY INFO: Populating DDY info for location: ${selectedLocation}`);
+    
+    // Filter allCerts array for selected DDY studio location - no need to send revealed elements as necessary elements already revealed
+    var certsForLocation = allCerts;
+    if (selectedLocation !== 'all') {
+        certsForLocation = await filterProductsClasses(null, selectedLocation, allCerts);
+    }
+    console.log(`POPULATE DDY INFO: List of certificates filtered for ${selectedLocation}:`, certsForLocation);
 
-        // Iterate through all certificates to determine member type
-        $.each(allCerts, (i, val) => {
-            var certExpiryString = val.expiration;
-            var certExpiry = new Date(certExpiryString);	
-            if (certExpiry < today) {                
-                expiredCerts++;
-            } else {
-                validCerts++;
-                var certType = allCerts[i].name;
+    // FUTURE FUNCTIONALITY - CAPTURE SUBSCRIPTONS AND PACKAGE TYPES IN ARRAY / OBJECT AND LOOP THROUGH FOR DISPLAY
+    // UPDATE LOGIC BELOW TO CHECK CERTS TEXT FOR CORRECT PRODUCT NAMES
+
+    // Populate Dream Dance and Yoga membership / package types and text to match
+    var DDYpackages = {
+        gold: ['GOLD Membership'],
+        silverDanceAndYoga: ['Silver Membership'],
+        danceAndYoga8ClassPackage: ['Dance and Yoga 8'],
+        danceAndYoga16ClassPackage: ['Dance and Yoga 16'],
+    }
+
+    // Initialize vars to hold DDY info numbers
+    var validCerts = 0;
+    var expiredCerts = 0;
+    var goldMembers = 0;
+    var silverDance = 0;
+    var silverYoga = 0;
+    var silverDanceAndYoga = 0;
+    var packageYoga8 = 0;
+    var packageYoga16 = 0;
+    var packageDance8 = 0;
+    var packageDance16 = 0;
+    var packageDanceAndYoga8 = 0;
+    var packageDanceAndYoga16 = 0;
+    var packageDanceAndYoga1Year = 0;
+    var otherCerts = [];
+    var today = new Date();
+
+    // Iterate through all certificates for selected location to determine member type
+    $.each(certsForLocation, (i, val) => {
+        var certExpiryString = val.expiration;
+        var certExpiry = new Date(certExpiryString);	
+        if (certExpiry < today) {
+            expiredCerts++;
+        } else {
+            validCerts++;
+            var certType = val.name;
+            if (!certType.includes('COVID')) {
                 if (certType.includes('GOLD')) {
                     goldMembers++;
                 } else if (certType.includes('Silver') && certType.includes('Bellydance')) {
-                    silverBelly++;
+                    silverDance++;
+                } else if (certType.includes('Silver') && certType.includes('Dance and Yoga')) {
+                    silverDanceAndYoga++;
                 } else if (certType.includes('Silver') && certType.includes('Yoga')) {
                     silverYoga++;
                 } else if (certType.includes('Package') && certType.includes('Bellydance 8 Class')) {
-                    packageBelly8++;
+                    packageDance8++;
                 } else if (certType.includes('Package') && (certType.includes('Bellydance 16 Class') || certType.includes('Bellydance 16+8 Class'))) {
-                    packageBelly16++;
+                    packageDance16++;
+                } else if (certType.includes('Package') && certType.includes('Dance and Yoga 8 Class')) {
+                    packageDanceAndYoga8++;
+                } else if (certType.includes('Package') && certType.includes('Dance and Yoga 16')) {
+                    packageDanceAndYoga16++;
                 } else if (certType.includes('Package') && certType.includes('Yoga 8 Class')) {
                     packageYoga8++;
                 } else if (certType.includes('Package') && (certType.includes('Yoga 16 Class') || certType.includes('Yoga 16+8 Class'))) {
                     packageYoga16++;
+                } else if (certType.includes('1 Year')) {
+                    packageDanceAndYoga1Year++;
                 } else {
                     otherCerts.push(val);
                 }
             }
-        });
-        console.log('Valid OTHER certificates: ', otherCerts);
+        }
+    });
+    console.log('POPULATE DDY INFO: Valid OTHER certificates: ', otherCerts);
+    let ddyMemberReport_t2 = performance.now();
+    console.log('DDY Member Report total function took: ', (ddyMemberReport_t2 - ddyMemberReport_t0) / 1000, ' seconds');
 
-        // Calculate total number of members in each category
-        var totalMembers = goldMembers + silverYoga + silverBelly;
-        console.log(`Valid certs: ${validCerts}`);
-        console.log(`Expired certs: ${expiredCerts}`);
+    // Calculate total number of members in each category
+    var totalMembers = goldMembers + silverYoga + silverDance + silverDanceAndYoga;
+    console.log(`POPULATE DDY INFO: Valid certs: ${validCerts}`);
+    console.log(`POPULATE DDY INFO: Expired certs: ${expiredCerts}`);
 
-        // Populate DDY info element
-        var $element = $('#ddy_card_1');
-        $element.html(`<div class="ddy-card-heading">TOTAL MEMBERS</div>
-                        <div class="ddy-card-text">${totalMembers}</div>
-                        <div class="ddy-card-subtext">As of today</div>`);
-        
-        var $element = $('#ddy_card_2');
-        $element.html(`<div class="ddy-card-heading">GOLD MEMBERS</div>
-                        <div class="ddy-card-text">${goldMembers}</div>
-                        <div class="ddy-card-subtext">As of today</div>`);
-
-        var $element = $('#ddy_card_3');
-        $element.html(`<div class="ddy-card-heading">SILVER MEMBERS<br>BELLY DANCE</div>
-                        <div class="ddy-card-text">${silverBelly}</div>
-                        <div class="ddy-card-subtext">As of today</div>`);
-        
-        var $element = $('#ddy_card_4');
-        $element.html(`<div class="ddy-card-heading">SILVER MEMBERS<br>YOGA</div>
-                        <div class="ddy-card-text">${silverYoga}</div>
-                        <div class="ddy-card-subtext">As of today</div>`);
-        
-        var $element = $('#ddy_card_5');
-        $element.html(`<div class="ddy-card-heading">PACKAGES<br>YOGA (8 CLASS)</div>
-                        <div class="ddy-card-text">${packageYoga8}</div>
-                        <div class="ddy-card-subtext">As of today</div>`);
-        
-        var $element = $('#ddy_card_6');
-        $element.html(`<div class="ddy-card-heading">PACKAGES<br>YOGA (16 CLASS)</div>
-                        <div class="ddy-card-text">${packageYoga16}</div>
-                        <div class="ddy-card-subtext">As of today</div>`);
-        
-        var $element = $('#ddy_card_7');
-        $element.html(`<div class="ddy-card-heading">PACKAGES<br>BELLY (8 CLASS)</div>
-                        <div class="ddy-card-text">${packageBelly8}</div>
-                        <div class="ddy-card-subtext">As of today</div>`);
-        
-        var $element = $('#ddy_card_8');
-        $element.html(`<div class="ddy-card-heading">PACKAGES<br>BELLY (16 CLASS)</div>
-                        <div class="ddy-card-text">${packageBelly16}</div>
-                        <div class="ddy-card-subtext">As of today</div>`);
+    // Store links to acuity to drilldown to more details for each box
+    // FUTURE - finish populating this later
+    var ddyAcuityURLs = {
+        'Tai Seng': {
+            allMembers: 'https://secure.acuityscheduling.com/products.php',
+            goldMembers: 'https://secure.acuityscheduling.com/products.php',
+            silverMembers: 'https://secure.acuityscheduling.com/products.php',
+            packageMembers: 'https://secure.acuityscheduling.com/products.php',
+            silverMonthly: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=905606',
+            silverYearly: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=905611',
+            goldMonthly: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=905608',
+            goldYearly: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=905610',
+            eightClassPackage: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=905655',
+            sixteenClassPackage: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=930225'
+        },
+        'Jurong East': {
+            allMembers: 'https://secure.acuityscheduling.com/products.php',
+            goldMembers: 'https://secure.acuityscheduling.com/products.php',
+            silverMembers: 'https://secure.acuityscheduling.com/products.php',
+            packageMembers: 'https://secure.acuityscheduling.com/products.php',
+            silverMonthly: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=905616',
+            silverYearly: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=905615',
+            goldMonthly: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=905614',
+            goldYearly: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=905612',
+            eightClassPackage: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=905657',
+            sixteenClassPackage: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=924859'
+        },
+        'Dhoby Ghaut': {
+            allMembers: 'https://secure.acuityscheduling.com/products.php',
+            goldMembers: 'https://secure.acuityscheduling.com/products.php',
+            silverMembers: 'https://secure.acuityscheduling.com/products.php',
+            packageMembers: 'https://secure.acuityscheduling.com/products.php',
+            silverMonthly: '#',
+            silverYearly: '#',
+            goldMonthly: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=969798',
+            goldYearly: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=969797',
+            eightClassPackage: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=971456',
+            sixteenClassPackage: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=969796'
+        },
+        'Commonwealth': {
+            allMembers: 'https://secure.acuityscheduling.com/products.php',
+            goldMembers: 'https://secure.acuityscheduling.com/products.php',
+            silverMembers: 'https://secure.acuityscheduling.com/products.php',
+            packageMembers: 'https://secure.acuityscheduling.com/products.php',
+            silverMonthly: '#',
+            silverYearly: '#',
+            goldMonthly: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=969795',
+            goldYearly: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=969793',
+            eightClassPackage: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=971457',
+            sixteenClassPackage: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=969791'
+        },
+        'Tanjong Pagar': {
+            allMembers: 'https://secure.acuityscheduling.com/products.php',
+            goldMembers: 'https://secure.acuityscheduling.com/products.php',
+            silverMembers: 'https://secure.acuityscheduling.com/products.php',
+            packageMembers: 'https://secure.acuityscheduling.com/products.php',
+            silverMonthly: '#',
+            silverYearly: '#',
+            goldMonthly: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=969795',
+            goldYearly: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=969793',
+            eightClassPackage: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=971457',
+            sixteenClassPackage: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=969791'
+        },
+        'all': {
+            allMembers: 'https://secure.acuityscheduling.com/products.php',
+            goldMembers: 'https://secure.acuityscheduling.com/products.php',
+            silverMembers: 'https://secure.acuityscheduling.com/products.php',
+            packageMembers: 'https://secure.acuityscheduling.com/products.php',
+            silverMonthly: '#',
+            silverYearly: '#',
+            goldMonthly: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=969795',
+            goldYearly: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=969793',
+            eightClassPackage: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=971457',
+            sixteenClassPackage: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=969791'
+        }
     }
-    catch (e) {        
-        console.error('ERROR: Error caught populating DDY info!');
-        console.error(e);
-        var $element = $('#studio_metrics_data_div');
-        $element.html(`Error caught populating DDY information.`);        
-    }
+  
+    // Apply links to Acuity to allow users to deep dive member listings
+    var $element = $('#ddy_card_total_href');
+    $element.attr('href', ddyAcuityURLs[selectedLocation].allMembers);
+
+    var $element = $('#ddy_card_gold_href');
+    $element.attr('href', ddyAcuityURLs[selectedLocation].goldMembers);
+
+    var $element = $('#ddy_card_silver_href');
+    $element.attr('href', ddyAcuityURLs[selectedLocation].silverMembers);
+
+    var $element = $('#ddy_card_package_href');
+    $element.attr('href', ddyAcuityURLs[selectedLocation].packageMembers);
+
+    // Populate DDY info element
+    var $element = $('#ddy_card_total');
+    $element.html(`<div class="ddy-card-heading">TOTAL MEMBERS</div>
+                    <div class="ddy-card-text">${totalMembers}</div>
+                    <div class="ddy-card-subtext">As of today</div>`);
+    
+    var $element = $('#ddy_card_gold');
+    $element.html(`<div class="ddy-card-heading">GOLD MEMBERS</div>
+                    <div class="ddy-card-text">${goldMembers}</div>
+                    <div class="ddy-card-subtext">As of today</div>`);
+
+    var $element = $('#ddy_card_silver_dance');
+    $element.html(`<div class="ddy-card-heading">SILVER MEMBERS<br>DANCE</div>
+                    <div class="ddy-card-text">${silverDance}</div>
+                    <div class="ddy-card-subtext">As of today</div>`);
+    
+    var $element = $('#ddy_card_silver_yoga');
+    $element.html(`<div class="ddy-card-heading">SILVER MEMBERS<br>YOGA</div>
+                    <div class="ddy-card-text">${silverYoga}</div>
+                    <div class="ddy-card-subtext">As of today</div>`);
+
+    var $element = $('#ddy_card_silver_dance_and_yoga');
+    $element.html(`<div class="ddy-card-heading">SILVER MEMBERS<br>DANCE + YOGA</div>
+                    <div class="ddy-card-text">${silverDanceAndYoga}</div>
+                    <div class="ddy-card-subtext">As of today</div>`);
+    
+    var $element = $('#ddy_card_yoga_8');
+    $element.html(`<div class="ddy-card-heading">PACKAGES<br>YOGA (8 CLASS)</div>
+                    <div class="ddy-card-text">${packageYoga8}</div>
+                    <div class="ddy-card-subtext">As of today</div>`);
+    
+    var $element = $('#ddy_card_yoga_16');
+    $element.html(`<div class="ddy-card-heading">PACKAGES<br>YOGA (16 CLASS)</div>
+                    <div class="ddy-card-text">${packageYoga16}</div>
+                    <div class="ddy-card-subtext">As of today</div>`);
+    
+    var $element = $('#ddy_card_dance_8');
+    $element.html(`<div class="ddy-card-heading">PACKAGES<br>DANCE (8 CLASS)</div>
+                    <div class="ddy-card-text">${packageDance8}</div>
+                    <div class="ddy-card-subtext">As of today</div>`);
+    
+    var $element = $('#ddy_card_dance_16');
+    $element.html(`<div class="ddy-card-heading">PACKAGES<br>DANCE (16 CLASS)</div>
+                    <div class="ddy-card-text">${packageDance16}</div>
+                    <div class="ddy-card-subtext">As of today</div>`);
+    
+    var $element = $('#ddy_card_dance_and_yoga_8');
+    $element.html(`<div class="ddy-card-heading">PACKAGES<br>D+Y (8 CLASS)</div>
+                    <div class="ddy-card-text">${packageDanceAndYoga8}</div>
+                    <div class="ddy-card-subtext">As of today</div>`);
+
+    var $element = $('#ddy_card_dance_and_yoga_16');
+    $element.html(`<div class="ddy-card-heading">PACKAGES<br>D+Y (16 CLASS)</div>
+                    <div class="ddy-card-text">${packageDanceAndYoga16}</div>
+                    <div class="ddy-card-subtext">As of today</div>`);
+
+    var $element = $('#ddy_card_dance_and_yoga_1_year');
+    $element.html(`<div class="ddy-card-heading">PACKAGES<br>D+Y (1 YEAR)</div>
+                    <div class="ddy-card-text">${packageDanceAndYoga1Year}</div>
+                    <div class="ddy-card-subtext">As of today</div>`);
+
+    // Reveal DDY member report div and put focus
+    var $element = $('#studio_metrics_data_div');
+    $revealedElements = revealElement($element, $revealedElements);
+    window.location.hash = '#studio_metrics_data_div';
+
+    return allCerts;
 }
 
 // FUNCTION: getDdyInstructors()
@@ -3094,30 +3365,15 @@ async function populateDDYInfo() {
 async function getDdyInstructors() {
     // Make API call
     // Initiate performance timer
-    let clientsApiCallt0 = performance.now();
+    let instructorsApiCallt0 = performance.now();
     var funcType = 'clients_search';
     var activity = 'retrieveAllClients';
-    var clientsResult = await initApiCall(funcType, activity);
-    let clientsApiCallt1 = performance.now();
-    console.log('clientsResult is:', clientsResult);
-    console.log('Client API call took: ', (clientsApiCallt1 - clientsApiCallt0), ' milliseconds');
+    var params = { ssp: 'getDdyInstructors' }; // This param will enable server-side processing and return an array of instructors only
+    var instructors = await initApiCall(funcType, activity, params);
+    console.log('Instructors SSP result is:', instructors);
     
-    // Filter clients result to store instructors only by looking for text in the clients notes field
-    // Initiate performance timer
-    let instructorArrayCheckt0 = performance.now();
-    var instructorNote = 'DDY Instructor';
-    var instructorNoteUAT = 'DDY TEST Instructor';
-    
-    var instructors = $(clientsResult).filter((i) => {
-        if (environment === 'UAT') {
-            return (clientsResult[i].notes.includes(instructorNote) || clientsResult[i].notes.includes(instructorNoteUAT));
-        } else {
-            return clientsResult[i].notes.includes(instructorNote);
-        }
-    });
-    let instructorArrayCheckt1 = performance.now();
-    console.log('Instructors is:', instructors);
-    console.log('Instructor array iteration took: ', (instructorArrayCheckt1 - instructorArrayCheckt0), ' milliseconds');
+    let instructorsApiCallt1 = performance.now();
+    console.log('DDY Instructors SSP function took: ', (instructorsApiCallt1 - instructorsApiCallt0) / 1000, ' seconds');
 
     return instructors;
 }
@@ -3138,4 +3394,4 @@ async function populateEnvironment() {
     }
 }
 
-// END UAT FUNCTIONS
+// END PROD FUNCTIONS

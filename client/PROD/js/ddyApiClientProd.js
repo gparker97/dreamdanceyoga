@@ -4,7 +4,7 @@
 		<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 		<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.css">
 		<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
-		<link rel="stylesheet" type="text/css" href="https://sophiadance.squarespace.com/s/loadingSpinner.css"></link>
+		<link rel="stylesheet" type="text/css" href="https://sophiadance.squarespace.com/s/loadingSpinnerRingEase.css"></link>
 		<link rel="stylesheet" type="text/css" href="https://sophiadance.squarespace.com/s/ddy-mystudio-PROD.css"></link>
 	</head>
 	
@@ -75,7 +75,9 @@
 		</div>
 
 		<!-- LOADER DIV -->
-		<div id="loader-div" class="lds-ring hide"><div></div><div></div><div></div><div></div></div>
+		<div id="loader-div" class="loader-ring hide">
+			<div class="loading loading--full-height"></div>
+		</div>
 
 		<div id="details" class="details hide">
 			<div id="details-top"></div>
@@ -111,6 +113,10 @@
 				<select id="select_package_class_dropdown" class="dropdown">
 					<option value="package">....Select One..选择一项....</option>
 				</select> 
+				<span id="select_class_checkbox" class="hide">
+					<input type="checkbox" name="include_old_classes" id="include_old_classes_checkbox" value="false">
+					<label for="include_old_classes_checkbox"><strong>....Include Old Classes..包括结束的课程....</strong></label>
+				</span>
 			</div>
 
 			<!-- PAYMENT METHOD -->
@@ -121,6 +127,7 @@
 					<option value="none">....NONE (No Charge)..免费....</option>
 					<option value="cc-online">....Credit / Debit Card..银行卡....</option>
 					<option value="cashOrBankXfer">....Cash / Cheque / Bank Tranfer..现金或支票或银行转账....</option>
+					<!--option value="cash">....Cash..现金...</option-->
 					<option value="wechat-pay">....WeChat Pay..微信支付....</option>
 				</select>
 				<!-- PAYMENT OPTIONS -->
@@ -173,7 +180,7 @@
 
 			<!-- INSTRUCTOR REPORT -->
 			<div id="instructor_report_div" class="details-item hide">
-				<div id="select_instructor_report_date_div">
+				<div id="select_instructor_report_date_div" class="hide">
 					<p>....Select month: ..选择月份：....<input type="text" id="instructor_report_datepicker" class="margin" /></p>
 				</div>		
 			</div>
@@ -221,23 +228,39 @@
 			<div id="studio_metrics_data_div" class="studio-metrics hide">
 				<br><hr>
 				<div id="ddy_member_div" class="ddy-member-cards">
-					<div id="ddy_total_member_div">
-						<div id="ddy_card_1" class="ddy-card ddy-card-maroon"></div>
-					</div>
-					<div id="ddy_gold_member_div">
-						<div id="ddy_card_2" class="ddy-card ddy-card-gold"></div>
-					</div>
-					<div id="ddy_silver_member_div">
-						<div id="ddy_card_3" class="ddy-card ddy-card-silver"></div>
-						<div id="ddy_card_4" class="ddy-card ddy-card-silver"></div>
-					</div>
-					<div id="ddy_package_member_div">
-						<div id="ddy_card_5" class="ddy-card ddy-card-green"></div>
-						<div id="ddy_card_6" class="ddy-card ddy-card-green"></div>
-						<div id="ddy_card_7" class="ddy-card ddy-card-green"></div>
-						<div id="ddy_card_8" class="ddy-card ddy-card-green"></div>
-					</div>
+					<a id="ddy_card_total_href" href="#" target=_blank>
+						<div id="ddy_total_member_div">
+							<div id="ddy_card_total" class="ddy-card ddy-card-maroon"></div>
+						</div>
+					</a>
+					
+					<a id="ddy_card_gold_href" href="#" target=_blank>
+						<div id="ddy_gold_member_div">
+							<div id="ddy_card_gold" class="ddy-card ddy-card-gold"></div>
+						</div>
+					</a>
+					
+					<a id="ddy_card_silver_href" href="#" target=_blank>
+						<div id="ddy_silver_member_div">
+							<div id="ddy_card_silver_dance" class="ddy-card ddy-card-silver"></div>
+							<div id="ddy_card_silver_yoga" class="ddy-card ddy-card-silver"></div>
+							<div id="ddy_card_silver_dance_and_yoga" class="ddy-card ddy-card-silver"></div>
+						</div>
+					</a>
+					
+					<a id="ddy_card_package_href" href="#" target=_blank>
+						<div id="ddy_package_member_div">
+							<div id="ddy_card_yoga_8" class="ddy-card ddy-card-green"></div>
+							<div id="ddy_card_yoga_16" class="ddy-card ddy-card-green"></div>
+							<div id="ddy_card_dance_8" class="ddy-card ddy-card-green"></div>
+							<div id="ddy_card_dance_16" class="ddy-card ddy-card-green"></div>
+							<div id="ddy_card_dance_and_yoga_8" class="ddy-card ddy-card-green"></div>
+							<div id="ddy_card_dance_and_yoga_16" class="ddy-card ddy-card-green"></div>
+							<div id="ddy_card_dance_and_yoga_1_year" class="ddy-card ddy-card-green"></div>
+						</div>
+					</a>
 				</div>
+				
 				<div id="studio_metrics_data_charts_div" class="ddy-member-cards hide">
 					<br><hr>		
 					<div id="metrics_data_chart_1" class="ddy-data"></div>
@@ -269,10 +292,9 @@
 		var products = [];
 		var productsArrayContains = null;
 		var certificates = [];
+		var allCertificates = [];
 		var upcomingClasses = [];
 		var ddyInstructors = [];
-
-		console.log('*** DEBUG - STARTING DDY SCRIPT - PRODUCTS: ', products);
 
 		// Var to hold selected action from top cards
 		var action = '';
@@ -310,9 +332,6 @@
 
 		// Fill in version and environment details at bottom of page
 		populateEnvironment();
-		
-		// Grab certificates and populate with relevant DDY info
-		populateDDYInfo();
 
 		// EVENT: TOGGLE DARK MODE
 		$('#toggle_dark_mode').on('click', async (e) => {	
@@ -349,6 +368,9 @@
 					// Set submit button element and text
 					$submitButtonElement = $('#buy_class_submit');
 					submitButtonText = '....BUY CLASS SERIES..购买成品系列课....';
+
+					// Set old classes checkbox to be visible
+					$('#select_class_checkbox').removeClass('hide');
 					
 					// Reveal student search form and focus
 					$revealedElements = revealElement($('#search_student_div'), $revealedElements);
@@ -361,6 +383,9 @@
 					$submitButtonElement = $('#buy_single_class_submit');
 					submitButtonText = '....BOOK CLASS..订课....';
 
+					// Hide old classes checkbox
+					$('#select_class_checkbox').addClass('hide');
+
 					// Reveal student search form and focus
 					$revealedElements = revealElement($('#search_student_div'), $revealedElements);
 					$('#search_student_form').focus();
@@ -372,6 +397,9 @@
 					$submitButtonElement = $('#buy_package_submit');
 					submitButtonText = '....BUY PACKAGE..现在购买....';
 					
+					// Hide old classes checkbox
+					$('#select_class_checkbox').addClass('hide');
+
 					// Reveal student search form and focus
 					$revealedElements = revealElement($('#search_student_div'), $revealedElements);
 					$('#search_student_form').focus();
@@ -382,6 +410,9 @@
 					// Set submit button element and text
 					$submitButtonElement = $('#buy_single_class_submit');
 					submitButtonText = '....BOOK CLASS..订课....';
+
+					// Hide old classes checkbox
+					$('#select_class_checkbox').addClass('hide');
 
 					// Reveal student search form and focus
 					$revealedElements = revealElement($('#search_student_div'), $revealedElements);
@@ -407,7 +438,7 @@
 				case 'checkin_table_top':
 					$detailsTop.html('<h2>....CLASS CHECK-IN TABLE..签到表....</h2><hr/>');
 					
-					// Retreive locations and reveal locations dropdown
+					// Retrieve locations and reveal locations dropdown
 					locations = await retrieveLocations(locations, $revealedElements);
 									
 					// Reveal dropdown table and store action
@@ -434,47 +465,19 @@
 					$detailsTop.html('<h2>....INSTRUCTOR REPORT..老师授课清单....</h2><hr/>');
 					var $element = $('#instructor_report_div');
 					$revealedElements = revealElement($element, $revealedElements);
+
+					// Retrieve locations and reveal locations dropdown
+					locations = await retrieveLocations(locations, $revealedElements);
 					
-					// Show datepicker to select month to generate report
-					// Month year only datepicker
-					var $datePickerElement = $("#instructor_report_datepicker");
-					$datePickerElement.datepicker({
-						showOn: "button",
-						buttonImage: "https://sophiadance.squarespace.com/s/calendar-tiny.gif",
-						buttonImageOnly: true,
-						buttonText: '',
-						changeMonth: true,
-						changeYear: true,
-						dateFormat: "M yy",
-						showButtonPanel: true,
-						currentText: "This Month",
-						onChangeMonthYear: function (year, month, inst) {
-							$(this).val($.datepicker.formatDate('M yy', new Date(year, month - 1, 1)));
-						},
-						onClose: function(dateText, inst) {
-							var month = $(".ui-datepicker-month :selected").val();
-							var year = $(".ui-datepicker-year :selected").val();
-							$(this).val($.datepicker.formatDate('M yy', new Date(year, month, 1)));
-							// Reveal and enable submit button
-							var $element = $('#get_instructor_report_submit');
-							$element.prop('disabled', false).removeClass('disabled');
-							$revealedElements = revealElement($element, $revealedElements);
-						}
-					}).focus(function () {
-						$(".ui-datepicker-calendar").hide();
-					});
-					$datePickerElement.focus();
-					
-					// Clear date value from label if it exists
-					$datePickerElement.val('');
 					break;
 				case 'member_report_top':
 					$detailsTop.html('<h2>....DDY MEMBER REPORT..会员人数清单....<a href="#" id="ddy_member_report_title"><i class="fas fa-sync-alt fa-xs margin-small"></i></a></h2>');
 					
-					// Reveal DDY member report div and put focus
-					var $element = $('#studio_metrics_data_div');
-					$revealedElements = revealElement($element, $revealedElements);
-					window.location.hash = '#studio_metrics_data_div';
+					// Retrieve locations and reveal locations dropdown
+					locations = await retrieveLocations(locations, $revealedElements);
+
+					// Add ad-hoc all studios entry to second index to retrieve report for ALL studios
+					$('#select_location_dropdown option').eq(1).before($('<option value="all_locations">ALL Locations</option>'));
 
 					// EVENT: REFRESH DDY MEMBER REPORT button click
 					$('#ddy_member_report_title').on('click', async (e) => {
@@ -489,12 +492,18 @@
 						}
 						
 						// Refresh DDY member report details
-						await populateDDYInfo();
+						allCertificates = await getDdyMembers(allCertificates, $revealedElements);
 					});
 
 					break;
 				case 'studio_metrics_top':
 					$detailsTop.html('<h2>....DDY STUDIO METRICS..会员出勤表....</h2><hr/>');
+
+					// Retrieve locations and reveal locations dropdown
+					locations = await retrieveLocations(locations, $revealedElements);
+
+					// Add ad-hoc all studios entry to second index to retrieve report for ALL studios
+					$('#select_location_dropdown option').eq(1).before($('<option value="all_locations">ALL Locations</option>'));
 					
 					// Reveal datepicker
 					var $element = $('#studio_metrics_div');
@@ -612,23 +621,16 @@
 			confirmPaymentDetails(event, action, products, $revealedElements, $submitButtonElement, submitButtonText);
 		});
 
-		// EVENT: LOCATION DROPDOWN CHANGE
-		$('#select_location_dropdown').change(async (e) => {
+		// EVENT: LOCATION DROPDOWN or old classes checkbox CHANGE
+		$('#select_location_dropdown, #include_old_classes_checkbox').change(async (e) => { // add old clsses checkbox change alsp
 			e.preventDefault();
 			console.log(`Event captured: ${e.currentTarget.id}`);
 			console.log(e);
 			// Clear any error message
 			writeMessage('error', "");
 
-			// Capture selected location and parse down to location name for product / class selection
-			selectedLocation = $('#select_location_dropdown').val();
-			selectedLocation = selectedLocation.split(',')[0].trim();
-			if (selectedLocation.includes('@')) {
-				selectedLocation = selectedLocation.split('@')[1].trim();
-			} else {
-				selectedLocation = 'Tai Seng';
-			}
-			console.log(`Selected location: ${selectedLocation}`);
+			selectedLocation = retrieveSelectedLocation();
+			console.log(`LOCATION DROPDOWN OR OLD CLASSES CHECKBOX CHANGE: Selected location: ${selectedLocation}`);
 
 			// Take appropriate action based on user action (Buy package, check-in table, etc)
 			switch (action) {
@@ -636,6 +638,72 @@
 				case 'pastDate':
 					// Populate upcoming classes dropdown
 					upcomingClasses = await retrieveUpcomingClasses(action, selectedLocation, upcomingClasses, $revealedElements);
+
+					// Reveal class check-in table dropdown and enable button to generate table
+					var $element = $('#generate_checkin_table_div');
+					$revealedElements = revealElement($element, $revealedElements);
+					$('#upcoming_classes_dropdown').focus();
+
+					break;
+				case 'member_report_top':
+					allCertificates = await getDdyMembers(allCertificates, $revealedElements);
+					break;
+				case 'instructor_report_top':
+					// Show datepicker to select month to generate report
+					// Month year only datepicker
+					
+					// Reveal instructor report datepicker
+					var $element = $('#select_instructor_report_date_div');
+					$revealedElements = revealElement($element, $revealedElements);
+
+					var $datePickerElement = $("#instructor_report_datepicker");
+					$datePickerElement.datepicker({
+						showOn: "button",
+						buttonImage: "https://sophiadance.squarespace.com/s/calendar-tiny.gif",
+						buttonImageOnly: true,
+						buttonText: '',
+						changeMonth: true,
+						changeYear: true,
+						dateFormat: "M yy",
+						showButtonPanel: true,
+						currentText: "This Month",
+						onChangeMonthYear: function (year, month, inst) {
+							$(this).val($.datepicker.formatDate('M yy', new Date(year, month - 1, 1)));
+						},
+						onClose: function(dateText, inst) {
+							var month = $(".ui-datepicker-month :selected").val();
+							var year = $(".ui-datepicker-year :selected").val();
+							$(this).val($.datepicker.formatDate('M yy', new Date(year, month, 1)));
+							
+							// Reveal and enable instructor report submit button
+							var $element = $('#get_instructor_report_submit');
+							$element.prop('disabled', false).removeClass('disabled');
+							$revealedElements = revealElement($element, $revealedElements);
+						}
+					}).focus(function () {
+						$(".ui-datepicker-calendar").hide();
+					});
+					$datePickerElement.focus();
+					
+					// Clear date value from label if it exists
+					$datePickerElement.val('');
+
+					break;
+				case 'studio_metrics_top':
+					// Refresh studio metrics for new location
+
+					// Get date range from datepicker
+					let selectedDateFrom = $('#metrics_date_range_from').datepicker('getDate');
+					let selectedDateTo = $('#metrics_date_range_to').datepicker('getDate');
+
+					if (selectedDateFrom && selectedDateTo) {
+						// Populate DDY member report details
+						allCertificates = await getDdyMembers(allCertificates, $revealedElements);
+						
+						// GET APPOINTMENTS DATA AND BUILD CHARTS
+						let result = await buildStudioMetricsCharts(selectedDateFrom, selectedDateTo);
+					}
+
 					break;
 				default:
 					// Populate products / classes array if not populated already
@@ -826,6 +894,10 @@
 					} else {
 						certificatesOutput += `<strong>Expiry:</strong> <span id="certificate_expiry" class="certificate-valid"><strong>${certificates[i].expiration}</strong></span><br>`;
 					}
+
+					// Add HTML button to delete code
+					var buttonID = `delete_code_submit_${certificates[i].certificate}`;
+					certificatesOutput += `<button type="button" id=${buttonID} class="submit-button-delete-small">....DELETE CODE..删除....</button>`
 					
 					// Output a line unless at last certificate
 					if (i !== (certificates.length - 1)) {
@@ -838,11 +910,35 @@
 			
 			// Add number of appointments booked
 			certificatesOutput += `<hr><strong>Appointments booked:</strong> ${apptsBooked}`;
-			
+
 			// Generate modal message with certificate details
 			var selectedStudent = $('#search_student_dropdown option:selected').text();
 			var message = { title: `PACKAGES: ${selectedStudent}`, body: certificatesOutput };
 			writeMessage('modal', message);
+
+			// EVENT: Capture delete code submit
+			$('.submit-button-delete-small').on('click', async (e) => {
+				e.preventDefault();
+				console.log(`Event captured: ${e.currentTarget.id}`);
+				console.log(e);
+
+				// Cache delete button element to update properties after code deletion attempt
+				var $deleteButtonElement = $(`#${e.currentTarget.id}`);
+
+				// Capture delete code and search through certificates array and find ID of code to send for deletion
+				var codeToDelete = e.currentTarget.id.split('_')[3];
+				var codeIdToDelete = certificates.find(x => x.certificate === codeToDelete).id;
+				console.log(`Code to delete: ${codeToDelete} and ID: ${codeIdToDelete}`);
+				
+				// Make API call to delete student code and disable button if successful
+				var deleteCodeResult = await deleteCode(codeIdToDelete);
+				
+				if (deleteCodeResult) {
+					$deleteButtonElement.text('DELETED').prop('disabled', true).addClass('disabled');
+				} else {
+					$deleteButtonElement.text('ERROR').prop('disabled', true).addClass('disabled');
+				}
+			});
 
 			// CLEAN UP: Re-enable view packages submit button, clear search dropdown
 			$('#view_packages_submit').prop('disabled', false).removeClass('disabled');
@@ -921,7 +1017,9 @@
 					// As long as value is selected enable submit button and apply submit text
 					let selectedClassVal = $('#select_package_class_dropdown').val();
 					if (selectedClassVal !== 'Select One' ) {
-						$submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);
+						// Perhaps no need to add multi-language submit button text here, causes issues as added after multilingualizer has parsed text
+						// $submitButtonElement.prop('disabled', false).removeClass('disabled').val(submitButtonText);
+						$submitButtonElement.prop('disabled', false).removeClass('disabled');
 						var $element = $('#buy_single_class_submit');
 						$revealedElements = revealElement($element, $revealedElements);
 					} else {
@@ -1214,7 +1312,7 @@
 				console.error(`GENERATE CHECK-IN TABLE: Error generating check-in table: ${e.responseText}`);
 				console.error(e);
 				var message = { title: 'ERROR', body: "Error retrieving appointments, please try again." };
-				writeMessage('modal', message);	
+				writeMessage('modal', message);
 			}
 		});
 		
@@ -1287,19 +1385,32 @@
 			
 			console.log(`SUBMIT: Selected date range is ${selectedDateFrom} TO ${selectedDateTo}`);
 
+			// Populate DDY member report details
+			allCertificates = await getDdyMembers(allCertificates, $revealedElements);
+
 			// GET APPOINTMENTS DATA AND BUILD CHARTS
-			var result = await buildStudioMetricsCharts(selectedDateFrom, selectedDateTo);
-					
-			if (result) {
-				// Reveal studio metrics containers and re-enable submit button
-				var $element = $('#studio_metrics_data_div');
-				$revealedElements = revealElement($element, $revealedElements);
+			if (allCertificates) {
+				var result = await buildStudioMetricsCharts(selectedDateFrom, selectedDateTo);
+						
+				if (result) {
+					// Reveal studio metrics containers and re-enable submit button
+					var $element = $('#studio_metrics_data_div');
+					$revealedElements = revealElement($element, $revealedElements);
 
-				var $element = $('#studio_metrics_data_charts_div');
-				$revealedElements = revealElement($element, $revealedElements);
+					var $element = $('#studio_metrics_data_charts_div');
+					$revealedElements = revealElement($element, $revealedElements);
 
-				var $element = $('#studio_metrics_submit');
-				$element.prop('disabled', false).removeClass('disabled');
+					var $element = $('#studio_metrics_submit');
+					$element.prop('disabled', false).removeClass('disabled');
+				} else {
+					console.error(`GET STUDIO METRICS: Error generating studio metrics`);				
+					var message = { title: 'ERROR', body: "Error retrieving studio metrics, please try again." };
+					writeMessage('modal', message);	
+				}
+			} else {
+				console.error(`GET STUDIO METRICS: Error retrieving DDY member info`);				
+				var message = { title: 'ERROR', body: "Error retrieving DDY member info, please try again." };
+				writeMessage('modal', message);
 			}
 		});
 	});

@@ -14,6 +14,7 @@ server/old_scripts
 server/test
 client/old_scripts
 client/test
+client/js/squarespace
 temp/
 utils/
 .git-rewrite

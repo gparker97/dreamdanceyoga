@@ -1,0 +1,27 @@
+.loader-ring div {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    z-index: 1000;
+}
+
+.loading {
+    display: flex;
+    justify-content: center;
+}
+
+.loading::after {
+    content: "";
+    width: 35px;
+    height: 35px;
+    border: 7px solid #ffffff;
+    border-top-color: maroon;
+    border-radius: 50%;
+    animation: loading 1s ease infinite;
+}
+
+@keyframes loading {
+    to {
+        transform: rotate(1turn);
+    }
+}

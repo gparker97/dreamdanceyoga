@@ -23,7 +23,7 @@ const stripeTest = require('stripe')(stripeSecretTest);
 const stripe = require('stripe')(stripeSecretLive);
 
 // Version
-const ddyRestControllerVersion = '2.1.3';
+const ddyRestControllerVersion = '2.2.2';
 
 // DEBUG mode
 const debug = true;
@@ -51,6 +51,43 @@ var xeroActiveTenantId;
 // Declare var to hold studio location
 var location;
 var locationPretty;
+
+// **** XERO INFO ****
+// Store Xero tenant location IDs for each studio location
+const xeroTenantIds = {};
+xeroTenantIds.taiSengSoleProp = '179403c3-ae56-49d2-aead-0f5d9b309721';
+xeroTenantIds.taiSeng = 'd6aa2084-d5d6-4224-a8f7-21d1cd9a7aa1';
+xeroTenantIds.jurongEast = 'af44f83f-37d5-4099-b536-7dfb5cb96c9a';
+xeroTenantIds.commonwealth = '06f2d4f9-d6e0-4319-b8bb-1722bdd5cda0';
+xeroTenantIds.dhobyGhaut = 'b890d0c9-6679-42dd-86da-d93d5a5d96d8';
+xeroTenantIds.tanjongPagar = 'a765da37-ad87-4a99-81f6-e5974161fbac';
+
+// Store Xero bank account IDs (retrieved from Xero UI) for each studio location
+const xeroTaiSeng = {
+    mainBank: 'cafc3de3-14e3-4731-ba2c-1012d9c299c5',
+    cash: '35DED679-3A25-46F2-8C11-A9F83F1B0EE2'
+}
+
+const xeroJurongEast = {
+    mainBank: '62AC05CD-D128-4B70-BD09-1CD7CA8F68A6',
+    cash: '460A0BFF-52F5-46FB-8318-87722D9E4DEF'
+}
+
+const xeroCommonwealth = {
+    mainBank: 'FB20DE6C-927F-47CE-BE6E-3C95A796A5D0',
+    cash: '8EC723A4-F0EB-462F-91EA-E8D4F40B5C8A'
+}
+
+const xeroDhobyGhaut = {
+    mainBank: '59F13B0E-7E4F-4365-9850-B0A0AF303186',
+    cash: '2A4BEDB6-1BB8-41B6-9789-B8FA330F710D'
+}
+
+const xeroTanjongPagar = {
+    mainBank: '4C260FE6-4272-4259-90C8-AD23556B3A6B',
+    cash: '92E15602-5E96-4D96-9101-4DA98CCEC282'
+}
+// **** END XERO INFO ****
 
 // List of supported DDY API call functions, anything else will return 400
 const supportedFunctions = [
@@ -85,7 +122,7 @@ app.use((req, res, next) => {
     // Intercept OPTIONS method to enable basic auth (not sure why this is needed but it seems to work)
     if (req.method == 'OPTIONS') {
         return res.send(200);
-    } else { 
+    } else {
         // Check and intercept for token request only
         const reqUrl = req.url;
         console.log(`Requested URL: ${reqUrl}`);
@@ -211,6 +248,30 @@ async function refreshXeroTokenSet() {
     }
 }
 
+function getStudioLocation(reqBody) {
+    // Capture and store studio location parameter
+    location = 'tai-seng';
+    if (typeof reqBody.location !== 'undefined') {
+        location = reqBody.location;
+        locationPretty = location.replace(/-/g, ' ');
+        console.log(`GET STUDIO LOCATION: DDY studio location selected: ${locationPretty}`);
+        console.log('GET STUDIO LOCATION: Full request params:', reqBody);
+        delete reqBody.location;
+    }
+    return location;
+}
+
+function getSSP(reqBody) {
+    // Capture and store SSP parameter to determine whether server-side processing is required for query    
+    var ssp = false;
+    if (typeof reqBody.ssp !== 'undefined') {
+        ssp = reqBody.ssp;
+        console.log(`GET SSP: SSP function requested: ${ssp}`);
+        delete reqBody.ssp;
+    }
+    return ssp;
+}
+
 // Unpack params URL from UI and set parameters for API calls
 async function initAcuityAPIcall(req) {
     // Store query details
@@ -252,7 +313,7 @@ async function initAcuityAPIcall(req) {
         body[objectKey][0] = {};
         body[objectKey][0][innerObjectKey] = innerObjectVal;
         
-        console.log('NEW body after object insertion: ', body);
+        console.log('INIT ACUITY API CALL: NEW body after object insertion: ', body);
     }
 
     // Parse the incoming request params to get required data related to the Acuity and Xero API calls
@@ -272,25 +333,15 @@ async function initAcuityAPIcall(req) {
         delete body.noEmail;
     }
 
-    // Capture and store studio location parameter
-    if (typeof body.location !== 'undefined') {
-        location = body.location;
-        locationPretty = location.replace(/-/g, ' ');
-        delete body.location;
-
-        console.log(`DDY studio location selected: ${locationPretty}`);
-        console.log('Full request params:', body);
-    }
-
     // Build Acuity API call URL with params from input URL
     var acuityURL=`/${func}?admin=true`;
     switch (method) {
         case 'GET':
             if (queryIds.length > 0) {
-                var count=0;                
+                var count=0;
                 queryIds.forEach(i => {
                     if (debug) {
-                        console.log(`building URL at query id ${i}`)
+                        console.log(`DEBUG: INIT ACUITY API CALL: Building URL at query id ${i}`)
                     }
                     var queryId = Object.keys(req.query)[count];
                     var queryParam = eval(`req.query.${queryId}`);
@@ -298,7 +349,7 @@ async function initAcuityAPIcall(req) {
                         console.log(`queryId: ${queryId}`);
                         console.log(`queryParam: ${queryParam}`);
                     }
-                    acuityURL+=`&${queryId}=${queryParam}`;                      
+                    acuityURL+=`&${queryId}=${queryParam}`;
                     count++;
                 });
             }
@@ -308,12 +359,12 @@ async function initAcuityAPIcall(req) {
             break;
         case 'PUT':
         case 'DELETE':
-            var idToUpdate = body.id;            
+            var idToUpdate = body.id;
             if (!idToUpdate) {
                 // In some cases PUT requires query parameters as well as JSON body - i.e. clients update PUT
                 // Set query parameters and JSON body with same data for update (duplicate will be ignored)
                 if (queryIds.length > 0) {
-                    var count=0;                
+                    var count=0;
                     queryIds.forEach(i => {
                         if (debug) {
                             console.log(`building URL at query id ${i}`)
@@ -324,17 +375,17 @@ async function initAcuityAPIcall(req) {
                             console.log(`queryId: ${queryId}`);
                             console.log(`queryParam: ${queryParam}`);
                         }
-                        acuityURL+=`&${queryId}=${queryParam}`;                      
+                        acuityURL+=`&${queryId}=${queryParam}`;
                         count++;
                     });
                 }
             } else {
-                acuityURL =`/${func}/${idToUpdate}?admin=true`;                
+                acuityURL =`/${func}/${idToUpdate}?admin=true`;
             }            
             delete body.id;
             break;
         default:
-            return res.status(400).send(`ERROR: Method not supported: ${method}`);
+            return res.status(400).send(`ERROR: INIT ACUITY API CALL: Method not supported: ${method}`);
     }
 
     // If noEmail parameter was sent, append to end of URL to suppress email to student
@@ -375,12 +426,11 @@ async function initAcuityAPIcall(req) {
 
     // Make Acuity API call
     try {
-        console.log(`Starting Acuity API call INSIDE FUNCTION: ${acuityURL}`);
+        console.log(`INIT ACUITY API CALL: Starting API call: ${acuityURL}`);
         return await acuityAPIcall(acuityURL, options);
     }
     catch (e) {
-        console.log(`ERROR: Error caught in acuityAPIcall function: ${acuityURL}`);
-        console.log(e);
+        console.log(`ERROR: INIT ACUITY API CALL: ${acuityURL}`, e);
         return e;
     }    
 }
@@ -392,16 +442,17 @@ function acuityAPIcall(func, options) {
     const acuityPromise = new Promise((resolve, reject) => {
         acuity.request(func, options, (err, res, data) => {
             if (err) { 
-                console.log(`ERROR: Error detected in Acuity API call: ${func}`);                
+                console.log(`ERROR: ACUITY API CALL: ${func}`, err);
                 console.log(options);
                 reject(err);
-            } else {                
-                console.log('acuityAPIcall: Acuity API call completed SUCCESSFULLY!');
+            } else {
+                console.log('ACUITY API CALL: Completed SUCCESSFULLY!');
+                console.log(`ACUITY API CALL: Response status code: ${res.statusCode}`);
                 resolve(data);
             }
         });
     });
-    return acuityPromise;    
+    return acuityPromise;
 }
 
 // Create XERO Invoice if required
@@ -417,25 +468,46 @@ async function createXeroInvoice(params, reqFunc) {
 
     // SET STUDIO LOCATION
     // Set appropriate Xero tenant ID for the studio location received from MyStudio UI
+    
+    // FUTURE - align location var to object name and capture as below in one line:
+    // xeroActiveTenantId = xeroTenantIds[location];
     switch (location) {
         case 'jurong-east':
-            xeroActiveTenantId = 'af44f83f-37d5-4099-b536-7dfb5cb96c9a';
+            xeroActiveTenantId = xeroTenantIds.jurongEast;
+            var xeroLocation = 'jurong-east';
+            break;
+        case 'commonwealth':
+            xeroActiveTenantId = xeroTenantIds.commonwealth;
+            var xeroLocation = 'commonwealth';
+            break;
+        case 'dhoby-ghaut':
+            xeroActiveTenantId = xeroTenantIds.dhobyGhaut;
+            var xeroLocation = 'dhoby-ghaut';
+            break;
+        case 'tanjong-pagar':
+            xeroActiveTenantId = xeroTenantIds.tanjongPagar;
+            var xeroLocation = 'tanjong-pagar';
             break;
         default:
             // Set to Tai Seng by default
-            // ID FOR NEW TAI SENG PTE LTD COMPANY: d6aa2084-d5d6-4224-a8f7-21d1cd9a7aa1
-            // xeroActiveTenantId = 'd6aa2084-d5d6-4224-a8f7-21d1cd9a7aa1';
-            xeroActiveTenantId = '179403c3-ae56-49d2-aead-0f5d9b309721';
+            xeroActiveTenantId = xeroTenantIds.taiSeng;
+            var xeroLocation = 'tai-seng';
             break
     }
-    console.log(`XERO: Xero active tenant for ${location}: ${xeroActiveTenantId}`);
+    console.log(`XERO: Xero active tenant for ${location}: ${xeroLocation} / ${xeroActiveTenantId}`);
+
+    // Perform check to see if requested location matches Xero location, otherwise return error
+    if (location !== xeroLocation) {
+        console.error(`XERO: ERROR: Could not set Xero location, returning...`);
+        return { xeroInvoiceStatus: false, xeroInvoiceStatusMessage: `XERO (${locationPretty}): ERROR: Could not set Xero location. Please contact IT support!` };
+    }
 
     if (reqFunc === 'getXeroInvoice') {
         // Request is to get Xero invoices, store required params
         var startDate = params.startDate;
         var endDate = params.endDate;
         var unpaidOnly = params.unpaidOnly;
-        console.log(`Getting Xero invoices for ${startDate} to ${endDate}...`);
+        console.log(`Getting Xero invoices for studio ${location} from ${startDate} to ${endDate}...`);
         console.log(`Unpaid only: ${unpaidOnly}`);
     } else {        
         // CREATE INVOICE - only create invoice if invoice creation checked on front end
@@ -484,11 +556,16 @@ async function createXeroInvoice(params, reqFunc) {
         }
         const studentIndex = acuityStudentInfo.findIndex(x => x.email == email);
 
+        // Reduce product name to English only
+        var productNameEng = productName.split('|');
+        productNameEng = productNameEng.length > 1 ? productNameEng[1].trim() : productNameEng[0].trim();
+
         if (debug) {
             console.log(`Index for ${productId} is ${productIndex}`);
             console.log(`Index for ${email} is ${studentIndex}`);
             console.log(`Price is: ${price}`);
             console.log(`Product name is: ${productName}`);
+            console.log(`Product name (English) is: ${productNameEng}`);
             console.log(`Student last name is: ${acuityStudentInfo[studentIndex].lastName}`);
         }
 
@@ -552,7 +629,7 @@ async function createXeroInvoice(params, reqFunc) {
             }
             catch (e) {
                 console.error(`XERO ERROR: Error caught creating Xero contact:\n`, e);
-                return { xeroInvoiceStatus: false, xeroInvoiceStatusMessage: `XERO (${locationPretty}): ERROR caught retrieving contact information and failed to create new contact` };
+                return { xeroInvoiceStatus: false, xeroInvoiceStatusMessage: `XERO (${locationPretty}): ERROR caught retrieving contact information and failed to create new contact. Please contact IT support!` };
             }
         }
 
@@ -561,7 +638,7 @@ async function createXeroInvoice(params, reqFunc) {
         // const invoiceStatus = 'DRAFT';
         const invoiceStatus = 'AUTHORISED';
         const tax = 'NoTax';
-        const ref = `${productName} ${acuityStudentInfo[studentIndex].firstName} ${acuityStudentInfo[studentIndex].lastName} (Added by Xero API)`;
+        const ref = `${productNameEng} ${acuityStudentInfo[studentIndex].firstName} ${acuityStudentInfo[studentIndex].lastName} (Added by DDY MyStudio)`;
         const accountCode = 200;
             
         // Calculate due date
@@ -586,7 +663,7 @@ async function createXeroInvoice(params, reqFunc) {
                     reference: eval(`'${ref}'`),
                     lineItems: [
                         {                        
-                            description: eval(`'${productName}'`),
+                            description: eval(`'${productNameEng}'`),
                             unitAmount: eval(`'${price}'`),
                             accountCode: eval(`'${accountCode}'`)
                         }
@@ -634,7 +711,7 @@ async function createXeroInvoice(params, reqFunc) {
     } catch (e) {
         console.error('\nXERO ERROR: Error in XERO invoice retrieval / creation API call:\n', e);
         console.error('\nXERO: API call result:\n', JSON.stringify(xeroResult, undefined, 2));
-        return { xeroInvoiceStatus: false, xeroInvoiceStatusMessage: `XERO (${locationPretty}): ERROR caught retrieving / creating XERO invoice` };
+        return { xeroInvoiceStatus: false, xeroInvoiceStatusMessage: `XERO (${locationPretty}): ERROR caught retrieving / creating XERO invoice. Please contact IT support!` };
     }
 
     // Apply payment to Xero invoice if required
@@ -658,7 +735,7 @@ async function createXeroInvoice(params, reqFunc) {
         } catch (e) {
             console.log('XERO ERROR: Error in XERO apply payment API call');
             xeroResult.xeroPaymentStatus = false;
-            xeroResult.xeroPaymentStatusMessage = `XERO (${locationPretty}): ERROR caught creating XERO payment`;
+            xeroResult.xeroPaymentStatusMessage = `XERO (${locationPretty}): ERROR caught creating XERO payment. Please contact IT support!`;
             return xeroResult;
         }
 
@@ -717,36 +794,22 @@ async function xeroApplyPayment(xeroInvoice, requestParams) {
         console.log(`Applying deposit to invoice: ${paymentAmount}`);
     }
     
-    // LEGACY: Capture Xero Account IDs for old accounts - most of these not used anymore
-    // Xero Accounts:
-    // DDY Bank: 7BF68928-8142-4D96-BA10-89616DD5B514
-    // DDY PTE LTD Bank: cafc3de3-14e3-4731-ba2c-1012d9c299c5
-    // Sophia POSB: 6d788d69-f5dd-47ff-a143-f4f9ec3ea987
-    // Sophia Cash: cdadb1ae-21ef-4a79-9102-384063283939
-    // DDY JE Bank: 62AC05CD-D128-4B70-BD09-1CD7CA8F68A6
-    var xeroAccountIDs = {
-        taiSengBank: '7BF68928-8142-4D96-BA10-89616DD5B514',
-        sophiaBank: '6d788d69-f5dd-47ff-a143-f4f9ec3ea987',
-        sophiaCash: 'cdadb1ae-21ef-4a79-9102-384063283939',
-        jurongEastBank: '62AC05CD-D128-4B70-BD09-1CD7CA8F68A6'
-    };
-
-    // NEW METHOD: Define Xero account IDs for each location (no DB, so hardcode them here) and set to var based on location
-    var xeroTaiSeng = {
-        mainBank: '7BF68928-8142-4D96-BA10-89616DD5B514'
-        // mainBank: 'cafc3de3-14e3-4731-ba2c-1012d9c299c5'
-    }
-
-    var xeroJurongEast = {
-        mainBank: '62AC05CD-D128-4B70-BD09-1CD7CA8F68A6'
-    }
-    
+    // NEW METHOD: Retrieve xero bank account IDs from const defined at top of program
     switch (location) {
         case 'tai-seng':
             var xeroAccounts = xeroTaiSeng;
             break;
         case 'jurong-east':
             var xeroAccounts = xeroJurongEast;
+            break;
+        case 'commonwealth':
+            var xeroAccounts = xeroCommonwealth;
+            break;
+        case 'dhoby-ghaut':
+            var xeroAccounts = xeroDhobyGhaut;
+            break;
+        case 'tanjong-pagar':
+            var xeroAccounts = xeroTanjongPagar;
             break;
         default:
             console.log('ERROR: Studio location not defined');
@@ -759,9 +822,12 @@ async function xeroApplyPayment(xeroInvoice, requestParams) {
             var accountID = xeroAccounts.mainBank;
             var ref = "Paid Cash / Bank Transfer (via DDY MyStudio)";
             break;
+        case 'bankXfer':
+            var accountID = xeroAccounts.mainBank;
+            var ref = "Paid Bank Transfer (via DDY MyStudio)";
+            break;
         case 'cash':
-            // LEGACY - no longer possible via front-end
-            var accountID = xeroAccountIDs.sophiaCash;
+            var accountID = xeroAccounts.cash;
             var ref = "Paid CASH (via DDY MyStudio)";
             break;
         case 'cc-terminal':
@@ -809,7 +875,7 @@ async function xeroApplyPayment(xeroInvoice, requestParams) {
         return xeroPayment;
     } catch (e) {
         console.log('XERO: Error caught in XERO apply payment API call:\n', e);
-        return { xeroPaymentStatus: false, xeroPaymentStatusMessage: "XERO: Error caught in Xero apply payment API call" };
+        return { xeroPaymentStatus: false, xeroPaymentStatusMessage: "XERO: Error caught in Xero apply payment API call. Please contact IT support!" };
     }    
 }
 
@@ -853,19 +919,107 @@ function parseXeroApiCall(xeroInvoice, acuityResult) {
     return acuityResult;
 }
 
+function getDdyInstructors(acuityClients) {
+    
+    var instructorNote = 'DDY Instructor';
+    
+    var instructors = acuityClients.filter(client => client.notes.includes(instructorNote));
+    console.log('GET DDY INSTRUCTORS: Filtered instructors array: ', instructors);
+    
+    return instructors;
+}
+
+function getDdyMembers(allCerts) {    
+    // Initialize object with each locations
+    var today = new Date();
+    var ddyMembers = {};
+    
+    // NEED FUNCTION TO GET DDY LOCATIONS HERE
+    var locations = ['Tai Seng', 'Jurong East', 'Commonwealth', 'Dhoby Ghaut'];
+    
+    locations.forEach((location) => {
+        console.log(`GET DDY MEMBERS: ${location}`);
+        ddyMembers[location] = {};
+
+        // Initialize vars to hold DDY info numbers
+        ddyMembers[location].validCerts = 0;
+        ddyMembers[location].expiredCerts = 0;
+        ddyMembers[location].goldMembers = 0;
+        ddyMembers[location].silverDance = 0;
+        ddyMembers[location].silverYoga = 0;
+        ddyMembers[location].silverDanceAndYoga = 0;
+        ddyMembers[location].packageYoga8 = 0;
+        ddyMembers[location].packageYoga16 = 0;
+        ddyMembers[location].packageDance8 = 0;
+        ddyMembers[location].packageDance16 = 0;
+        ddyMembers[location].packageDanceAndYoga8 = 0;
+        ddyMembers[location].packageDanceAndYoga16 = 0;
+        ddyMembers[location].packageDanceAndYoga1Year = 0;
+        ddyMembers[location].otherCerts = [];
+
+        // Iterate through all certificates to determine member type
+        for (var cert of allCerts) {
+            var certExpiryString = cert.expiration;
+            var certExpiry = new Date(certExpiryString);
+            
+            if (certExpiry < today) { // THIS SHOULD BE MOVED INTO LOCATION BRANCH
+                ddyMembers[location].expiredCerts++;
+            } else {
+                ddyMembers[location].validCerts++;                
+                var certType = cert.name;
+                if (certType.includes(location)) {
+                    if (!certType.includes('COVID')) {
+                        if (certType.includes('GOLD')) {
+                            ddyMembers[location].goldMembers++;
+                        } else if (certType.includes('Silver') && certType.includes('Bellydance')) {
+                            ddyMembers[location].silverDance++;
+                        } else if (certType.includes('Silver') && certType.includes('Dance and Yoga')) {
+                            ddyMembers[location].silverDanceAndYoga++;
+                        } else if (certType.includes('Silver') && certType.includes('Yoga')) {
+                            ddyMembers[location].silverYoga++;
+                        } else if (certType.includes('Package') && certType.includes('Bellydance 8 Class')) {
+                            ddyMembers[location].packageDance8++;
+                        } else if (certType.includes('Package') && (certType.includes('Bellydance 16 Class') || certType.includes('Bellydance 16+8 Class'))) {
+                            ddyMembers[location].packageDance16++;
+                        } else if (certType.includes('Package') && certType.includes('Dance and Yoga 8 Class')) {
+                            ddyMembers[location].packageDanceAndYoga8++;
+                        } else if (certType.includes('Package') && certType.includes('Dance and Yoga 16')) {
+                            ddyMembers[location].packageDanceAndYoga16++;
+                        } else if (certType.includes('Package') && certType.includes('Yoga 8 Class')) {
+                            ddyMembers[location].packageYoga8++;
+                        } else if (certType.includes('Package') && (certType.includes('Yoga 16 Class') || certType.includes('Yoga 16+8 Class'))) {
+                            ddyMembers[location].packageYoga16++;
+                        } else if (certType.includes('1 Year')) {
+                            ddyMembers[location].packageDanceAndYoga1Year++;
+                        } else {
+                            ddyMembers[location].otherCerts.push(cert);
+                        }
+                    }
+                }
+            }
+        }
+    });
+    console.log('GET DDY MEMBERS: DDY members object: ', ddyMembers);
+
+    return ddyMembers;
+}
+
 // DDY REST CONTROLLER / REPEATER API
 // Refactor later as POST to accept JSON body
 app.get('/api/ddy/:function', async (req, res) => {
+    // Start perf timer
+    if (debug) { console.time('ddyApiFunction'); }
+    
     // Get timestamp
     var options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour12: true, hour: 'numeric', minute: 'numeric' };
     var datePretty = new Date().toLocaleString('en-US', options);
     
     console.log(`==== ${datePretty}: DDY REST CONTROLLER v${ddyRestControllerVersion} ====`);
-    console.log(`== API call from ${req.headers.host} @ ${req.headers.origin} at ${req.ip} ==`);    
+    console.log(`== API call from ${req.headers.host} @ ${req.headers.origin} at ${req.ip} ==`);
     
     // Store the requested function and return if function not in supportedFunctions array
     const reqFunc = req.params.function.split('--')[0];
-    console.log(`Requested function: ${reqFunc}`);
+    console.log(`DDY API CALL: Requested function: ${reqFunc}`);
     if (!supportedFunctions.includes(reqFunc)) { return res.status(400).send('Function not supported'); }
 
     // XERO v4: Refresh Xero OAuth2 token if neccesary to ensure it remains current - skip some functions that don't require Xero
@@ -875,9 +1029,15 @@ app.get('/api/ddy/:function', async (req, res) => {
 
         if (!xeroRefreshTokenResult) {
             console.log('XERO: ERROR: Could not refresh Xero tokens - please check ASAP')
-            return res.status(400).send('XERO: ERROR: Could not refresh Xero tokens - please check ASAP');
+            return res.status(400).send('XERO: ERROR: Could not refresh Xero tokens. Please contact IT support!');
         }
     }
+
+    // Retrieve and set location from params to set proper studio location and Xero instance
+    location = getStudioLocation(req.query);
+
+    // Retrieve and set SSP parameter if it exists to determine whether server-side processing has been requested
+    var ssp = getSSP(req.query);
 
     // Invoke proper action based on requested function
     switch (reqFunc) {
@@ -907,12 +1067,15 @@ app.get('/api/ddy/:function', async (req, res) => {
 
             // Check if result is defined and return result
             if (typeof acuityResult != 'undefined') {
-                console.log(`Records returned: ${acuityResult.length}`);
+                console.log(`DDY API CALL: Records returned: ${acuityResult.length}`);
                 if (acuityResult.status_code >= 400) {
-                    return res.status(400).send(`ERROR: Error 400 or higher occured\nStatus Code: ${acuityResult.status_code}\nError Message: ${acuityResult.message}`);
+                    return res.status(400).send(`ERROR: DDY API CALL: Error 400 or higher occured\nStatus Code: ${acuityResult.status_code}\nError Message: ${acuityResult.message}`);
                 } else if (acuityResult.length < 1) {
-                    console.log(`acuityAPIcall: COMPLETED NO RECORDS - returning 400 response to server: ${reqFunc}`);
+                    console.log(`DDY API CALL: COMPLETED NO RECORDS - returning 200 response to server: ${reqFunc}`);
                     return res.status(200).send('No records returned');
+                } else if (typeof acuityResult == 'string' && acuityResult.includes('Gateway Time-out')) {
+                    console.log(`DDY API CALL: GATEWAY TIMEOUT - returning 400 response to server: ${reqFunc}`);
+                    return res.status(400).send('Acuity gateway timeout - please try again');
                 } else {
                     // Store Acuity API call responses (in case required for future use) and perform further actions
                     switch (reqFunc) {
@@ -946,14 +1109,32 @@ app.get('/api/ddy/:function', async (req, res) => {
                     }
                     console.log(`acuityAPIcall: COMPLETED SUCCESSFUL - returning 200 response to server: ${reqFunc}`);
                     if (debug) {
-                        console.log('DEBUG: Acuity API call response:');
+                        console.log('DEBUG: DDY API CALL: API call response before server-side processing:');
                         console.log(JSON.stringify(acuityResult, undefined, 2));
                     }
+
+                    // If server-side processing has been requested, call the appropriate function
+                    if (ssp) {
+                        console.log(`acuityAPIcall: SSP: Server side processing requested: ${ssp}`);
+                        switch (ssp) {                            
+                            case 'getDdyInstructors':
+                                acuityResult = getDdyInstructors(acuityResult);
+                                break;
+                            case 'getDdyMembers':
+                                acuityResult = getDdyMembers(acuityResult);
+                                break;
+                        }
+                    }
+
+                    // Print performance result
+                    if (debug) { console.timeEnd('ddyApiFunction'); }
+
+                    // Return response to client
                     return res.status(200).send(acuityResult);
                 }
             } else {
-                console.log('acuityAPIcall: acuityResult is undefined')
-                return res.status(400).send('ERROR: acuityResult is undefined');
+                console.log('DDY API CALL: Acuity API call response is undefined');
+                return res.status(200).send('DDY API CALL: Acuity API call response is undefined');
             }
     }
 });

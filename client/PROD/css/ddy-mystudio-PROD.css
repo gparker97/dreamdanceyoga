@@ -359,6 +359,16 @@
     font-weight: bold;
 }
 
+.submit-button-delete-small {
+    background-color: maroon;
+    color: white;
+    font-size: 50%;
+}
+
+.submit-button-delete-small:hover:enabled {
+    font-weight: bold;
+}
+
 .submit-button-large {
     font-size: 180%;
     font-weight: bold;

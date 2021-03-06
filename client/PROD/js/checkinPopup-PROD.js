@@ -3,7 +3,7 @@
 	<head>
       	<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
         <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.css"></link>
-        <link rel="stylesheet" type="text/css" href="https://sophiadance.squarespace.com/s/loadingSpinner.css"></link>
+        <link rel="stylesheet" type="text/css" href="https://sophiadance.squarespace.com/s/loadingSpinnerRingEase.css"></link>
         <link rel="stylesheet" type="text/css" href="https://sophiadance.squarespace.com/s/ddy-mystudio-PROD.css"></link>
         <style type="text/css">
             html, body {
@@ -25,7 +25,9 @@
         <div id="spacer_div" class="spacer"></div>
         
         <!-- LOADING DIV -->
-        <div id="loader-div" class="lds-ring hide"><div></div><div></div><div></div><div></div></div>
+        <div id="loader-div" class="loader-ring hide">
+			<div class="loading loading--full-height"></div>
+		</div>
 
         <!-- Placeholder HTML table for student check-in list - populated by DataTable() -->    
         <div id="checkin_table_div">

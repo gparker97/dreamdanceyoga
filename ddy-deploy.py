@@ -32,10 +32,12 @@ if len(sys.argv) > 1:
 ddy_file_data = []
 
 ## Set local location of files
-client_home = 'F:\Google Drive - info@dreamdanceyoga\Dream Dance and Yoga\Documents\Website Code\\node\dreamdancenodeapp\express-acuity-secure\client\\'
-server_home = 'F:\Google Drive - info@dreamdanceyoga\Dream Dance and Yoga\Documents\Website Code\\node\dreamdancenodeapp\express-acuity-secure\server\\'
-subdir_js = 'js\\'
-subdir_css = 'css\\'
+client_home = 'F:\Google Drive - info@dreamdanceyoga\Dream Dance and Yoga\Documents\Website Code\\node\dreamdancenodeapp\express-ddy-secure\client\\'
+server_home = 'F:\Google Drive - info@dreamdanceyoga\Dream Dance and Yoga\Documents\Website Code\\node\dreamdancenodeapp\express-ddy-secure\server\\'
+prod_dir = 'PROD\\'
+uat_dir = 'UAT\\'
+js_dir = 'js\\'
+css_dir = 'css\\'
 backup_dir = 'old_scripts'
 
 ## DDY CLIENT FUNCTIONS JS
@@ -45,8 +47,8 @@ ddy_client_functions['copy'] = True
 ddy_client_functions['static'] = True
 ddy_client_functions['UAT_FILE'] = 'ddyApiClientFunctions-UAT.js'
 ddy_client_functions['PROD_FILE'] = 'ddyApiClientFunctions-PROD.js'
-ddy_client_functions['FULL_PATH_UAT'] = client_home + subdir_js + ddy_client_functions['UAT_FILE']
-ddy_client_functions['FULL_PATH_PROD'] = client_home + subdir_js + ddy_client_functions['PROD_FILE']
+ddy_client_functions['FULL_PATH_UAT'] = client_home + uat_dir + js_dir + ddy_client_functions['UAT_FILE']
+ddy_client_functions['FULL_PATH_PROD'] = client_home + prod_dir + js_dir + ddy_client_functions['PROD_FILE']
 ddy_file_data.append(ddy_client_functions)
 
 ## DDY CLIENT HTML+JS
@@ -56,8 +58,8 @@ ddy_client_html['copy'] = True
 ddy_client_html['static'] = False
 ddy_client_html['UAT_FILE'] = 'ddyApiClientUAT.js'
 ddy_client_html['PROD_FILE'] = 'ddyApiClientPROD.js'
-ddy_client_html['FULL_PATH_UAT'] = client_home + subdir_js + ddy_client_html['UAT_FILE']
-ddy_client_html['FULL_PATH_PROD'] = client_home + subdir_js + ddy_client_html['PROD_FILE']
+ddy_client_html['FULL_PATH_UAT'] = client_home + uat_dir + js_dir + ddy_client_html['UAT_FILE']
+ddy_client_html['FULL_PATH_PROD'] = client_home + prod_dir + js_dir + ddy_client_html['PROD_FILE']
 ddy_file_data.append(ddy_client_html)
 
 ## DDY CHECK-IN POPUP
@@ -67,8 +69,8 @@ ddy_checkin_popup['copy'] = True
 ddy_checkin_popup['static'] = False
 ddy_checkin_popup['UAT_FILE'] = 'checkinPopup-UAT.js'
 ddy_checkin_popup['PROD_FILE'] = 'checkinPopup-PROD.js'
-ddy_checkin_popup['FULL_PATH_UAT'] = client_home + subdir_js + ddy_checkin_popup['UAT_FILE']
-ddy_checkin_popup['FULL_PATH_PROD'] = client_home + subdir_js + ddy_checkin_popup['PROD_FILE']
+ddy_checkin_popup['FULL_PATH_UAT'] = client_home + uat_dir + js_dir + ddy_checkin_popup['UAT_FILE']
+ddy_checkin_popup['FULL_PATH_PROD'] = client_home + prod_dir + js_dir + ddy_checkin_popup['PROD_FILE']
 ddy_file_data.append(ddy_checkin_popup)
 
 ## DDY MYSTUDIO CSS
@@ -78,8 +80,8 @@ ddy_mystudio_CSS['copy'] = True
 ddy_mystudio_CSS['static'] = True
 ddy_mystudio_CSS['UAT_FILE'] = 'ddy-mystudio-UAT.css'
 ddy_mystudio_CSS['PROD_FILE'] = 'ddy-mystudio-PROD.css'
-ddy_mystudio_CSS['FULL_PATH_UAT'] = client_home + subdir_css + ddy_mystudio_CSS['UAT_FILE']
-ddy_mystudio_CSS['FULL_PATH_PROD'] = client_home + subdir_css + ddy_mystudio_CSS['PROD_FILE']
+ddy_mystudio_CSS['FULL_PATH_UAT'] = client_home + uat_dir + css_dir + ddy_mystudio_CSS['UAT_FILE']
+ddy_mystudio_CSS['FULL_PATH_PROD'] = client_home + prod_dir + css_dir + ddy_mystudio_CSS['PROD_FILE']
 ddy_mystudio_CSS_UAT = client_home + ddy_mystudio_CSS['UAT_FILE']
 ddy_mystudio_CSS_PROD = client_home + ddy_mystudio_CSS['PROD_FILE']
 ddy_file_data.append(ddy_mystudio_CSS)
