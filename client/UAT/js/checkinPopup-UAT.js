@@ -30,7 +30,7 @@
 		</div>
 
         <!-- Placeholder HTML table for student check-in list - populated by DataTable() -->    
-        <div id="checkin_table_div">
+        <div id="checkin_table_div" class="checkin-table-head">
             <table id="checkin_table" class="display table">
                 <thead>
                     <tr>
@@ -567,7 +567,7 @@ $( async () => {
             
             // Populate instructor dropdown menu
             var $dropdown = $('#teacher_checkin_dropdown');
-            var func = "clients";
+            var func = "teachers";
             populateDropdown($dropdown, instructors, func);
         } else {
             console.log('INIT APPTS TABLE: Instructors array already populated, skipping instructor capture.');
@@ -875,7 +875,7 @@ $( async () => {
             title: 'Register Walk-in Student',
             body: `<div id="search_student_div" class="margin-small sqsp-font">
                         <form id="search_student" action="" method="post">  
-                            <label for="search_student" class="sqsp-font"><b>Enter Your Name: </b></label>
+                            <label for="search_student" class="sqsp-font"><b>Search Name / Phone / Email: </b></label>
                             <input type="search" name="search_student_form" id="search_student_form" />
                             <input type="submit" name="search_submit" id="search_submit" class="sqsp-font" value="Search" />			
                         </form>

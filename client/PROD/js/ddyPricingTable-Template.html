@@ -411,16 +411,16 @@ hr {
         <!-- YEARLY PRICING -->
         <div class="yearly-text">
           <div class="pricing-price-block">
-            <a class="pricing-price"><span class="fancy-strike">$239</span><br>$199<span class="pricing-price-small">.... / mo.. / 月....<br>....Total $2,399 billed annually..每年支付 $2,399....<br></span></a>
+            <a class="pricing-price"><span class="fancy-strike gold-yearly-strike">$239</span><br><span class="gold-yearly-price">$199</span><span class="pricing-price-small">.... / mo.. / 月....<br>....Total <span class="gold-yearly-total">$2,399</span> billed annually..每年支付 <span class="gold-yearly-total">$2,399</span>....<br></span></a>
             <a id="gold-yearly" href="#" target="_blank" class="acuity-embed-button pricing-button is-featured-gold">....Buy Now..购买年卡....</a>
           </div>
         </div>
         <!-- MONTHLY PRICING -->
         <div class="monthly-text hide">
           <div class="pricing-price-block">
-            <a class="pricing-price">$239<span class="pricing-price-small">.... / mo.. / 月....<br>....6 Months Minimum Commitment..最少承诺6个月....<br></span></a>
+            <a class="pricing-price"><span class="gold-monthly-price">$239</span><span class="pricing-price-small">.... / mo.. / 月....<br>....6 Months Minimum Commitment..最少承诺6个月....<br></span></a>
             <a id="gold-monthly" href="#" target="_blank" class="acuity-embed-button pricing-button-gold">....Buy Now..购买月卡....</a>
-          </div>          
+          </div>
         </div>
       </div>
 
@@ -435,7 +435,7 @@ hr {
         <!-- 16 CLASS -->
         <div class="yearly-text">
           <div class="pricing-price-block">
-            <a class="pricing-price pricing-price-medium">....16 Classes $419..16节课程 $419....<br><span class="pricing-price-small">....Good for 4 months..4个月有效期....<br></span>....8 Classes $259..8节课程 $259....<br><span class="pricing-price-small">....Good for 2 months..2个月有效期....<br></span></a>
+            <a class="pricing-price pricing-price-medium">....16 Classes <span class="16-class-price">$419</span>..16节课程 <span class="16-class-price">$419</span>....<br><span class="pricing-price-small">....Good for 4 months..4个月有效期....<br></span>....8 Classes <span class="8-class-price">$259</span>..8节课程 <span class="8-class-price">$259</span>....<br><span class="pricing-price-small">....Good for 2 months..2个月有效期....<br></span></a>
             <a id="16-class-yearly" href="#" target="_blank" class="acuity-embed-button pricing-button is-featured">....16 Class..16课程....</a>
             <a id="8-class-yearly" href="#" target="_blank" class="acuity-embed-button pricing-button is-featured">....8 Class..8课程....</a>
           </div>
@@ -443,7 +443,7 @@ hr {
         <!-- 8 CLASS -->
         <div class="monthly-text hide">
           <div class="pricing-price-block">
-            <a class="pricing-price pricing-price-medium">....16 Classes $419..16节课程 $419....<br><span class="pricing-price-small">....Good for 4 months..4个月有效期....<br></span>....8 Classes $259..8节课程 $259....<br><span class="pricing-price-small">....Good for 2 months..2个月有效期....<br></span></a>
+            <a class="pricing-price pricing-price-medium">....16 Classes <span class="16-class-price">$419</span>..16节课程 <span class="16-class-price">$419</span>....<br><span class="pricing-price-small">....Good for 4 months..4个月有效期....<br></span>....8 Classes <span class="8-class-price">$259</span>..8节课程 <span class="8-class-price">$259</span>....<br><span class="pricing-price-small">....Good for 2 months..2个月有效期....<br></span></a>
             <a id="16-class-monthly" href="#" target="_blank" class="acuity-embed-button pricing-button">....16 Class..16课程....</a>
             <a id="8-class-monthly" href="#" target="_blank" class="acuity-embed-button pricing-button">....8 Class..8课程....</a>
           </div>
@@ -456,8 +456,8 @@ hr {
 <script type="text/javascript">
 
   // Set location
-  var loc = 'tanjongPagar';
-  var locPretty = 'Tanjong Pagar';
+  var loc = 'lavender';
+  var locPretty = 'Lavender';
 
   // Populate location div
   var $locElement = $('#location');
@@ -498,18 +498,49 @@ hr {
       eightClassPackage: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=971457',
       sixteenClassPackage: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=1000072'
     },
+    lavender: {
+      silverMonthly: '#',
+      silverYearly: '#',
+      goldMonthly: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=1034420',
+      goldYearly: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=1034422',
+      eightClassPackage: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=1034424',
+      sixteenClassPackage: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=1034421'
+    },
     tanjongPagar: {
       silverMonthly: '#',
       silverYearly: '#',
       goldMonthly: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=1013679',
       goldYearly: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=969797',
       eightClassPackage: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=1017518',
-      sixteenClassPackage: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=1013680'
+      sixteenClassPackage: 'https://app.acuityscheduling.com/catalog.php?owner=15731779&action=addCart&clear=1&id=1013680',
+      goldYearlyPrice: '$225',
+      goldMonthlyPrice: '$269',
+      goldYearlyTotal: '$2699',
+      goldYearlyStrike: '$269',
+      sixteenClassPrice: '$498',
+      eightClassPrice: '$298'
     }
   }
 
+  // Add adjusted prices for Dream360
+  if (loc === 'tanjongPagar') {
+    let $goldYearlyStrike = $('.gold-yearly-strike'),
+        $goldYearlyTotal = $('.gold-yearly-total'),
+        $goldYearlyPrice = $('.gold-yearly-price'),
+        $goldMonthlyPrice = $('.gold-monthly-price'),
+        $16classPrice = $('.16-class-price'),
+        $8classPrice = $('.8-class-price');
+
+    $goldYearlyStrike.text(ddyURLs[loc].goldYearlyStrike);
+    $goldYearlyTotal.text(ddyURLs[loc].goldYearlyTotal);
+    $goldYearlyPrice.text(ddyURLs[loc].goldYearlyPrice);
+    $goldMonthlyPrice.text(ddyURLs[loc].goldMonthlyPrice);
+    $16classPrice.text(ddyURLs[loc].sixteenClassPrice);
+    $8classPrice.text(ddyURLs[loc].eightClassPrice);
+  }
+
   // Populate href attr values with proper URL
-  var $8classMonthly = $('#8-class-monthly'),
+  let $8classMonthly = $('#8-class-monthly'),
       $16classMonthly = $('#16-class-monthly'),
       $8classYearly = $('#8-class-yearly'),
       $16classYearly = $('#16-class-yearly'),
@@ -527,7 +558,7 @@ hr {
   $goldYearly.attr('href', ddyURLs[loc].goldYearly);
   $goldMonthly.attr('href', ddyURLs[loc].goldMonthly);
   
-  var $yearlyFilter = $('#filt-yearly'),
+  let $yearlyFilter = $('#filt-yearly'),
       $monthlyFilter = $('#filt-monthly'),
       $switcher = $('#switcher'),
       $yearlyText = $('.yearly-text'),

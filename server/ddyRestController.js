@@ -23,7 +23,7 @@ const stripeTest = require('stripe')(stripeSecretTest);
 const stripe = require('stripe')(stripeSecretLive);
 
 // Version
-const ddyRestControllerVersion = '2.2.2';
+const ddyRestControllerVersion = '2.2.5';
 
 // DEBUG mode
 const debug = true;
@@ -58,9 +58,11 @@ const xeroTenantIds = {};
 xeroTenantIds.taiSengSoleProp = '179403c3-ae56-49d2-aead-0f5d9b309721';
 xeroTenantIds.taiSeng = 'd6aa2084-d5d6-4224-a8f7-21d1cd9a7aa1';
 xeroTenantIds.jurongEast = 'af44f83f-37d5-4099-b536-7dfb5cb96c9a';
-xeroTenantIds.commonwealth = '06f2d4f9-d6e0-4319-b8bb-1722bdd5cda0';
+xeroTenantIds.commonwealthOLD = '06f2d4f9-d6e0-4319-b8bb-1722bdd5cda0';
+xeroTenantIds.commonwealth = '6dd8240e-40d3-49a8-8240-a5ac75fe3231';
 xeroTenantIds.dhobyGhaut = 'b890d0c9-6679-42dd-86da-d93d5a5d96d8';
 xeroTenantIds.tanjongPagar = 'a765da37-ad87-4a99-81f6-e5974161fbac';
+xeroTenantIds.lavender = '0d37cd4f-bb36-4f12-b102-b5575eb2d843';
 
 // Store Xero bank account IDs (retrieved from Xero UI) for each studio location
 const xeroTaiSeng = {
@@ -73,9 +75,14 @@ const xeroJurongEast = {
     cash: '460A0BFF-52F5-46FB-8318-87722D9E4DEF'
 }
 
-const xeroCommonwealth = {
+const xeroCommonwealthOLD = {
     mainBank: 'FB20DE6C-927F-47CE-BE6E-3C95A796A5D0',
     cash: '8EC723A4-F0EB-462F-91EA-E8D4F40B5C8A'
+}
+
+const xeroCommonwealth = {
+    mainBank: 'C5A6516D-A55F-47EF-952A-2E7CE6873C5A',
+    cash: '7502d965-022c-476d-bac4-dddbb8f4feea'
 }
 
 const xeroDhobyGhaut = {
@@ -86,6 +93,11 @@ const xeroDhobyGhaut = {
 const xeroTanjongPagar = {
     mainBank: '4C260FE6-4272-4259-90C8-AD23556B3A6B',
     cash: '92E15602-5E96-4D96-9101-4DA98CCEC282'
+}
+
+const xeroLavender = {
+    mainBank: 'C6A09301-D179-4719-ACFC-FB347D8A1EEB',
+    cash: '52D319EE-7D6C-41F8-BC2D-B91C8F55A41F'
 }
 // **** END XERO INFO ****
 
@@ -488,6 +500,10 @@ async function createXeroInvoice(params, reqFunc) {
             xeroActiveTenantId = xeroTenantIds.tanjongPagar;
             var xeroLocation = 'tanjong-pagar';
             break;
+        case 'lavender':
+            xeroActiveTenantId = xeroTenantIds.lavender;
+            var xeroLocation = 'lavender';
+            break;
         default:
             // Set to Tai Seng by default
             xeroActiveTenantId = xeroTenantIds.taiSeng;
@@ -704,6 +720,9 @@ async function createXeroInvoice(params, reqFunc) {
 
             // Update Xero results object to remove unnecessary data
             xeroResult = xeroResult.response.body;
+            if (debug) {
+                console.log('DEBUG: Xero invoice creation result:', xeroResult);
+            }
 
             xeroResult.xeroInvoiceStatus = true;
             xeroResult.xeroInvoiceStatusMessage = `XERO (${locationPretty}): Invoice created SUCCESSFULLY`;
@@ -810,6 +829,9 @@ async function xeroApplyPayment(xeroInvoice, requestParams) {
             break;
         case 'tanjong-pagar':
             var xeroAccounts = xeroTanjongPagar;
+            break;
+        case 'lavender':
+            var xeroAccounts = xeroLavender;
             break;
         default:
             console.log('ERROR: Studio location not defined');

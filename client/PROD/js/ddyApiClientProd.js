@@ -224,23 +224,23 @@
 				</div>
 			</div>
 			
-			<!-- STUDIO METRICS DATA-->
+			<!-- DDY MEMBER + STUDIO METRICS DATA -->
 			<div id="studio_metrics_data_div" class="studio-metrics hide">
 				<br><hr>
 				<div id="ddy_member_div" class="ddy-member-cards">
-					<a id="ddy_card_total_href" href="#" target=_blank>
+					<a id="ddy_card_total_href">
 						<div id="ddy_total_member_div">
 							<div id="ddy_card_total" class="ddy-card ddy-card-maroon"></div>
 						</div>
 					</a>
 					
-					<a id="ddy_card_gold_href" href="#" target=_blank>
+					<a id="ddy_card_gold_href">
 						<div id="ddy_gold_member_div">
 							<div id="ddy_card_gold" class="ddy-card ddy-card-gold"></div>
 						</div>
 					</a>
 					
-					<a id="ddy_card_silver_href" href="#" target=_blank>
+					<a id="ddy_card_silver_href">
 						<div id="ddy_silver_member_div">
 							<div id="ddy_card_silver_dance" class="ddy-card ddy-card-silver"></div>
 							<div id="ddy_card_silver_yoga" class="ddy-card ddy-card-silver"></div>
@@ -248,7 +248,7 @@
 						</div>
 					</a>
 					
-					<a id="ddy_card_package_href" href="#" target=_blank>
+					<a id="ddy_card_package_href">
 						<div id="ddy_package_member_div">
 							<div id="ddy_card_yoga_8" class="ddy-card ddy-card-green"></div>
 							<div id="ddy_card_yoga_16" class="ddy-card ddy-card-green"></div>
@@ -257,8 +257,24 @@
 							<div id="ddy_card_dance_and_yoga_8" class="ddy-card ddy-card-green"></div>
 							<div id="ddy_card_dance_and_yoga_16" class="ddy-card ddy-card-green"></div>
 							<div id="ddy_card_dance_and_yoga_1_year" class="ddy-card ddy-card-green"></div>
+							<div id="ddy_card_other" class="ddy-card ddy-card-green"></div>
 						</div>
 					</a>
+
+					<div id="ddy_member_report_details_table_div" class="instructor-table">
+						<!-- Placeholder HTML table for DDY member report details - populated by DataTable() -->    
+						<table id="ddy_member_report_details_table" class="display table">
+							<caption><h3 class="center"><strong>....DDY Member Details..DDY会员详情....<hr></h3></strong></caption>
+							<thead>
+								<tr>
+									<th>....Email..邮箱....</th>
+									<th>....Package Type..PACKAGE TYPE....</th>
+									<th>....Certificate..CERTIFICATE....</th>
+									<th>....Expiry..EXPIRY....</th>
+								</tr>
+							</thead>
+						</table>
+					</div>
 				</div>
 				
 				<div id="studio_metrics_data_charts_div" class="ddy-member-cards hide">
@@ -477,7 +493,8 @@
 					locations = await retrieveLocations(locations, $revealedElements);
 
 					// Add ad-hoc all studios entry to second index to retrieve report for ALL studios
-					$('#select_location_dropdown option').eq(1).before($('<option value="all_locations">ALL Locations</option>'));
+					// TEMP REMOVE - takes too long - need to figure out caching before re-enabling this
+					// $('#select_location_dropdown option').eq(1).before($('<option value="all_locations">ALL Locations</option>'));
 
 					// EVENT: REFRESH DDY MEMBER REPORT button click
 					$('#ddy_member_report_title').on('click', async (e) => {
@@ -503,7 +520,8 @@
 					locations = await retrieveLocations(locations, $revealedElements);
 
 					// Add ad-hoc all studios entry to second index to retrieve report for ALL studios
-					$('#select_location_dropdown option').eq(1).before($('<option value="all_locations">ALL Locations</option>'));
+					// TEMP REMOVE - takes too long - need to figure out caching before re-enabling this
+					// $('#select_location_dropdown option').eq(1).before($('<option value="all_locations">ALL Locations</option>'));
 					
 					// Reveal datepicker
 					var $element = $('#studio_metrics_div');
@@ -707,11 +725,11 @@
 					break;
 				default:
 					// Populate products / classes array if not populated already
-					products = await retrieveProductsClasses(action, products, productsArrayContains);
+					products = await retrieveProductsClasses(action, products);
 
-					// Update value of contents of products array
-					productsArrayContains = 'products';	
-					if (action === 'buy_class_top') { productsArrayContains = 'classes'; }
+					// Update value of contents of products array - TO BE REMOVED 3 LINES
+					// productsArrayContains = 'products';
+					// if (action === 'buy_class_top') { productsArrayContains = 'classes'; }
 
 					// If successful, filter for selected action and location and populate dropdown
 					if (products) {
@@ -1140,7 +1158,7 @@
 					console.log('DDY Instructors list: ', ddyInstructors);
 					
 					// Populate employee commission dropdown with list of DDY instructors
-					var func = "clients";
+					var func = "teachers";
 					populateDropdown($commissionDropdown, ddyInstructors, func);
 					
 					// Prepend "Select One" to top of dropdown

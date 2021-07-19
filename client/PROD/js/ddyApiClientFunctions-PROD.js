@@ -1,6 +1,6 @@
 // Setup script
 const environment = 'PROD';
-const version = '2.2.8';
+const version = '2.3.4';
 var ddyToken = null;
 
 // Set API host
@@ -11,12 +11,16 @@ var apiHostPROD = 'https://api.dreamdanceyoga.com:3443/api/ddy'; // AWS PROD
 
 // Set DDY bank details for confirmation messages
 var ddyTSBankDetails = 'Standard Chartered 0103356754 / PayNow UEN 202020660H';
+var ddyDGBankDetails = 'Standard Chartered 0108318346 / PayNow UEN 202101401W';
+var ddyCWBankDetails = 'Standard Chartered XXXXXXXX (Xu Jing - BANK DETAILS TBC) / PayNow Phone: 8399-1115';
 var ddyJEBankDetails = 'DBS 0720281675 / PayNow UEN 202027826G';
-var ddyTGBankDetails = 'UOB 4283759347 (Sun Dandan) / PayNow Phone: 9616-7189';
+var ddyTPBankDetails = 'UOB 4283759347 (Sun Dandan) / PayNow Phone: 9616-7189';
+var ddyLavBankDetails = 'DBS 0720305531 / PayNow UEN: 53423812B';
 var ddyCashPaymentXferMsg = `<hr><span class="confirm-final"><strong>....** NOTE: If cash payment, please transfer to bank ASAP **..** 注意：如果以现金付款，请尽快转帐至银行 **....</strong></span><br>
-                            <strong>DDY Tai Seng / Peace Centre Bank:</strong> ${ddyTSBankDetails}<br>
-                            <strong>DDY Jurong East / Commonwealth Bank:</strong> ${ddyJEBankDetails}<br>
-                            <strong>DDY Tanjong Pagar Bank:</strong> ${ddyTGBankDetails}`
+                            <strong>DDY Tai Seng Bank:</strong> ${ddyTSBankDetails}<br>
+                            <strong>DDY Dhoby Ghaut Bank:</strong> ${ddyDGBankDetails}<br>
+                            <strong>DDY Commonwealth Bank:</strong> ${ddyCWBankDetails}<br>
+                            <strong>DDY Lavender Bank:</strong> ${ddyLavBankDetails}`
 
 // Debug mode
 var debug = false;
@@ -172,6 +176,12 @@ async function initApiCall(func, activity, reqParams) {
                     };
                     break;
                 case 'getApptsByDateRange':                    
+                    // **** FIX
+                    // HERE HERE HERE to fix appointment date range timeout issues
+                    // Add a check for date range greater than 30 days
+                    // If greater than 30, break into multiple calls and append to array
+                    // **** END FIX
+
                     var minDate = reqParams[0];
                     var maxDate = reqParams[1];
                     minDate = $.datepicker.formatDate('mm/dd/yy', minDate);
@@ -354,17 +364,70 @@ async function initApiCall(func, activity, reqParams) {
                         console.log(selected_client);
                         console.log(`client email is ${client_email}`);
                     }				
-                    params = {		
+                    params = {
                         email: client_email
                     };
                     break;
                 case 'retrieveCertificatesByEmail':
-                    var client_email = reqParams;                    	
-                    params = {		
+                    var client_email = reqParams;
+                    params = {
                         email: client_email
                     };
                     break;
+                case 'retrieveCertificatesByProductID':
+                    var productID = reqParams.productID;
+                    params = {
+                        productID
+                    };
+                    break;
                 case 'retrieveAllCertificates':
+                    // Retrieve all certificates - cannot do all at once due to gateway timeout
+                    // Retrieve list of all products to iterate and retrieve certs from selected location products
+                    
+                    // Get location
+                    let selectedLocation = retrieveSelectedLocation();
+                    console.log(`RETRIEVE ALL CERTIFICATES: Selected Location: ${selectedLocation}`);
+
+                    let action = 'ddyMemberReport';
+                    let allProducts = await retrieveProductsClasses(action, products = []);
+                    console.log(`RETRIEVE ALL CERTIFICATES: Result of All Products call: ${allProducts.length} products total:`, allProducts);
+
+                    // Initalize array to hold all certificates
+                    let allCertsConcat = [];
+
+                    // Loop through products array and retrieve list of certs for each product ID
+                    // Don't use forEach here because it doesn't return anything
+                    let count = 0;
+                    for (let product of allProducts) {
+                        // Add check for location, if not current location then skip to next product
+                        // Assumes TS package if no '@' in the product name (special case)
+                        if (selectedLocation === 'Tai Seng') {
+                            if ((product.name.includes('@')) && (!product.name.includes(selectedLocation))) { continue }
+                        } else if (!product.name.includes(selectedLocation)) { continue }
+
+                        // Retrieve product ID from object and increment counter
+                        productID = product.id;
+                        count++;
+                        console.log(`RETRIEVE ALL CERTIFICATES: Retrieving certs for Product ID #${count}: ${productID}`);
+                        
+                        // Retrieve certificates for product ID
+                        var funcType = "certificates_get";
+                        var activity = "retrieveCertificatesByProductID";
+                        params = {
+                            productID
+                        };
+                        let certsForId = await initApiCall(funcType, activity, params);
+                        
+                        // Concatenate result to allCerts array to populate array of all certificates
+                        console.log(`RETRIEVE ALL CERTIFICATES: Concatenating certs for Product ID: ${productID}`, certsForId);
+                        if (Array.isArray(certsForId) && certsForId.length > 0) {
+                            allCertsConcat = allCertsConcat.concat(certsForId);
+                        }
+                    }
+
+                    // Return concatenated array of all certificates to calling function
+                    console.log(`RETRIEVE ALL CERTIFICATES: Returning concatenated array of certificates for ${selectedLocation}:`, allCertsConcat);
+                    return allCertsConcat;
                     break;
                 default:
                     return 'Activity not defined';
@@ -499,7 +562,9 @@ async function initApiCall(func, activity, reqParams) {
         console.log(`INIT API CALL: Starting API call: ${func}`);
         console.log(`INIT API CALL: Selected location: ${selectedLocation}`);
         console.log('INIT API CALL: Params:', params);
-        return await callAPI(funcToCall, params, ddyToken);
+        if (funcToCall !== 'NULL') {
+            return await callAPI(funcToCall, params, ddyToken);
+        }
     } catch(e) {
         console.log(`ERROR: Error returned from callAPI function: ${func}`);
         console.error(e);
@@ -586,7 +651,7 @@ async function callAPI(func, params, ddyToken) {
                     writeMessage('debug', `<br><b>API CALL COMPLETE</b><br>Function: ${func}`);						
                 }
             },
-            timeout: 120000
+            timeout: 600000
         });
         return result;
     } catch (e) {
@@ -604,8 +669,14 @@ function populateDropdown($drop, data, func) {
     // Populate dropdown with values from data array
     switch(func) {
         case 'clients':
+        case 'teachers':
             $.each(data, (i, val) => {
-                $drop.append($('<option>').text(`${data[i].firstName} ${data[i].lastName}`).attr('value', `${data[i].firstName} ${data[i].lastName}`));
+                // Don't populate teacher phone and email when populating teachers dropdown (for check-in table, commission, etc)
+                if (func === 'teachers') {
+                    $drop.append($('<option>').text(`${data[i].firstName} ${data[i].lastName}`).attr('value', `${data[i].firstName} ${data[i].lastName}`));
+                } else {
+                    $drop.append($('<option>').text(`${data[i].firstName} ${data[i].lastName} | Phone: ${data[i].phone} | Email: ${data[i].email}`).attr('value', `${data[i].firstName} ${data[i].lastName}`));
+                }
             });
             break;
         case 'products':
@@ -746,9 +817,16 @@ function retrieveSelectedLocation() {
 
 // FUNCTION: retrieveProductsClasses()
 // 1. Retrieve products or appointments based on action and return to calling function
-async function retrieveProductsClasses(action, products, productsArrayContains) {
+async function retrieveProductsClasses(action, products) {
+    // Capture whether products array contains products or classes
+    if (products.length > 0) {
+        var productsArrayContains = 'calendarIDs' in products[0] ? 'classes' : 'products';
+        console.log(`RETRIVE PRODUCTS/CLASSES: Product array contains: ${productsArrayContains}`);
+    }
+    
     // Capture action from top page
     switch (action) {
+        // Actions that require array to contain classes
         case 'buy_single_class_top':
         case 'book_private_class_top':
         case 'buy_class_top':
@@ -759,7 +837,10 @@ async function retrieveProductsClasses(action, products, productsArrayContains) 
             }
             var funcType = "appointment-types_get";
             break;
+        
+        // Actions that require array to contain products
         case 'buy_package_top':
+        case 'ddyMemberReport':
             // Check the contents of products array and clear array if necessary to re-populate with products or classes
             if (productsArrayContains === 'classes') {
                 console.log('RETRIVE PRODUCTS/CLASSES: Product array contains CLASSES, resetting...');
@@ -767,6 +848,10 @@ async function retrieveProductsClasses(action, products, productsArrayContains) 
             }
             var funcType = "products_get";
             break;
+        
+        default:
+            console.warn('WARNING: RETRIVE PRODUCTS/CLASSES: Action not defined, populating with products by default');
+            var funcType = "products_get";
     }
 
     // If not populated already, retrieve products or appointments
@@ -789,7 +874,7 @@ async function retrieveProductsClasses(action, products, productsArrayContains) 
             return false;
         }
     } else {
-        console.log('RETRIEVE PRODUCTS: Products array already populated');
+        console.log('RETRIEVE PRODUCTS/CLASSES: Products/classes array already populated');
     }
 
     return products;
@@ -978,7 +1063,7 @@ async function retrieveStudents(checkIn) {
                 var message = { 
                     title: 'Student Not Found',
                     body: `<div class="center"><strong>Student not found!</strong></div>
-                            <strong>NOTE:</strong> Use "Firstname Lastname" to search your name.<br>
+                            <strong>NOTE:</strong> Please search using <strong>FIRST NAME</strong> first.<br>
                             If not found, please check with Dream Dance and Yoga staff to register.`
                 };
             } else {
@@ -1639,6 +1724,7 @@ async function initPurchase(action, products, clients) {
                 
                 // Grab teacher name from dropdown to store employee name for commission - will put this in the certificate field
                 // This data will be scraped from the order page later to record for teacher commission using Zapier (when I get around to it)
+                // Update - I got around to it
                 var soldBy = $('#employee_commission_dropdown option:selected').text();
                 soldBy = soldBy.replace(/\s+/g,'-').toUpperCase();
                 
@@ -3093,7 +3179,10 @@ function validateEmail(email) {
 async function getDdyMembers(allCertificates, $revealedElements) {
     let ddyMemberReport_t0 = performance.now();
     var allCerts = allCertificates;
-    if (allCerts.length === 0) {
+    // if (allCerts.length === 0) {
+    // TEMP - remove caching functionality due to logic change for certificate retrieval
+    // Update later to only retain certs for each location in a cache and refer to cache if requested again
+    if (true) {
         try {
             // Retrieve all certificates
             var funcType = "certificates_get";
@@ -3149,6 +3238,8 @@ async function getDdyMembers(allCertificates, $revealedElements) {
     var packageDanceAndYoga8 = 0;
     var packageDanceAndYoga16 = 0;
     var packageDanceAndYoga1Year = 0;
+    var totalMembers = 0;
+    var totalRecurringMembers = 0;
     var otherCerts = [];
     var today = new Date();
 
@@ -3159,17 +3250,24 @@ async function getDdyMembers(allCertificates, $revealedElements) {
         if (certExpiry < today) {
             expiredCerts++;
         } else {
+            // **** FIX HERE
+            // ADD VALID CERTS TO A NEW ARRAY - DO NOT DISPLAY EXPIRED CERTS IN TABLE
             validCerts++;
             var certType = val.name;
             if (!certType.includes('COVID')) {
+                totalMembers++;
                 if (certType.includes('GOLD')) {
                     goldMembers++;
+                    totalRecurringMembers++;
                 } else if (certType.includes('Silver') && certType.includes('Bellydance')) {
                     silverDance++;
+                    totalRecurringMembers++;
                 } else if (certType.includes('Silver') && certType.includes('Dance and Yoga')) {
                     silverDanceAndYoga++;
+                    totalRecurringMembers++;
                 } else if (certType.includes('Silver') && certType.includes('Yoga')) {
                     silverYoga++;
+                    totalRecurringMembers++;
                 } else if (certType.includes('Package') && certType.includes('Bellydance 8 Class')) {
                     packageDance8++;
                 } else if (certType.includes('Package') && (certType.includes('Bellydance 16 Class') || certType.includes('Bellydance 16+8 Class'))) {
@@ -3195,12 +3293,14 @@ async function getDdyMembers(allCertificates, $revealedElements) {
     console.log('DDY Member Report total function took: ', (ddyMemberReport_t2 - ddyMemberReport_t0) / 1000, ' seconds');
 
     // Calculate total number of members in each category
-    var totalMembers = goldMembers + silverYoga + silverDance + silverDanceAndYoga;
+    // var totalMembers = goldMembers + silverYoga + silverDance + silverDanceAndYoga;
     console.log(`POPULATE DDY INFO: Valid certs: ${validCerts}`);
     console.log(`POPULATE DDY INFO: Expired certs: ${expiredCerts}`);
+    console.log(`POPULATE DDY INFO: Total recurring members: ${totalRecurringMembers}`);
 
     // Store links to acuity to drilldown to more details for each box
     // FUTURE - finish populating this later
+    /*
     var ddyAcuityURLs = {
         'Tai Seng': {
             allMembers: 'https://secure.acuityscheduling.com/products.php',
@@ -3288,6 +3388,7 @@ async function getDdyMembers(allCertificates, $revealedElements) {
 
     var $element = $('#ddy_card_package_href');
     $element.attr('href', ddyAcuityURLs[selectedLocation].packageMembers);
+    */
 
     // Populate DDY info element
     var $element = $('#ddy_card_total');
@@ -3350,10 +3451,35 @@ async function getDdyMembers(allCertificates, $revealedElements) {
                     <div class="ddy-card-text">${packageDanceAndYoga1Year}</div>
                     <div class="ddy-card-subtext">As of today</div>`);
 
+    var $element = $('#ddy_card_other');
+    $element.html(`<div class="ddy-card-heading">PACKAGES<br>OTHER</div>
+                    <div class="ddy-card-text">${otherCerts.length}</div>
+                    <div class="ddy-card-subtext">As of today</div>`);
+
     // Reveal DDY member report div and put focus
     var $element = $('#studio_metrics_data_div');
     $revealedElements = revealElement($element, $revealedElements);
     window.location.hash = '#studio_metrics_data_div';
+
+    // Build DDY Member details table with DataTables
+    var DDYMemberReportDetailsTable = $('#ddy_member_report_details_table').DataTable({
+        "data": certsForLocation,
+        "pageLength": 50,
+        "order": [[0, 'asc']],
+        "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+        dom: 'lfrtipB',
+        buttons: [{ extend: 'excel', text: '<strong>Export to Excel</strong>'}],
+        destroy: true,
+        columnDefs: [
+            { targets: 2, type: "date"},
+        ],
+        "columns": [
+            { "data": "email"},
+            { "data": "name"},
+            { "data": "certificate"},
+            { "data": "expiration"}
+        ]
+    });
 
     return allCerts;
 }
